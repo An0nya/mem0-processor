@@ -36,9 +36,14 @@ const CONFIG = {
   //   model: "google/gemma-3-12b",
   //   endpoint: "http://localhost:1234/v1",
   // },
+  //summarizer: {
+  //  provider: "lmstudio",
+  //  model: "qwen/qwen3-4b-thinking-2507",
+  //  endpoint: "http://localhost:1234/v1",
+  //},
   summarizer: {
     provider: "lmstudio",
-    model: "qwen/qwen3-4b-thinking-2507",
+    model: "qwen3.5-9b-optiq",
     endpoint: "http://localhost:1234/v1",
   },
   // summarizer: {
@@ -56,7 +61,7 @@ const CONFIG = {
   infer: process.env.INFER !== "false",
   minMessages: 20,
   toolResultMaxChars: 1000,
-  transcriptMaxChars: 150000,
+  transcriptMaxChars: 200000,
 };
 
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
@@ -244,6 +249,7 @@ async function summarizeSession(transcript) {
   }
 
   if (CONFIG.summarizer.provider === "lmstudio") {
+    const t0 = Date.now();
     const response = await fetch(
       `${CONFIG.summarizer.endpoint}/chat/completions`,
       {
@@ -260,6 +266,9 @@ async function summarizeSession(transcript) {
       }
     );
     const data = await response.json();
+    const elapsed = (Date.now() - t0) / 1000;
+    const tps = data.usage.completion_tokens / elapsed;
+    console.log(`  ⚡ ${tps.toFixed(1)} tok/s (${data.usage.completion_tokens} tokens)`);
     let content = data.choices[0].message.content;
     content = content.replace(/<think>[\s\S]*?<\/think>/i, "").trim();
     return content;
