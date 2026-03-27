@@ -1,4 +1,4 @@
-// claude-code-mem0-uploader-v5.mjs
+// claude-code-mem0-uploader-v6.mjs
 //
 // Summarizes Claude Code session logs via a local or cloud LLM,
 // then uploads to Mem0 under a flat user_id namespace.
@@ -8,14 +8,25 @@
 //   - infer=true (default): Mem0 decomposes summaries into atomic facts.
 //     Set INFER=false env var to store summaries as single blobs instead.
 //   - POST /v1/memories/ is the correct add endpoint.
-//   - Per-model state files prevent race conditions when running two models
-//     in parallel. State file is auto-named by model slug.
-//   - LM Studio v0 API used at startup to get max_context_length per model.
-//     JIT loading is assumed ON — all downloaded models are considered usable.
-//   - tps pulled from LM Studio response stats object (more accurate than
-//     wall-clock calculation).
+//   - Per-model state files are intentional — same sessions can be run
+//     through multiple models for benchmarking without collision.
+//   - LM Studio v0 API used at startup to get loaded model + context length.
+//     If --model not given, defaults to whatever is currently loaded in LM Studio.
+//   - tps pulled from LM Studio v0 response stats object.
 //   - RAM sampled via os.freemem() during summarization (peak + avg).
-//   - Runs are logged to ~/.claude/mem0_logs/ as JSONL for later analysis.
+//   - Runs are logged to ~/.claude/mem0_logs/ as JSONL.
+//
+// v6 fixes vs v5:
+//   - BUG: tps always null — inference was hitting /v1/chat/completions but
+//     stats.tokens_per_second only exists on /api/v0/chat/completions.
+//     Fixed: lmstudio inference now uses /api/v0/chat/completions.
+//   - BUG: model default was hardcoded MODELS[0] (gemma) even when a
+//     different model was loaded in LM Studio. listLoadedModels() existed
+//     in v5 but was never called from selectModel(). Fixed: --model-less
+//     runs now query /api/v0/models?state=loaded and use the first result,
+//     matched against MODELS for provider info (defaults to lmstudio if
+//     unknown). State file and summary cache will now be named after the
+//     actual running model instead of silently defaulting to gemma.
 
 import fs from "fs";
 import path from "path";
@@ -23,8 +34,6 @@ import os from "os";
 import Anthropic from "@anthropic-ai/sdk";
 
 // ─── MODEL REGISTRY ──────────────────────────────────────────────
-// All non-junk models worth benchmarking. Select with --model <partial-id>.
-// First entry is the default if --model not specified.
 const MODELS = [
   { id: "google/gemma-3-12b",                              provider: "lmstudio" },
   { id: "qwen3.5-9b-optiq",                                provider: "lmstudio" },
@@ -35,6 +44,7 @@ const MODELS = [
   { id: "microsoft/phi-4-reasoning-plus",                  provider: "lmstudio" },
   { id: "mistralai_ministral-3-14b-instruct-2512-mlx",     provider: "lmstudio" },
   { id: "meta-llama-3.1-8b-instruct",                      provider: "lmstudio" },
+  { id: "qwen/qwen3-8b",                    		   provider: "lmstudio" },
   { id: "claude-haiku-4-5-20251001",                       provider: "anthropic" },
 ];
 
@@ -49,8 +59,6 @@ const CONFIG = {
   infer: process.env.INFER !== "false",
   minMessages: 20,
   toolResultMaxChars: 1000,
-  // Sessions with transcripts above this char count are skipped by default.
-  // Override with --force-truncate to truncate-and-process instead.
   maxTranscriptChars: 180000,
 };
 
@@ -58,27 +66,51 @@ const PROJECTS_DIR  = path.join(os.homedir(), ".claude", "projects");
 const SUMMARIES_DIR = path.join(os.homedir(), ".claude", "mem0_summaries");
 const LOGS_DIR      = path.join(os.homedir(), ".claude", "mem0_logs");
 
-const DRY_RUN       = process.argv.includes("--dry-run");
+const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
 
 // ─── MODEL SELECTION ─────────────────────────────────────────────
-function selectModel() {
+async function selectModel() {
   const flag = process.argv.indexOf("--model");
   if (flag !== -1 && process.argv[flag + 1]) {
     const query = process.argv[flag + 1].toLowerCase();
     const match = MODELS.find((m) => m.id.toLowerCase().includes(query));
     if (!match) {
-      console.error(`No model matching "${query}" in registry. Available:\n${MODELS.map((m) => `  ${m.id}`).join("\n")}`);
+      console.error(
+        `No model matching "${query}" in registry. Available:\n${MODELS.map((m) => `  ${m.id}`).join("\n")}`
+      );
       process.exit(1);
     }
     return match;
   }
-  return MODELS[0];
+
+  // FIX (v6): actually call the loaded-models endpoint instead of hardcoding MODELS[0].
+  try {
+    const res = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/models?state=loaded`);
+    if (res.ok) {
+      const data = await res.json();
+      const loaded = data.data || [];
+      if (loaded.length > 0) {
+        const loadedId = loaded[0].id;
+        const registered = MODELS.find((m) => m.id === loadedId);
+        const model = registered ?? { id: loadedId, provider: "lmstudio" };
+        if (!registered) {
+          console.warn(`  ⚠ "${loadedId}" not in registry — assuming lmstudio provider. Add it to MODELS if you plan to run it regularly.`);
+        }
+        console.log(`Auto-detected loaded model: ${model.id}`);
+        return model;
+      }
+      console.warn("⚠ LM Studio reports no models currently loaded");
+    }
+  } catch {
+    // LM Studio not running or v0 unavailable
+  }
+
+  console.error("✗ No model loaded in LM Studio and no --model flag given. Load a model or pass --model <id>.");
+  process.exit(1);
 }
 
-// ─── STATE TRACKING ──────────────────────────────────────────────
-// Per-model state files prevent race conditions when running two models
-// concurrently in separate terminals.
+// ─── STATE TRACKING (per-model) ──────────────────────────────────
 function stateFilePath(modelId) {
   const slug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
   return path.join(os.homedir(), ".claude", `mem0_upload_state--${slug}.json`);
@@ -122,30 +154,20 @@ async function getModelInfo(modelId) {
   }
 }
 
-async function listLoadedModels() {
-  try {
-    const res = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/models?state=loaded`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.data || []).map((m) => m.id);
-  } catch {
-    return [];
-  }
-}
-
 // ─── SESSION DISCOVERY ───────────────────────────────────────────
 function findSessions() {
   const sessions = [];
   if (!fs.existsSync(PROJECTS_DIR)) return sessions;
-
   for (const projectDir of fs.readdirSync(PROJECTS_DIR)) {
     const projectPath = path.join(PROJECTS_DIR, projectDir);
     if (!fs.statSync(projectPath).isDirectory()) continue;
-
     for (const file of fs.readdirSync(projectPath)) {
       if (!file.endsWith(".jsonl")) continue;
-      const sessionId = path.basename(file, ".jsonl");
-      sessions.push({ sessionId, projectDir, filePath: path.join(projectPath, file) });
+      sessions.push({
+        sessionId: path.basename(file, ".jsonl"),
+        projectDir,
+        filePath: path.join(projectPath, file),
+      });
     }
   }
   return sessions;
@@ -264,12 +286,14 @@ async function summarizeSession(transcript, model) {
       system: SUMMARIZATION_PROMPT,
       messages: [{ role: "user", content: transcript }],
     });
-    // Anthropic SDK doesn't give tps; return null for those fields
     return { summary: response.content[0].text, tps: null, completionTokens: response.usage.output_tokens };
   }
 
   if (model.provider === "lmstudio") {
-    const response = await fetch(`${LMSTUDIO_ENDPOINT}/v1/chat/completions`, {
+    // FIX (v6): was /v1/chat/completions — that endpoint does NOT populate
+    // data.stats.tokens_per_second. The v0 endpoint does. This is why tps
+    // was always n/a in v5 despite the stats-parsing code being correct.
+    const response = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -288,7 +312,6 @@ async function summarizeSession(transcript, model) {
     }
 
     const data = await response.json();
-    // LM Studio v0 returns stats.tokens_per_second on the response object
     const tps = data.stats?.tokens_per_second ?? null;
     const completionTokens = data.usage?.completion_tokens ?? null;
     let summary = data.choices[0].message.content;
@@ -390,11 +413,10 @@ async function main() {
     process.exit(1);
   }
 
-  const model = selectModel();
+  const model = await selectModel();
   const state = loadState(model.id);
   const log   = openRunLog(model);
 
-  // Fetch model info from LM Studio v0 API (best-effort)
   let modelInfo = null;
   if (model.provider === "lmstudio") {
     modelInfo = await getModelInfo(model.id);
@@ -410,7 +432,7 @@ async function main() {
   }
 
   const effectiveMaxChars = modelInfo?.max_context_length
-    ? Math.min(CONFIG.maxTranscriptChars, Math.floor(modelInfo.max_context_length * 3.5)) // rough chars-per-token
+    ? Math.min(CONFIG.maxTranscriptChars, Math.floor(modelInfo.max_context_length * 3.5))
     : CONFIG.maxTranscriptChars;
 
   const sessions = findSessions();
