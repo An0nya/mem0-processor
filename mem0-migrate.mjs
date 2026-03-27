@@ -10,6 +10,7 @@ import os from "os";
 
 const MEM0_API_KEY = process.env.MEM0_API_KEY;
 const SOURCE_USER_ID = "anya";
+const TARGET_USER_ID = "anya-sessions";
 const UNKNOWN_DUMP = path.join(os.homedir(), ".claude", "mem0_migrate_unknown.json");
 const MIGRATED_LOG = path.join(os.homedir(), ".claude", "mem0_migrate_log.json");
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -80,12 +81,15 @@ async function discoverAllMemories() {
   for (const m of userMemories) seen.set(m.id, m);
 
   // 2. Fetch each run's memories (the hidden 222)
+  //    CRITICAL: user_id must be in the filter even for run-scoped queries.
+  //    The MCP auto-injects it, but the raw API scopes by Mem0-User-ID header
+  //    (an API key hash, not "anya"), so bare run_id filters match nothing.
   const runs = entities.results?.filter((e) => e.type === "run") ?? [];
   if (runs.length > 0) {
     console.log(`  Found ${runs.length} run entities, checking each...`);
     for (const run of runs) {
       const runMemories = await fetchAllV2(
-        { AND: [{ run_id: run.name }] },
+        { AND: [{ user_id: SOURCE_USER_ID }, { run_id: run.name }] },
         `run_id=${run.name.slice(0, 8)}…`
       );
       for (const m of runMemories) {
@@ -102,7 +106,7 @@ async function discoverAllMemories() {
   const agents = entities.results?.filter((e) => e.type === "agent") ?? [];
   for (const agent of agents) {
     const agentMemories = await fetchAllV2(
-      { AND: [{ agent_id: agent.name }] },
+      { AND: [{ user_id: SOURCE_USER_ID }, { agent_id: agent.name }] },
       `agent_id=${agent.name}`
     );
     for (const m of agentMemories) {
@@ -137,7 +141,7 @@ async function repostMemory(memory) {
 
   const body = {
     messages: [{ role: "user", content: memory.memory }],
-    user_id: SOURCE_USER_ID,
+    user_id: TARGET_USER_ID,
     // No agent_id, no run_id — flat namespace
     infer: false, // Store verbatim; these are already-processed facts
     metadata: newMetadata,
@@ -204,7 +208,7 @@ async function main() {
     console.log(`  → ${memory.id.slice(0, 8)}… [${scopeLabel}] "${memory.memory.slice(0, 60)}…"`);
 
     if (DRY_RUN) {
-      console.log(`    [DRY-RUN] Would re-post to user_id=${SOURCE_USER_ID}, then delete original`);
+      console.log(`    [DRY-RUN] Would re-post to user_id=${TARGET_USER_ID}, then delete original`);
       migrated++;
       continue;
     }
