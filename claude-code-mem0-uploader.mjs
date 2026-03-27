@@ -1,3 +1,17 @@
+// claude-code-mem0-uploader-v3.mjs
+//
+// Summarizes Claude Code session logs via a local or cloud LLM,
+// then uploads to Mem0 under a flat user_id namespace.
+//
+// KEY DESIGN DECISIONS (v3):
+//   - All memories go to user_id="anya_sessions" with NO run_id or agent_id.
+//     run_id created invisible namespace silos in v2; agent_id never
+//     actually bound. Session/model provenance lives in metadata.
+//   - infer=true (default) because the point is Mem0 decomposing
+//     summaries into atomic facts. Set INFER=false env var to store
+//     summaries as single blobs instead.
+//   - POST /v1/memories/ is the correct add endpoint (no v2 add exists).
+
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -5,46 +19,41 @@ import Anthropic from "@anthropic-ai/sdk";
 
 // ─── CONFIG ──────────────────────────────────────────────────────
 const CONFIG = {
-    /*summarizer: {
-      provider: "lmstudio",
-      model: "google/gemma-3-4b",
-      endpoint: "http://localhost:1234/v1",
-    },*/
-    /*summarizer: {
-      provider: "lmstudio",
-      model: "liquid/lfm2.5-1.2b",
-      endpoint: "http://localhost:1234/v1",
-    },*/
-    /*summarizer: {
-      provider: "lmstudio",
-      model: "microsoft/phi-4-mini-reasoning",
-      endpoint: "http://localhost:1234/v1",
-    },*/
-    /*summarizer: {
-      provider: "lmstudio",
-      model: "google/gemma-3-12b",
-      endpoint: "http://localhost:1234/v1",
-    },*/
-    summarizer: {
-      provider: "lmstudio",
-      model: "qwen/qwen3-4b-thinking-2507",
-      endpoint: "http://localhost:1234/v1",
-    },
-    /*summarizer: {
-      provider: "lmstudio",
-      model: "qwen/qwen3.5-9b",
-      endpoint: "http://localhost:1234/v1",
-    },*/
-    /*summarizer: {
-      provider: "anthropic",
-      model: "claude-haiku-4-5-20251001",
-      endpoint: null,
-    },*/
+  // Uncomment the summarizer you want to use:
+
+  // summarizer: {
+  //   provider: "lmstudio",
+  //   model: "google/gemma-3-4b",
+  //   endpoint: "http://localhost:1234/v1",
+  // },
+  // summarizer: {
+  //   provider: "lmstudio",
+  //   model: "microsoft/phi-4-mini-reasoning",
+  //   endpoint: "http://localhost:1234/v1",
+  // },
+  // summarizer: {
+  //   provider: "lmstudio",
+  //   model: "google/gemma-3-12b",
+  //   endpoint: "http://localhost:1234/v1",
+  // },
+  summarizer: {
+    provider: "lmstudio",
+    model: "qwen/qwen3-4b-thinking-2507",
+    endpoint: "http://localhost:1234/v1",
+  },
+  // summarizer: {
+  //   provider: "anthropic",
+  //   model: "claude-haiku-4-5-20251001",
+  //   endpoint: null,
+  // },
 
   mem0: {
     apiKey: process.env.MEM0_API_KEY,
-    agentId: "claude-code-sessions",
+    userId: "anya-sessions", // Flat namespace. No agent_id or run_id scoping.
   },
+  // Mem0's LLM decomposes summaries into atomic facts when true.
+  // Set false to store each summary as one verbatim memory blob.
+  infer: process.env.INFER !== "false",
   minMessages: 20,
   toolResultMaxChars: 1000,
   transcriptMaxChars: 150000,
@@ -55,12 +64,6 @@ const STATE_FILE = path.join(os.homedir(), ".claude", "mem0_upload_state.json");
 const SUMMARIES_DIR = path.join(os.homedir(), ".claude", "mem0_summaries");
 
 const DRY_RUN = process.argv.includes("--dry-run");
-
-// Derive a safe user_id slug from model name: "google/gemma-3-12b" → "anya-google-gemma-3-12b"
-function modelToUserId(model) {
-  const slug = model.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-  return `anya-${slug}`;
-}
 
 // Composite state key: sessionId::modelId
 function stateKey(sessionId, model) {
@@ -123,8 +126,11 @@ function parseSession(filePath) {
     .split("\n")
     .filter((line) => line.trim())
     .map((line) => {
-      try { return JSON.parse(line); }
-      catch { return null; }
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
     })
     .filter(Boolean);
 }
@@ -137,7 +143,11 @@ function extractContentBlocks(entry) {
   }
   if (entry.data?.message?.message?.content) {
     const model = entry.data.message.message.model || "unknown";
-    return { blocks: entry.data.message.message.content, entryType: entry.data.message.type, model };
+    return {
+      blocks: entry.data.message.message.content,
+      entryType: entry.data.message.type,
+      model,
+    };
   }
   return null;
 }
@@ -161,19 +171,20 @@ function buildTranscript(entries) {
       if (block.type === "text") {
         const speaker = entryType === "user" ? "USER" : "ASSISTANT";
         lines.push(`[${speaker}${agentTag}] ${block.text}`);
-
       } else if (block.type === "tool_use") {
         const inputPreview = JSON.stringify(block.input).slice(0, 300);
         lines.push(`[TOOL_CALL${agentTag}] ${block.name}(${inputPreview})`);
-
       } else if (block.type === "tool_result") {
-        const raw = typeof block.content === "string"
-          ? block.content
-          : JSON.stringify(block.content);
+        const raw =
+          typeof block.content === "string"
+            ? block.content
+            : JSON.stringify(block.content);
 
         if (raw.includes("<persisted-output>")) {
           const sizeMatch = raw.match(/Output too large \([\d.]+KB\)/);
-          lines.push(`[TOOL_RESULT${agentTag}] ${sizeMatch?.[0] || "Large output"} — persisted to disk`);
+          lines.push(
+            `[TOOL_RESULT${agentTag}] ${sizeMatch?.[0] || "Large output"} — persisted to disk`
+          );
         } else {
           const tag = block.is_error ? "TOOL_ERROR" : "TOOL_RESULT";
           lines.push(`[${tag}${agentTag}] ${raw.slice(0, cap)}`);
@@ -185,7 +196,9 @@ function buildTranscript(entries) {
   const transcript = lines.join("\n");
 
   if (transcript.length > CONFIG.transcriptMaxChars) {
-    console.warn(`  ⚠ Transcript truncated from ${transcript.length} to ${CONFIG.transcriptMaxChars} chars`);
+    console.warn(
+      `  ⚠ Transcript truncated from ${transcript.length} to ${CONFIG.transcriptMaxChars} chars`
+    );
     return transcript.slice(0, CONFIG.transcriptMaxChars) + "\n[TRUNCATED]";
   }
 
@@ -216,7 +229,8 @@ OUTPUT FORMAT:
 - Open threads / unfinished work
 `.trim();
 
-const anthropic = CONFIG.summarizer.provider === "anthropic" ? new Anthropic() : null;
+const anthropic =
+  CONFIG.summarizer.provider === "anthropic" ? new Anthropic() : null;
 
 async function summarizeSession(transcript) {
   if (CONFIG.summarizer.provider === "anthropic") {
@@ -230,18 +244,21 @@ async function summarizeSession(transcript) {
   }
 
   if (CONFIG.summarizer.provider === "lmstudio") {
-    const response = await fetch(`${CONFIG.summarizer.endpoint}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: CONFIG.summarizer.model,
-        messages: [
-          { role: "system", content: SUMMARIZATION_PROMPT },
-          { role: "user", content: transcript },
-        ],
-        max_tokens: 2048,
-      }),
-    });
+    const response = await fetch(
+      `${CONFIG.summarizer.endpoint}/chat/completions`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: CONFIG.summarizer.model,
+          messages: [
+            { role: "system", content: SUMMARIZATION_PROMPT },
+            { role: "user", content: transcript },
+          ],
+          max_tokens: 2048,
+        }),
+      }
+    );
     const data = await response.json();
     let content = data.choices[0].message.content;
     content = content.replace(/<think>[\s\S]*?<\/think>/i, "").trim();
@@ -252,14 +269,13 @@ async function summarizeSession(transcript) {
 }
 
 // ─── MEM0 UPLOAD ─────────────────────────────────────────────────
-async function uploadToMem0(summary, sessionId) {
-  const userId = modelToUserId(CONFIG.summarizer.model);
-
+async function uploadToMem0(summary, sessionId, projectDir) {
   if (DRY_RUN) {
     console.log(`  [DRY-RUN] Would upload to mem0:`);
-    console.log(`    user_id: ${userId}`);
-    console.log(`    run_id:  ${sessionId}`);
-    console.log(`    summary: ${summary.slice(0, 200)}...`);
+    console.log(`    user_id:  ${CONFIG.mem0.userId}`);
+    console.log(`    infer:    ${CONFIG.infer}`);
+    console.log(`    metadata: sessionId=${sessionId}, model=${CONFIG.summarizer.model}`);
+    console.log(`    summary:  ${summary.slice(0, 200)}…`);
     return;
   }
 
@@ -267,24 +283,29 @@ async function uploadToMem0(summary, sessionId) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Token ${CONFIG.mem0.apiKey}`,
+      Authorization: `Token ${CONFIG.mem0.apiKey}`,
     },
     body: JSON.stringify({
       messages: [{ role: "user", content: summary }],
-      agent_id: CONFIG.mem0.agentId,
-      user_id: userId,
-      run_id: sessionId,
-      infer: true,
+      user_id: CONFIG.mem0.userId,
+      // No agent_id — creates an entity that never binds to memories.
+      // No run_id — creates invisible namespace silos unreachable
+      //   by user_id-only queries. Session tracking via metadata instead.
+      infer: CONFIG.infer,
       metadata: {
+        source: "claude-code-session",
+        sessionId,
+        projectDir,
         summarizedBy: CONFIG.summarizer.model,
         provider: CONFIG.summarizer.provider,
+        uploadedAt: new Date().toISOString(),
       },
     }),
   });
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`mem0 ${response.status}: ${body.slice(0, 200)}`);
+    throw new Error(`mem0 ${response.status}: ${body.slice(0, 300)}`);
   }
 
   return response.json();
@@ -292,7 +313,12 @@ async function uploadToMem0(summary, sessionId) {
 
 // ─── MAIN ────────────────────────────────────────────────────────
 async function main() {
-  if (DRY_RUN) console.log("🔍 DRY RUN — no uploads or state changes will occur\n");
+  if (DRY_RUN) console.log("🔍 DRY RUN — no uploads or state changes\n");
+
+  if (!CONFIG.mem0.apiKey) {
+    console.error("MEM0_API_KEY not set");
+    process.exit(1);
+  }
 
   const state = loadState();
   const sessions = findSessions();
@@ -300,6 +326,7 @@ async function main() {
   const model = CONFIG.summarizer.model;
 
   console.log(`Found ${sessions.length} session(s), model: ${model}`);
+  console.log(`infer: ${CONFIG.infer}\n`);
 
   for (const session of sessions) {
     const key = stateKey(session.sessionId, model);
@@ -310,11 +337,15 @@ async function main() {
     const lineCount = transcript.split("\n").length;
 
     if (lineCount < CONFIG.minMessages) {
-      console.log(`Skipping ${session.sessionId} (${lineCount} lines, below threshold)`);
+      console.log(
+        `Skipping ${session.sessionId} (${lineCount} lines, below threshold)`
+      );
       continue;
     }
 
-    console.log(`Processing ${session.sessionId} (${lineCount} lines, ${transcript.length} chars)...`);
+    console.log(
+      `Processing ${session.sessionId} (${lineCount} lines, ${transcript.length} chars)…`
+    );
 
     try {
       // Use cached summary if available, otherwise summarize and cache
@@ -327,13 +358,12 @@ async function main() {
         console.log(`  ✓ Summary cached`);
       }
 
-      await uploadToMem0(summary, session.sessionId);
+      await uploadToMem0(summary, session.sessionId, session.projectDir);
 
       if (!DRY_RUN) {
         state[key] = {
           processedAt: new Date().toISOString(),
           summarizedBy: model,
-          userId: modelToUserId(model),
           transcriptLines: lineCount,
           transcriptChars: transcript.length,
         };
@@ -341,13 +371,17 @@ async function main() {
       }
 
       processed++;
-      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : "Uploaded"}: ${session.sessionId}`);
+      console.log(
+        `  ✓ ${DRY_RUN ? "Dry-run complete" : "Uploaded"}: ${session.sessionId}`
+      );
     } catch (err) {
       console.error(`  ✗ Failed: ${session.sessionId} — ${err.message}`);
     }
   }
 
-  console.log(`\nDone. ${DRY_RUN ? "Dry-run" : "Processed"} ${processed} session(s).`);
+  console.log(
+    `\nDone. ${DRY_RUN ? "Dry-run" : "Processed"} ${processed} session(s).`
+  );
 }
 
 main();
