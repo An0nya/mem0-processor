@@ -1,0 +1,6 @@
+*-v[0-9].mjs
+*-v[0-9][0-9].mjs
+*.py
+*.txt
+*.jsonl
+.DS_Store
