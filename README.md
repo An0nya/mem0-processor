@@ -34,6 +34,8 @@ The script auto-detects whichever model is currently loaded. It discovers all Cl
 | `--reprocess [id]` | Bypass the "already done" check. Pass a session UUID to reprocess one session, or omit the ID to reprocess all. |
 | `--model <query>` | Load a specific model by partial ID match (e.g. `--model qwen3`). Defaults to whatever LM Studio has loaded. |
 | `--force-truncate` | Process sessions that exceed the context limit by truncating them instead of skipping. |
+| `--ignore-cache` | Ignore cached summary files and regenerate from the LLM. Use with `--reprocess` for a fully fresh run. |
+| `--stream` | Stream LM Studio output token-by-token to the terminal instead of waiting for the full response. |
 
 ### Examples
 

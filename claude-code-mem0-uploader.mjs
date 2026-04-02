@@ -84,6 +84,8 @@ const PERF_STORE_PATH = path.join(os.homedir(), ".claude", "mem0_model_perf.json
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
+const STREAM         = process.argv.includes("--stream");
+const IGNORE_CACHE   = process.argv.includes("--ignore-cache");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
 const REPROCESS_ID   = (() => {
   const i = process.argv.indexOf("--reprocess");
@@ -366,10 +368,6 @@ async function summarizeSession(transcript, model) {
     // data.stats.tokens_per_second. The v0 endpoint does. This is why tps
     // was always n/a in v5 despite the stats-parsing code being correct.
     //
-    // TODO (streaming): switch to stream: true + SSE reader to surface per-token
-    // progress in the console. Currently flying blind when LM Studio isn't open.
-    // The final [DONE] chunk carries stats.tokens_per_second — pull tps from there.
-    // Would also let us detect stalls earlier than the AbortSignal timeout.
     const response = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/chat/completions`, {
       method: "POST",
       signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
@@ -381,12 +379,36 @@ async function summarizeSession(transcript, model) {
           { role: "user",   content: transcript },
         ],
         max_tokens: 2048,
+        stream: STREAM,
       }),
     });
 
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`LM Studio ${response.status}: ${body.slice(0, 300)}`);
+    }
+
+    if (STREAM) {
+      let summary = "";
+      let tps = null;
+      let completionTokens = null;
+      process.stdout.write("  ");
+      for await (const chunk of response.body) {
+        for (const line of Buffer.from(chunk).toString().split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (raw === "[DONE]") break;
+          let parsed;
+          try { parsed = JSON.parse(raw); } catch { continue; }
+          const delta = parsed.choices?.[0]?.delta?.content ?? "";
+          if (delta) { process.stdout.write(delta); summary += delta; }
+          if (parsed.stats?.tokens_per_second) tps = parsed.stats.tokens_per_second;
+          if (parsed.usage?.completion_tokens) completionTokens = parsed.usage.completion_tokens;
+        }
+      }
+      process.stdout.write("\n");
+      summary = summary.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+      return { summary, tps, completionTokens };
     }
 
     const data = await response.json();
@@ -575,7 +597,7 @@ async function main() {
     try {
       let summary, tps, completionTokens, peakUsedGb, avgUsedGb, preSessionIdleGb;
 
-      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
+      const cached = IGNORE_CACHE ? null : loadCachedSummary(session.sessionId, model.id);
       if (cached) {
         summary = cached;
         tps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null;
