@@ -13,7 +13,7 @@
 //   - LM Studio v0 API used at startup to get loaded model + context length.
 //     If --model not given, defaults to whatever is currently loaded in LM Studio.
 //   - tps pulled from LM Studio v0 response stats object.
-//   - RAM sampled via os.freemem() during summarization (peak + avg).
+//   - RAM sampled via ps -o rss= against LM Studio PID during summarization (peak + avg).
 //   - Runs are logged to ~/.claude/mem0_logs/ as JSONL.
 //
 // v6 fixes vs v5:
@@ -31,6 +31,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { execSync } from "child_process";
 import Anthropic from "@anthropic-ai/sdk";
 
 // ─── MODEL REGISTRY ──────────────────────────────────────────────
@@ -237,20 +238,35 @@ function buildTranscript(entries) {
 }
 
 // ─── RAM SAMPLING ────────────────────────────────────────────────
+// Samples LM Studio's RSS directly via ps rather than system-wide freemem,
+// which was too noisy to be useful.
+function lmStudioRssGb() {
+  try {
+    const pid = execSync("pgrep -f 'llmworker.js'", { encoding: "utf8" }).trim().split("\n")[0];
+    if (!pid) return null;
+    const rssKb = parseInt(execSync(`ps -o rss= -p ${pid}`, { encoding: "utf8" }).trim(), 10);
+    if (isNaN(rssKb)) return null;
+    return +(rssKb / 1e6).toFixed(2);
+  } catch {
+    return null;
+  }
+}
+
 function startRamSampler(intervalMs = 500) {
   const samples = [];
-  const interval = setInterval(() => samples.push(os.freemem()), intervalMs);
+  const interval = setInterval(() => {
+    const gb = lmStudioRssGb();
+    if (gb !== null) samples.push(gb);
+  }, intervalMs);
   return {
     stop() {
       clearInterval(interval);
       if (samples.length === 0) return { peakUsedGb: null, avgUsedGb: null };
-      const totalMem = os.totalmem();
-      const usedSamples = samples.map((free) => totalMem - free);
-      const peak = Math.max(...usedSamples);
-      const avg = usedSamples.reduce((a, b) => a + b, 0) / usedSamples.length;
+      const peak = Math.max(...samples);
+      const avg  = samples.reduce((a, b) => a + b, 0) / samples.length;
       return {
-        peakUsedGb: +(peak / 1e9).toFixed(2),
-        avgUsedGb:  +(avg  / 1e9).toFixed(2),
+        peakUsedGb: +peak.toFixed(2),
+        avgUsedGb:  +avg.toFixed(2),
       };
     },
   };
