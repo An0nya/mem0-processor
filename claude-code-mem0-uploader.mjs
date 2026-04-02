@@ -68,6 +68,10 @@ const LOGS_DIR      = path.join(os.homedir(), ".claude", "mem0_logs");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
+const REPROCESS_ID   = (() => {
+  const i = process.argv.indexOf("--reprocess");
+  return i !== -1 ? process.argv[i + 1] : null;
+})();
 
 // ─── MODEL SELECTION ─────────────────────────────────────────────
 async function selectModel() {
@@ -442,7 +446,8 @@ async function main() {
   console.log(`infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
 
   for (const session of sessions) {
-    if (state[session.sessionId]) continue;
+    const isReprocess = REPROCESS_ID && session.sessionId === REPROCESS_ID;
+    if (state[session.sessionId] && !isReprocess) continue;
 
     const entries    = parseSession(session.filePath);
     const transcript = buildTranscript(entries);
@@ -473,7 +478,7 @@ async function main() {
     try {
       let summary, tps, completionTokens, peakUsedGb, avgUsedGb;
 
-      const cached = loadCachedSummary(session.sessionId, model.id);
+      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
       if (cached) {
         summary = cached;
         tps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null;

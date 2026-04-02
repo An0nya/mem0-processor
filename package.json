@@ -1,0 +1,24 @@
+{
+  "name": "mem0-processor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/An0nya/mem0-processor.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/An0nya/mem0-processor/issues"
+  },
+  "homepage": "https://github.com/An0nya/mem0-processor#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0"
+  }
+}
