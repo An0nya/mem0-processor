@@ -20,6 +20,17 @@
 //   - GPU-wired RAM sampled via ioreg AGXAccelerator during summarization (peak + avg).
 //   - Runs are logged to ~/.claude/mem0_logs/ as JSONL.
 //
+// v7 notes:
+//   - context length cap: max_context_length from LM Studio v0 API is used as a hard
+//     ceiling (chars = tokens * 3.5). For RAM-constrained models (max observed peak
+//     > 12 GB in perf store), an additional 32k-token (~112k char) cap is applied
+//     to avoid KV cache pressure. Falls back to CONFIG.maxTranscriptChars when no
+//     LM Studio info is available.
+//   - minMessages removed as a filter (set to 0 — process all sessions).
+//   - Model perf store: ~/.claude/mem0_model_perf.json. One entry per session
+//     summarization, includes idleGb (sampled once per run before inference loop),
+//     peakGb, avgGb, tps, completionTokens, transcriptChars. Append-only per run.
+//
 // v6 fixes vs v5:
 //   - BUG: tps always null — inference was hitting /v1/chat/completions but
 //     stats.tokens_per_second only exists on /api/v0/chat/completions.
@@ -62,14 +73,14 @@ const CONFIG = {
     userId: "anya-sessions",
   },
   infer: process.env.INFER !== "false",
-  minMessages: 20,
   toolResultMaxChars: 1000,
   maxTranscriptChars: 180000,
 };
 
-const PROJECTS_DIR  = path.join(os.homedir(), ".claude", "projects");
-const SUMMARIES_DIR = path.join(os.homedir(), ".claude", "mem0_summaries");
-const LOGS_DIR      = path.join(os.homedir(), ".claude", "mem0_logs");
+const PROJECTS_DIR    = path.join(os.homedir(), ".claude", "projects");
+const SUMMARIES_DIR   = path.join(os.homedir(), ".claude", "mem0_summaries");
+const LOGS_DIR        = path.join(os.homedir(), ".claude", "mem0_logs");
+const PERF_STORE_PATH = path.join(os.homedir(), ".claude", "mem0_model_perf.json");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
@@ -78,6 +89,29 @@ const REPROCESS_ID   = (() => {
   const i = process.argv.indexOf("--reprocess");
   return i !== -1 ? process.argv[i + 1] : null;
 })();
+
+// ─── PERF STORE ──────────────────────────────────────────────────
+function loadPerfStore() {
+  if (!fs.existsSync(PERF_STORE_PATH)) return {};
+  return JSON.parse(fs.readFileSync(PERF_STORE_PATH, "utf8"));
+}
+
+function savePerfStore(store) {
+  fs.writeFileSync(PERF_STORE_PATH, JSON.stringify(store, null, 2));
+}
+
+function appendPerfEntry(store, modelId, entry) {
+  if (!store[modelId]) store[modelId] = { runs: [] };
+  store[modelId].runs.push(entry);
+  savePerfStore(store);
+}
+
+// Returns the highest peak RAM observed for a model, or null if no data.
+function getModelMaxPeak(store, modelId) {
+  const runs = store[modelId]?.runs ?? [];
+  const peaks = runs.map((r) => r.peakGb).filter((v) => v != null);
+  return peaks.length ? Math.max(...peaks) : null;
+}
 
 // ─── MODEL SELECTION ─────────────────────────────────────────────
 async function selectModel() {
@@ -451,9 +485,10 @@ async function main() {
     process.exit(1);
   }
 
-  const model = await selectModel();
-  const state = loadState(model.id);
-  const log   = openRunLog(model);
+  const model     = await selectModel();
+  const state     = loadState(model.id);
+  const log       = openRunLog(model);
+  const perfStore = loadPerfStore();
 
   let modelInfo = null;
   if (model.provider === "lmstudio") {
@@ -469,9 +504,23 @@ async function main() {
     }
   }
 
-  const effectiveMaxChars = modelInfo?.max_context_length
-    ? Math.min(CONFIG.maxTranscriptChars, Math.floor(modelInfo.max_context_length * 3.5))
-    : CONFIG.maxTranscriptChars;
+  // Sample idle GPU RAM after model confirmed loaded, before any inference.
+  const idleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
+  if (idleGb != null) console.log(`Idle GPU RAM: ${idleGb} GB`);
+
+  // Context ceiling: use LM Studio's reported max_context_length (chars = tokens * 3.5).
+  // If the model's historical peak RAM exceeds 12 GB, cap at ~32k tokens to limit
+  // KV cache pressure. Falls back to CONFIG.maxTranscriptChars when no API info.
+  const RAM_CONSTRAINED_CAP = 112_000; // ~32k tokens
+  const maxPeak = getModelMaxPeak(perfStore, model.id);
+  const ramConstrained = maxPeak !== null && maxPeak > 12;
+  const effectiveMaxChars = (() => {
+    const fromContext = modelInfo?.max_context_length
+      ? Math.floor(modelInfo.max_context_length * 3.5)
+      : CONFIG.maxTranscriptChars;
+    return ramConstrained ? Math.min(fromContext, RAM_CONSTRAINED_CAP) : fromContext;
+  })();
+  if (ramConstrained) console.log(`RAM-constrained cap applied (max observed peak: ${maxPeak} GB) → ${effectiveMaxChars} chars`);
 
   const sessions = findSessions();
   const runStats = [];
@@ -493,13 +542,6 @@ async function main() {
     const transcript = buildTranscript(entries);
     const lineCount  = transcript.split("\n").length;
 
-    if (lineCount < CONFIG.minMessages) {
-      console.log(`Skipping ${session.sessionId} (${lineCount} lines, below threshold)`);
-      runStats.push({ sessionId: session.sessionId, skipped: true, reason: "below_threshold" });
-      log.write({ sessionId: session.sessionId, skipped: true, reason: "below_threshold", ts: new Date().toISOString() });
-      continue;
-    }
-
     if (transcript.length > effectiveMaxChars && !FORCE_TRUNCATE) {
       console.log(`⚠ Skipping ${session.sessionId} (${transcript.length} chars, exceeds context limit — use --force-truncate to override)`);
       runStats.push({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length });
@@ -516,7 +558,7 @@ async function main() {
     console.log(`Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
 
     try {
-      let summary, tps, completionTokens, peakUsedGb, avgUsedGb;
+      let summary, tps, completionTokens, peakUsedGb, avgUsedGb, preSessionIdleGb;
 
       const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
       if (cached) {
@@ -524,6 +566,7 @@ async function main() {
         tps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null;
         console.log(`  ↩ Using cached summary`);
       } else {
+        preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
         const sampler = startRamSampler();
         ({ summary, tps, completionTokens } = await summarizeSession(finalTranscript, model));
         ({ peakUsedGb, avgUsedGb } = sampler.stop());
@@ -554,6 +597,19 @@ async function main() {
         state[session.sessionId].uploaded   = true;
         state[session.sessionId].uploadedAt = new Date().toISOString();
         saveState(state, model.id);
+      }
+
+      if (!DRY_RUN && peakUsedGb != null) {
+        appendPerfEntry(perfStore, model.id, {
+          ts:             new Date().toISOString(),
+          idleGb,
+          preSessionIdleGb: preSessionIdleGb ?? null,
+          peakGb:         peakUsedGb,
+          avgGb:          avgUsedGb,
+          tps:            tps ?? null,
+          completionTokens: completionTokens ?? null,
+          transcriptChars: finalTranscript.length,
+        });
       }
 
       runStats.push({ sessionId: session.sessionId, tps, completionTokens, peakUsedGb, avgUsedGb });
