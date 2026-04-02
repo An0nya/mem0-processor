@@ -585,7 +585,7 @@ async function main() {
       finalTranscript = transcript.slice(0, effectiveMaxChars) + "\n[TRUNCATED]";
     }
 
-    if (finalTranscript.length < 100) {
+    if (finalTranscript.length < 500) {
       console.log(`⚠ Skipping ${session.sessionId} (${finalTranscript.length} chars — too short to summarize)`);
       runStats.push({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length });
       log.write({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
