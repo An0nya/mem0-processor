@@ -94,9 +94,10 @@ const CONFIG = {
 };
 
 const PROJECTS_DIR    = path.join(os.homedir(), ".claude", "projects");
-const SUMMARIES_DIR   = path.join(os.homedir(), ".claude", "mem0_summaries");
-const LOGS_DIR        = path.join(os.homedir(), ".claude", "mem0_logs");
-const PERF_STORE_PATH = path.join(os.homedir(), ".claude", "mem0_model_perf.json");
+const MEM0_DIR        = path.join(os.homedir(), ".claude", "mem0");
+const SUMMARIES_DIR   = path.join(MEM0_DIR, "summaries");
+const LOGS_DIR        = path.join(MEM0_DIR, "logs");
+const PERF_STORE_PATH = path.join(MEM0_DIR, "perf.json");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
@@ -117,6 +118,7 @@ function loadPerfStore() {
 }
 
 function savePerfStore(store) {
+  fs.mkdirSync(path.dirname(PERF_STORE_PATH), { recursive: true });
   fs.writeFileSync(PERF_STORE_PATH, JSON.stringify(store, null, 2));
 }
 
@@ -177,7 +179,7 @@ async function selectModel() {
 // ─── STATE TRACKING (per-model) ──────────────────────────────────
 function stateFilePath(modelId) {
   const slug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-  return path.join(os.homedir(), ".claude", `mem0_upload_state--${slug}.json`);
+  return path.join(MEM0_DIR, "state", `${slug}.json`);
 }
 
 function loadState(modelId) {
@@ -187,7 +189,9 @@ function loadState(modelId) {
 }
 
 function saveState(state, modelId) {
-  fs.writeFileSync(stateFilePath(modelId), JSON.stringify(state, null, 2));
+  const p = stateFilePath(modelId);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, JSON.stringify(state, null, 2));
 }
 
 // ─── SUMMARY CACHE ───────────────────────────────────────────────
