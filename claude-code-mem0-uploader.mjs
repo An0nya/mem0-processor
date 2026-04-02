@@ -515,10 +515,19 @@ async function main() {
     process.exit(1);
   }
 
+  const perfStore = loadPerfStore();
+
+  // Auto-register any model in the perf store that isn't in MODELS yet.
+  // MODELS entries take precedence (provider overrides etc.); this just fills gaps.
+  for (const id of Object.keys(perfStore)) {
+    if (!MODELS.find((m) => m.id === id)) {
+      MODELS.push({ id, provider: "lmstudio" });
+    }
+  }
+
   const model     = await selectModel();
   const state     = loadState(model.id);
   const log       = openRunLog(model);
-  const perfStore = loadPerfStore();
 
   let modelInfo = null;
   if (model.provider === "lmstudio") {
