@@ -543,14 +543,15 @@ async function main() {
   // KV cache pressure. Falls back to CONFIG.maxTranscriptChars when no API info.
   const RAM_CONSTRAINED_CAP = 112_000; // ~32k tokens
   const maxPeak = getModelMaxPeak(perfStore, model.id);
-  const ramConstrained = maxPeak !== null && maxPeak > 12;
+  const noData = maxPeak === null;
+  const ramConstrained = noData || maxPeak > 12;
   const effectiveMaxChars = (() => {
     const fromContext = modelInfo?.max_context_length
       ? Math.floor(modelInfo.max_context_length * 3.5)
       : CONFIG.maxTranscriptChars;
     return ramConstrained ? Math.min(fromContext, RAM_CONSTRAINED_CAP) : fromContext;
   })();
-  if (ramConstrained) console.log(`RAM-constrained cap applied (max observed peak: ${maxPeak} GB) → ${effectiveMaxChars} chars`);
+  if (ramConstrained) console.log(`Context cap: ${effectiveMaxChars} chars (${noData ? "no perf data yet — defaulting to safe limit" : `max observed peak: ${maxPeak} GB`})`);
 
   const sessions = findSessions();
   const runStats = [];
