@@ -1,4 +1,4 @@
-// claude-code-mem0-uploader-v6.mjs
+// claude-code-mem0-uploader.mjs (v7 in progress)
 //
 // Summarizes Claude Code session logs via a local or cloud LLM,
 // then uploads to Mem0 under a flat user_id namespace.
@@ -481,7 +481,13 @@ async function main() {
 
   for (const session of sessions) {
     const isReprocess = REPROCESS_ID && session.sessionId === REPROCESS_ID;
-    if (state[session.sessionId] && !isReprocess) continue;
+    const stEntry          = state[session.sessionId];
+    const alreadySummarized = stEntry && (stEntry.summarized ?? true);
+    const alreadyUploaded   = stEntry && (stEntry.uploaded   ?? true);
+    if (!isReprocess) {
+      if (NO_UPLOAD  && alreadySummarized) continue;
+      if (!NO_UPLOAD && alreadyUploaded)   continue;
+    }
 
     const entries    = parseSession(session.filePath);
     const transcript = buildTranscript(entries);
@@ -529,15 +535,24 @@ async function main() {
         console.log(`  ✓ Summary cached`);
       }
 
-      await uploadToMem0(summary, session.sessionId, session.projectDir, model);
-
       if (!DRY_RUN) {
         state[session.sessionId] = {
-          processedAt:     new Date().toISOString(),
+          ...(state[session.sessionId] || {}),
+          summarizedAt:    new Date().toISOString(),
           summarizedBy:    model.id,
           transcriptLines: lineCount,
           transcriptChars: finalTranscript.length,
+          summarized:      true,
+          uploaded:        state[session.sessionId]?.uploaded ?? false,
         };
+        saveState(state, model.id);
+      }
+
+      await uploadToMem0(summary, session.sessionId, session.projectDir, model);
+
+      if (!DRY_RUN && !NO_UPLOAD) {
+        state[session.sessionId].uploaded   = true;
+        state[session.sessionId].uploadedAt = new Date().toISOString();
         saveState(state, model.id);
       }
 
