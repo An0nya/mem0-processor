@@ -68,6 +68,7 @@ const LOGS_DIR      = path.join(os.homedir(), ".claude", "mem0_logs");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
+const NO_UPLOAD      = process.argv.includes("--no-upload");
 const REPROCESS_ID   = (() => {
   const i = process.argv.indexOf("--reprocess");
   return i !== -1 ? process.argv[i + 1] : null;
@@ -333,6 +334,7 @@ async function uploadToMem0(summary, sessionId, projectDir, model) {
     console.log(`    ${summary.slice(0, 200)}…`);
     return;
   }
+  if (NO_UPLOAD) return;
 
   const response = await fetch("https://api.mem0.ai/v1/memories/", {
     method: "POST",
@@ -411,6 +413,7 @@ RAM (sys):  peak ${peakRam} GB  │  avg ${avgRam} GB
 // ─── MAIN ────────────────────────────────────────────────────────
 async function main() {
   if (DRY_RUN) console.log("🔍 DRY RUN — no uploads or state changes\n");
+  if (NO_UPLOAD) console.log("📋 NO-UPLOAD — summaries only, mem0 write skipped\n");
 
   if (!CONFIG.mem0.apiKey) {
     console.error("MEM0_API_KEY not set");
@@ -510,7 +513,7 @@ async function main() {
       runStats.push({ sessionId: session.sessionId, tps, completionTokens, peakUsedGb, avgUsedGb });
       log.write({ sessionId: session.sessionId, model: model.id, tps, completionTokens, peakUsedGb, avgUsedGb, ts: new Date().toISOString() });
 
-      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : "Uploaded"}: ${session.sessionId}`);
+      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${session.sessionId}`);
     } catch (err) {
       console.error(`  ✗ Failed: ${session.sessionId} — ${err.message}`);
       runStats.push({ sessionId: session.sessionId, error: err.message });
