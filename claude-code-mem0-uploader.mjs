@@ -11,9 +11,13 @@
 //   - Per-model state files are intentional — same sessions can be run
 //     through multiple models for benchmarking without collision.
 //   - LM Studio v0 API used at startup to get loaded model + context length.
+//     NOTE: /api/v0/models returns the model's maximum supported context, not
+//     the context length it was actually loaded with. If LM Studio is set to a
+//     shorter window (e.g. 16k), the script will overestimate effectiveMaxChars
+//     and longer transcripts will get a 400 from the inference endpoint.
 //     If --model not given, defaults to whatever is currently loaded in LM Studio.
 //   - tps pulled from LM Studio v0 response stats object.
-//   - RAM sampled via ps -o rss= against LM Studio PID during summarization (peak + avg).
+//   - GPU-wired RAM sampled via ioreg AGXAccelerator during summarization (peak + avg).
 //   - Runs are logged to ~/.claude/mem0_logs/ as JSONL.
 //
 // v6 fixes vs v5:
@@ -238,15 +242,17 @@ function buildTranscript(entries) {
 }
 
 // ─── RAM SAMPLING ────────────────────────────────────────────────
-// Samples LM Studio's RSS directly via ps rather than system-wide freemem,
-// which was too noisy to be useful.
-function lmStudioRssGb() {
+// On Apple Silicon, MLX model weights are mmap'd and wired by the GPU driver —
+// invisible to ps rss, which only counts CPU-faulted pages. ioreg reads the
+// AGX/Metal layer directly and exposes "Alloc system memory from IOKit",
+// which is the total GPU-wired allocation (weights + KV cache). No sudo needed.
+// This is what tools like gpuer and asitop use under the hood.
+function gpuAllocGb() {
   try {
-    const pid = execSync("pgrep -f 'llmworker.js'", { encoding: "utf8" }).trim().split("\n")[0];
-    if (!pid) return null;
-    const rssKb = parseInt(execSync(`ps -o rss= -p ${pid}`, { encoding: "utf8" }).trim(), 10);
-    if (isNaN(rssKb)) return null;
-    return +(rssKb / 1e6).toFixed(2);
+    const raw = execSync("ioreg -r -c AGXAccelerator -d 2", { encoding: "utf8" });
+    const match = raw.match(/"Alloc system memory"=(\d+)/);
+    if (!match) return null;
+    return +(parseInt(match[1], 10) / 1e9).toFixed(2);
   } catch {
     return null;
   }
@@ -255,7 +261,7 @@ function lmStudioRssGb() {
 function startRamSampler(intervalMs = 500) {
   const samples = [];
   const interval = setInterval(() => {
-    const gb = lmStudioRssGb();
+    const gb = gpuAllocGb();
     if (gb !== null) samples.push(gb);
   }, intervalMs);
   return {
