@@ -280,26 +280,35 @@ function startRamSampler(intervalMs = 500) {
 
 // ─── SUMMARIZATION PROMPT ────────────────────────────────────────
 const SUMMARIZATION_PROMPT = `
-You are summarizing a Claude Code session log for long-term memory storage.
+Write a standalone analytical summary of this Claude Code session.
+"Standalone" means readable cold with no access to the transcript.
+Output the document only — no preamble, no reasoning, no meta-commentary.
 
-CRITICAL REQUIREMENTS:
-1. Decrypt ALL acronyms and jargon on first use (e.g. "MCP (Model Context Protocol)")
-2. Explicitly attribute every insight, decision, and action:
-   - [USER] = the user proposed, diagnosed, caught, or independently understood this
-   - [CLAUDE] = Claude produced this and the user has NOT confirmed understanding
-   - [USER-APPROVED] = Claude proposed, user approved, but depth of understanding is uncertain
-3. Flag cases where Claude was confidently wrong and whether the user caught it
-4. Low-signal user approvals ("okay", "sounds good", "sure") should be tagged [USER-APPROVED], not [USER]
-5. Note competence signals per topic — not just "we did X" but "user independently identified Y"
-6. Sub-agent calls (marked with "sub-agent: model-name") are delegated research — attribute to Claude, not the user
+## Goal
+What was the user actually trying to accomplish? Infer the real objective. 1-3 sentences.
 
-OUTPUT FORMAT:
-- Session topic summary (1-2 sentences)
-- Key decisions and who drove them (attributed)
-- Technical concepts covered and user's apparent comprehension level
-- Tool usage patterns (errors, retries, unnecessary calls)
-- Mistakes made (by either party) and whether they were caught
-- Open threads / unfinished work
+## What Happened & Why
+The through-line: what led to each major turn, what assumptions were active,
+where plans changed. Not a log — a narrative.
+
+## Competence Signals
+What did the user independently identify, catch, or already know? Be specific.
+Note gaps too — where the user deferred without understanding.
+
+## Mistakes & What Caused Them
+Error, who made it, whether caught, and the underlying assumption that caused it.
+
+## Decisions (attributed)
+[USER] = independently proposed or diagnosed
+[CLAUDE] = Claude produced this; user may not have verified
+[USER-APPROVED] = user said okay/sure/sounds good without engaging
+Flag where confident framing by either party masked wrong assumptions or unclear scope.
+
+## Open Threads
+Unfinished work. Concrete enough to act on.
+
+Rules: expand acronyms on first use. Sub-agent calls = Claude's work.
+Default to [CLAUDE] when uncertain who proposed something.
 `.trim();
 
 // ─── SUMMARIZATION ───────────────────────────────────────────────
