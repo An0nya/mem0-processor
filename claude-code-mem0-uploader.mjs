@@ -4,7 +4,7 @@
 // then uploads to Mem0 under a flat user_id namespace.
 //
 // KEY DESIGN DECISIONS:
-//   - All memories go to user_id="anya-sessions" with NO run_id or agent_id.
+//   - All memories go to user_id="anya-sessions-v7" with NO run_id or agent_id.
 //   - infer=true (default): Mem0 decomposes summaries into atomic facts.
 //     Set INFER=false env var to store summaries as single blobs instead.
 //   - POST /v1/memories/ is the correct add endpoint.
@@ -86,7 +86,7 @@ const LMSTUDIO_ENDPOINT = "http://localhost:1234";
 const CONFIG = {
   mem0: {
     apiKey: process.env.MEM0_API_KEY,
-    userId: "anya-sessions",
+    userId: "anya-sessions-v7",
   },
   infer: process.env.INFER !== "false",
   toolResultMaxChars: 1000,
