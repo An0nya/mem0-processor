@@ -87,7 +87,9 @@ const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
 const REPROCESS_ID   = (() => {
   const i = process.argv.indexOf("--reprocess");
-  return i !== -1 ? process.argv[i + 1] : null;
+  if (i === -1) return null;
+  const next = process.argv[i + 1];
+  return (!next || next.startsWith("--")) ? "all" : next;
 })();
 
 // ─── PERF STORE ──────────────────────────────────────────────────
@@ -529,7 +531,7 @@ async function main() {
   console.log(`infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
 
   for (const session of sessions) {
-    const isReprocess = REPROCESS_ID && session.sessionId === REPROCESS_ID;
+    const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && session.sessionId === REPROCESS_ID);
     const stEntry          = state[session.sessionId];
     const alreadySummarized = stEntry && (stEntry.summarized ?? true);
     const alreadyUploaded   = stEntry && (stEntry.uploaded   ?? true);
