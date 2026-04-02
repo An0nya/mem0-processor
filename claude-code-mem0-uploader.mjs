@@ -22,14 +22,30 @@
 //
 // v7 notes:
 //   - context length cap: max_context_length from LM Studio v0 API is used as a hard
-//     ceiling (chars = tokens * 3.5). For RAM-constrained models (max observed peak
-//     > 12 GB in perf store), an additional 32k-token (~112k char) cap is applied
-//     to avoid KV cache pressure. Falls back to CONFIG.maxTranscriptChars when no
-//     LM Studio info is available.
+//     ceiling (chars = tokens * 3.5). Models with no perf data yet, or whose max
+//     observed RAM peak exceeds 12 GB, are capped at 32k tokens (~112k chars) to
+//     avoid KV cache pressure / context overflow. Falls back to CONFIG.maxTranscriptChars
+//     when no LM Studio info is available. Transcripts exceeding the cap are skipped
+//     (not truncated) — use --force-truncate to override. Chunking for oversized
+//     transcripts is not yet implemented.
 //   - minMessages removed as a filter (set to 0 — process all sessions).
 //   - Model perf store: ~/.claude/mem0_model_perf.json. One entry per session
 //     summarization, includes idleGb (sampled once per run before inference loop),
 //     peakGb, avgGb, tps, completionTokens, transcriptChars. Append-only per run.
+//   - Models in the perf store are auto-merged into MODELS at startup (provider
+//     defaults to lmstudio). Explicit MODELS entries take precedence. This means
+//     any model run once will appear in the registry on subsequent runs.
+//
+// PLANNED:
+//   - Per-model maxSafeChars in registry: derive from perf store (e.g. largest
+//     transcriptChars where peakGb stayed under threshold) and store back onto the
+//     MODELS entry. Would let each model graduate out of the blanket 32k cap
+//     individually once it has enough data, rather than relying on the RAM > 12 GB
+//     heuristic. Same registry path would also accommodate manual overrides for
+//     models known to be run at the edge.
+//   - Chunked summarization for transcripts that exceed the effective cap: split
+//     into overlapping windows, summarize each, then merge. Currently these are
+//     just skipped with a warning.
 //
 // v6 fixes vs v5:
 //   - BUG: tps always null — inference was hitting /v1/chat/completions but
