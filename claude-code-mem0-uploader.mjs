@@ -365,8 +365,14 @@ async function summarizeSession(transcript, model) {
     // FIX (v6): was /v1/chat/completions — that endpoint does NOT populate
     // data.stats.tokens_per_second. The v0 endpoint does. This is why tps
     // was always n/a in v5 despite the stats-parsing code being correct.
+    //
+    // TODO (streaming): switch to stream: true + SSE reader to surface per-token
+    // progress in the console. Currently flying blind when LM Studio isn't open.
+    // The final [DONE] chunk carries stats.tokens_per_second — pull tps from there.
+    // Would also let us detect stalls earlier than the AbortSignal timeout.
     const response = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/chat/completions`, {
       method: "POST",
+      signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: model.id,
@@ -555,6 +561,13 @@ async function main() {
     if (transcript.length > effectiveMaxChars) {
       console.warn(`  ⚠ Truncating ${transcript.length} → ${effectiveMaxChars} chars`);
       finalTranscript = transcript.slice(0, effectiveMaxChars) + "\n[TRUNCATED]";
+    }
+
+    if (finalTranscript.length < 100) {
+      console.log(`⚠ Skipping ${session.sessionId} (${finalTranscript.length} chars — too short to summarize)`);
+      runStats.push({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length });
+      log.write({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
+      continue;
     }
 
     console.log(`Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
