@@ -620,10 +620,12 @@ async function main() {
     if (!isReprocess) {
       if (NO_UPLOAD  && alreadySummarized) {
         console.log(`⚠ Skipping past ${session.sessionId} because state file indicates summary is cached`);
+        log.write({ sessionId: session.sessionId, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
         continue;
       }
       if (!NO_UPLOAD && alreadyUploaded)   {
         console.log(`⚠ Skipping past ${session.sessionId} because state file indicates cached summary is uploaded to mem0`);
+        log.write({ sessionId: session.sessionId, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
         continue;
       }
     }
@@ -677,6 +679,8 @@ ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
 
+        const summaryTs = new Date().toISOString().slice(0, 16).replace("T", " ");
+        summary = `[${summaryTs}]\n${summary}`;
         saveCachedSummary(session.sessionId, model.id, summary);
         console.log(`  ✓ Summary cached`);
       }
