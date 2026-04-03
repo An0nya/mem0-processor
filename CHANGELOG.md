@@ -27,6 +27,9 @@
 - State file redesign: summary file presence = primary gate for "summarized"; state file =
   authoritative for upload status only; remove `summarized` as a logic gate; drop `?? true` default
 - `log.write()` calls mirroring the two new verbose console skip messages
+- Timestamp in summary header: prepend `[YYYY-MM-DD HH:MM]` to summary text before upload/cache
+- `startedAt` / `endedAt` fields in state entry per session (enables elapsed time calc across
+  related sessions)
 
 ---
 
@@ -79,3 +82,5 @@ Separate the "what to do with this session" logic (currently checked in multiple
 - infer=false or replace mem0 with local markdown files
 - Chunking: compaction-anchor approach (detect Claude compaction summaries, use as anchor;
   process summary + everything after it)
+- Session grouping / summary crosslinking: merge or cross-reference summaries for related
+  sessions (date proximity + topic overlap); design depends on infer=false outcome

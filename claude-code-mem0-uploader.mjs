@@ -109,7 +109,6 @@ const PERF_STORE_PATH = path.join(MEM0_DIR, "perf.json");
 const DRY_RUN        = process.argv.includes("--dry-run");
 const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
 const STREAM         = process.argv.includes("--stream");
-const IGNORE_CACHE   = process.argv.includes("--ignore-cache");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
 const REPROCESS_ID   = (() => {
   const i = process.argv.indexOf("--reprocess");
@@ -614,17 +613,17 @@ async function main() {
 
   for (const session of sessions) {
     const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && session.sessionId === REPROCESS_ID);
-    const stEntry          = state[session.sessionId];
-    const alreadySummarized = stEntry && (stEntry.summarized ?? true);
-    const alreadyUploaded   = stEntry && (stEntry.uploaded   ?? true);
+    const stEntry           = state[session.sessionId];
+    const alreadySummarized = loadCachedSummary(session.sessionId, model.id) !== null;
+    const alreadyUploaded   = stEntry?.uploaded === true;
     if (!isReprocess) {
       if (NO_UPLOAD  && alreadySummarized) {
-        console.log(`⚠ Skipping past ${session.sessionId} because state file indicates summary is cached`);
+        console.log(`⚠ Skipping past ${session.sessionId} — summary file is cached on disk`);
         log.write({ sessionId: session.sessionId, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
         continue;
       }
       if (!NO_UPLOAD && alreadyUploaded)   {
-        console.log(`⚠ Skipping past ${session.sessionId} because state file indicates cached summary is uploaded to mem0`);
+        console.log(`⚠ Skipping past ${session.sessionId} — summary is cached and uploaded to mem0`);
         log.write({ sessionId: session.sessionId, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
         continue;
       }
@@ -633,6 +632,9 @@ async function main() {
     const entries    = parseSession(session.filePath);
     const transcript = buildTranscript(entries);
     const lineCount  = transcript.split("\n").length;
+    const convEntries = entries.filter(e => e.type === "user" || e.type === "assistant");
+    const startedAt  = convEntries[0]?.timestamp ?? null;
+    const endedAt    = convEntries[convEntries.length - 1]?.timestamp ?? null;
 
     if (transcript.length > effectiveMaxChars && !FORCE_TRUNCATE) {
       console.log(`⚠ Skipping ${session.sessionId} (${transcript.length} chars, exceeds context limit — use --force-truncate to override)`);
@@ -660,7 +662,7 @@ async function main() {
     let sampler = startRamSampler();
     try {
       //does the ignore cache logic have to be so hard to read?
-      const cached = IGNORE_CACHE ? null : loadCachedSummary(session.sessionId, model.id);
+      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
       if (cached) {
         summary = cached;
         tps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null;
@@ -679,8 +681,9 @@ ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
 
-        const summaryTs = new Date().toISOString().slice(0, 16).replace("T", " ");
-        summary = `[${summaryTs}]\n${summary}`;
+        const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
+        const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
+        summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
         saveCachedSummary(session.sessionId, model.id, summary);
         console.log(`  ✓ Summary cached`);
       }
@@ -688,6 +691,8 @@ ______________________________________________\n`);
       if (!DRY_RUN) {
         state[session.sessionId] = {
           ...(state[session.sessionId] || {}),
+          startedAt,
+          endedAt,
           summarizedAt:    new Date().toISOString(),
           summarizedBy:    model.id,
           transcriptLines: lineCount,
