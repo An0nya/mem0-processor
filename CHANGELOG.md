@@ -22,14 +22,19 @@
 - Removed unused `truncate` named import from fs
 - Output directories: `~/.claude/mem0/state/`, `~/.claude/mem0/summaries/`, `~/.claude/mem0/logs/`
 
-### v7.1 — Cleanup (tabled, not yet committed)
-- Fold `--ignore-cache` into `--reprocess`: reprocessing should always bypass cache
+### v7.1 — Cleanup (committed 22683f2, 2026-04-02)
+- Fold `--ignore-cache` into `--reprocess`: reprocessing now bypasses both state and cache;
+  `--ignore-cache` flag removed
 - State file redesign: summary file presence = primary gate for "summarized"; state file =
   authoritative for upload status only; remove `summarized` as a logic gate; drop `?? true` default
 - `log.write()` calls mirroring the two new verbose console skip messages
-- Timestamp in summary header: prepend `[YYYY-MM-DD HH:MM]` to summary text before upload/cache
+- Timestamp in summary header: prepend `[YYYY-MM-DD HH:MM → HH:MM]` (session start → end)
+  to summary text before upload/cache; timestamps from session JSONL, not processing time
 - `startedAt` / `endedAt` fields in state entry per session (enables elapsed time calc across
   related sessions)
+- Summary archiving: when `--reprocess` is used and a cached summary already exists, the old
+  summary is moved to `~/.claude/mem0/summaries/archive/<slug>/<sessionId>--<timestamp>.txt`
+  before being overwritten; enables per-model output comparison across param changes
 
 ---
 

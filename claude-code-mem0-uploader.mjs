@@ -103,6 +103,7 @@ const CONFIG = {
 const PROJECTS_DIR    = path.join(os.homedir(), ".claude", "projects");
 const MEM0_DIR        = path.join(os.homedir(), ".claude", "mem0");
 const SUMMARIES_DIR   = path.join(MEM0_DIR, "summaries");
+const ARCHIVE_DIR     = path.join(SUMMARIES_DIR, "archive");
 const LOGS_DIR        = path.join(MEM0_DIR, "logs");
 const PERF_STORE_PATH = path.join(MEM0_DIR, "perf.json");
 
@@ -221,8 +222,16 @@ function loadCachedSummary(sessionId, modelId) {
   return null;
 }
 
-function saveCachedSummary(sessionId, modelId, summary) {
-  fs.writeFileSync(summaryPath(sessionId, modelId), summary);
+function saveCachedSummary(sessionId, modelId, summary, archive = false) {
+  const p = summaryPath(sessionId, modelId);
+  if (archive && fs.existsSync(p)) {
+    const slug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
+    const archiveDir = path.join(ARCHIVE_DIR, slug);
+    fs.mkdirSync(archiveDir, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    fs.renameSync(p, path.join(archiveDir, `${sessionId}--${ts}.txt`));
+  }
+  fs.writeFileSync(p, summary);
 }
 
 // ─── LM STUDIO v0 API ────────────────────────────────────────────
@@ -684,7 +693,7 @@ ______________________________________________\n`);
         const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
         const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
         summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
-        saveCachedSummary(session.sessionId, model.id, summary);
+        saveCachedSummary(session.sessionId, model.id, summary, isReprocess);
         console.log(`  ✓ Summary cached`);
       }
 
