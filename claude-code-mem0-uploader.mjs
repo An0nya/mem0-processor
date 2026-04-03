@@ -36,6 +36,13 @@
 //     defaults to lmstudio). Explicit MODELS entries take precedence. This means
 //     any model run once will appear in the registry on subsequent runs.
 //
+// KNOWN BUGS:
+//   - Script hangs after printing final stats instead of exiting cleanly.
+//     Likely an open handle (LM Studio or mem0 HTTP keep-alive, or pending
+//     async timer). Mitigated: process.exit(0) appended to main() call.
+//     Root cause not yet identified — if this script is ever run in a test
+//     harness or daemonized, audit which client is leaving handles open.
+//
 // PLANNED:
 //   - Per-model maxSafeChars in registry: derive from perf store (e.g. largest
 //     transcriptChars where peakGb stayed under threshold) and store back onto the
@@ -59,7 +66,7 @@
 //     unknown). State file and summary cache will now be named after the
 //     actual running model instead of silently defaulting to gemma.
 
-import fs from "fs";
+import fs, { truncate } from "fs";
 import path from "path";
 import os from "os";
 import { execSync } from "child_process";
@@ -133,6 +140,14 @@ function getModelMaxPeak(store, modelId) {
   const runs = store[modelId]?.runs ?? [];
   const peaks = runs.map((r) => r.peakGb).filter((v) => v != null);
   return peaks.length ? Math.max(...peaks) : null;
+}
+
+// Returns the smallest transcriptChars seen in a failed run, or null if none.
+// This is a hard observed ceiling — the model failed at this char count.
+function getModelFailCap(store, modelId) {
+  const runs = store[modelId]?.runs ?? [];
+  const failChars = runs.filter((r) => r.failed && r.transcriptChars != null).map((r) => r.transcriptChars);
+  return failChars.length ? Math.min(...failChars) : null;
 }
 
 // ─── MODEL SELECTION ─────────────────────────────────────────────
@@ -388,7 +403,9 @@ async function summarizeSession(transcript, model) {
     // data.stats.tokens_per_second. The v0 endpoint does. This is why tps
     // was always n/a in v5 despite the stats-parsing code being correct.
     //
-    const response = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/chat/completions`, {
+    let response;
+    try {
+      response = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/chat/completions`, {
       method: "POST",
       signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
       headers: { "Content-Type": "application/json" },
@@ -402,10 +419,13 @@ async function summarizeSession(transcript, model) {
         stream: STREAM,
       }),
     });
+    } catch (fetchErr) {
+      throw new Error(`LM Studio fetch failed (${transcript.length} chars): ${fetchErr.message}`);
+    }
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(`LM Studio ${response.status}: ${body.slice(0, 300)}`);
+      throw new Error(`LM Studio ${response.status} (${transcript.length} chars): ${body.slice(0, 300)}`);
     }
 
     if (STREAM) {
@@ -572,15 +592,19 @@ async function main() {
   // KV cache pressure. Falls back to CONFIG.maxTranscriptChars when no API info.
   const RAM_CONSTRAINED_CAP = 112_000; // ~32k tokens
   const maxPeak = getModelMaxPeak(perfStore, model.id);
+  const failCap = getModelFailCap(perfStore, model.id);
   const noData = maxPeak === null;
   const ramConstrained = noData || maxPeak > 12;
   const effectiveMaxChars = (() => {
     const fromContext = modelInfo?.max_context_length
       ? Math.floor(modelInfo.max_context_length * 3.5)
       : CONFIG.maxTranscriptChars;
-    return ramConstrained ? Math.min(fromContext, RAM_CONSTRAINED_CAP) : fromContext;
+    const fromRam = ramConstrained ? Math.min(fromContext, RAM_CONSTRAINED_CAP) : fromContext;
+    // Hard ceiling: if we've seen the model fail at a given char count, stay below it.
+    return failCap != null ? Math.min(fromRam, failCap - 1) : fromRam;
   })();
   if (ramConstrained) console.log(`Context cap: ${effectiveMaxChars} chars (${noData ? "no perf data yet — defaulting to safe limit" : `max observed peak: ${maxPeak} GB`})`);
+  if (failCap != null) console.log(`Fail cap: ${effectiveMaxChars} chars (model failed at ${failCap} chars)`);
 
   const sessions = findSessions();
   const runStats = [];
@@ -594,8 +618,14 @@ async function main() {
     const alreadySummarized = stEntry && (stEntry.summarized ?? true);
     const alreadyUploaded   = stEntry && (stEntry.uploaded   ?? true);
     if (!isReprocess) {
-      if (NO_UPLOAD  && alreadySummarized) continue;
-      if (!NO_UPLOAD && alreadyUploaded)   continue;
+      if (NO_UPLOAD  && alreadySummarized) {
+        console.log(`⚠ Skipping past ${session.sessionId} because state file indicates summary is cached`);
+        continue;
+      }
+      if (!NO_UPLOAD && alreadyUploaded)   {
+        console.log(`⚠ Skipping past ${session.sessionId} because state file indicates cached summary is uploaded to mem0`);
+        continue;
+      }
     }
 
     const entries    = parseSession(session.filePath);
@@ -622,11 +652,12 @@ async function main() {
       continue;
     }
 
-    console.log(`Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
-
+    console.log(`\n...\n💪 Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
+    //the two following lines i moved outside of the try block as they didn't get scoped into the catch. also, sampler didn't have a var/let/etc in front of it - either i missed its declaration somewhere or js said it's totally cool anyway...
+    let summary, tps, completionTokens, peakUsedGb, avgUsedGb, preSessionIdleGb;
+    let sampler = startRamSampler();
     try {
-      let summary, tps, completionTokens, peakUsedGb, avgUsedGb, preSessionIdleGb;
-
+      //does the ignore cache logic have to be so hard to read?
       const cached = IGNORE_CACHE ? null : loadCachedSummary(session.sessionId, model.id);
       if (cached) {
         summary = cached;
@@ -634,12 +665,17 @@ async function main() {
         console.log(`  ↩ Using cached summary`);
       } else {
         preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
-        const sampler = startRamSampler();
+        
         ({ summary, tps, completionTokens } = await summarizeSession(finalTranscript, model));
         ({ peakUsedGb, avgUsedGb } = sampler.stop());
 
-        if (tps != null) console.log(`  ⚡ ${tps.toFixed(1)} tok/s (${completionTokens} tokens)`);
-        if (peakUsedGb != null) console.log(`  🧠 RAM peak ${peakUsedGb} GB  avg ${avgUsedGb} GB`);
+        if (tps != null) console.log(`  ⚡ ${tps.toFixed(1)} tok/s | (${completionTokens} tokens)`);
+        if (peakUsedGb != null) console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${peakUsedGb} GB | avg ${avgUsedGb} GB`);
+
+        console.log(`📖  summary preview: \n
+______________________________________________\n`
+          + summary.substring(0, 1000) + `
+______________________________________________\n`);
 
         saveCachedSummary(session.sessionId, model.id, summary);
         console.log(`  ✓ Summary cached`);
@@ -687,6 +723,22 @@ async function main() {
       console.error(`  ✗ Failed: ${session.sessionId} — ${err.message}`);
       runStats.push({ sessionId: session.sessionId, error: err.message });
       log.write({ sessionId: session.sessionId, model: model.id, error: err.message, ts: new Date().toISOString() });
+      if (!DRY_RUN && model.provider === "lmstudio") {
+        const partial = sampler ? sampler.stop() : { peakUsedGb: null, avgUsedGb: null };
+        console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
+        appendPerfEntry(perfStore, model.id, {
+          ts:              new Date().toISOString(),
+          idleGb,
+          preSessionIdleGb: preSessionIdleGb ?? null,
+          peakGb:          partial.peakUsedGb,
+          avgGb:           partial.avgUsedGb,
+          tps:             null,
+          completionTokens: null,
+          transcriptChars: finalTranscript.length,
+          failed:          true,
+          failReason:      err.message,
+        });
+      }
     }
   }
 
@@ -695,4 +747,4 @@ async function main() {
   console.log(`Log: ${log.path}\n`);
 }
 
-main();
+main().then(() => process.exit(0));
