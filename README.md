@@ -33,7 +33,7 @@ The script auto-detects whichever model is currently loaded. It discovers all Cl
 | `--dry-run` | No uploads and no state changes. Prints what would happen. |
 | `--reprocess [id]` | Bypass the "already done" check and regenerate the summary from the LLM. Pass a session UUID to reprocess one session, or omit the ID to reprocess all. Existing cached summaries are archived before being overwritten. |
 | `--model <query>` | Load a specific model by partial ID match (e.g. `--model qwen3`). Defaults to whatever LM Studio has loaded. |
-| `--force-truncate` | Process sessions that exceed the context limit by truncating them instead of skipping. |
+| `--no-token-cap` | Bypass the script's conservative 64k-token ceiling. Sessions are still limited by the model's actual loaded context window. |
 | `--stream` | Stream LM Studio output token-by-token to the terminal instead of waiting for the full response. |
 
 ### Examples
@@ -60,7 +60,7 @@ node claude-code-mem0-uploader.mjs --model haiku
 | `~/.claude/mem0/summaries/<session>--<model>.txt` | Cached summary text (reused on subsequent runs unless `--reprocess`) |
 | `~/.claude/mem0/summaries/archive/<slug>/<session>--<timestamp>.txt` | Archived copies of summaries overwritten by `--reprocess` |
 | `~/.claude/mem0/logs/<timestamp>--<model>.jsonl` | Per-run log of session outcomes (tps, RAM, token counts, skips, errors) |
-| `~/.claude/mem0_model_perf.json` | Append-only perf store: one entry per summarization with idle/peak/avg RAM, tps, token count, transcript length |
+| `~/.claude/mem0/perf.json` | Append-only perf store: one entry per summarization with idle/peak/avg RAM, swap, memory pressure, tps, prefill tps, token counts, transcript length |
 
 State files and summary caches are per-model intentionally — the same sessions can be run through multiple models for benchmarking without colliding.
 
@@ -76,6 +76,9 @@ For Anthropic models, use `provider: "anthropic"` and the exact model ID. Any mo
 
 ## Context limits
 
-The script fetches `max_context_length` from the LM Studio v0 API and uses it as a hard ceiling (converting tokens → chars at 3.5 chars/token). Sessions exceeding the limit are skipped unless `--force-truncate` is passed.
+The script uses two ceilings, whichever is smaller:
 
-Models with a historically observed peak RAM above 12 GB (per the perf store) get an additional hard cap of ~112k chars (~32k tokens) to limit KV cache pressure. Sessions that previously caused an OOM failure also impose a fail-cap derived from the smallest failed run's transcript length.
+- **Model ceiling**: the model's loaded context window from the LM Studio API, converted to chars at 3.5 chars/token.
+- **Script ceiling**: a conservative hard cap of 64k tokens (~224k chars). Bypass with `--no-token-cap`.
+
+Sessions exceeding the effective limit are skipped with a warning. Chunking for oversized transcripts is planned for v10.

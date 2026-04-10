@@ -46,7 +46,7 @@ formalized the split when benchmarking requirements piled up.
 
 ## v7.2 — Telemetry expansion + context cap simplification + prompt iteration 3
 
-**Status: dirty, uncommitted. Ships as beta once the blockers below are cleared.**
+**Status: shipped.**
 
 Grouped by theme because the changes were made together and depend on each other.
 
@@ -110,17 +110,16 @@ Grouped by theme because the changes were made together and depend on each other
 - Auto-register any perf-store model into `MODELS` at startup (runtime only; perf store
   is the durable registry)
 
-### Blockers to ship
+### Fixes (shipped with v7.2)
 
-- **`--no-token-cap` is not wired.** Flag is parsed and the oversize skip message tells
-  the user to use it, but the skip branch at `main()` doesn't check `NO_TOKEN_CAP`.
-  Wire it or drop the flag.
-- **Header docstring is stale.** References `user_id="anya-sessions-v7"`, `infer=true
-  default`, and the removed RAM/fail-cap logic. Refresh.
-- **Dead code cleanup.** Delete `getModelFailCap()` and the commented cap block, or
-  leave an explicit `TODO: v8 replaces this with regression fit`.
-- **`loadedContext` perf field stores chars, not tokens** — ambiguous against LM Studio's
-  `loaded_context_length` (tokens). Rename to `loadedContextChars` or store tokens.
+- `--no-token-cap` wired: bypasses script CONTEXT_CAP ceiling only; model's loaded
+  context window remains the hard limit.
+- Header docstring updated: correct `user_id`, `infer` default, context cap behavior,
+  perf field list.
+- `getModelFailCap()` and `getModelMaxPeak()` removed; commented cap block cleared;
+  v8 TODO left in place.
+- `loadedContext` perf field renamed to `loadedContextChars` (was ambiguous vs tokens).
+- `log.write` added for summary preview (was console-only).
 
 ---
 
@@ -221,3 +220,8 @@ branch. Decide at v11 planning time.
 - Unified log function for console + JSONL (currently rejected — formats differ too much,
   but worth revisiting if log enrichment lands)
 - `getModelFailCap()` final removal once v8 regression cap ships
+- **Empirical chars/token ratio**: replace flat 3.5 estimate with a per-model ratio
+  derived from perf store (`transcriptChars / promptTokens` per run). Transcripts with
+  heavy code or tool call JSON tokenize more efficiently than prose, so 3.5 can
+  underestimate token count. Conservative percentile from observed runs would be more
+  accurate than a hardcoded constant. Low priority until prod summarizer splits off.
