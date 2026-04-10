@@ -68,7 +68,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { execSync } from "child_process";
+import { exec, execSync } from "child_process";
 import Anthropic from "@anthropic-ai/sdk";
 import { setGlobalDispatcher, Agent } from 'undici';
 
