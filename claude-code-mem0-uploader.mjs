@@ -101,7 +101,7 @@ setGlobalDispatcher(new Agent({
 const CONFIG = {
   mem0: {
     apiKey: process.env.MEM0_API_KEY,
-    userId: "anya-sessions-v7",
+    userId: "summary-sessions",
   },
   infer: process.env.INFER !== "false",
   toolResultMaxChars: 1000,
@@ -370,34 +370,76 @@ function startRamSampler(intervalMs = 500) {
 // ─── SUMMARIZATION PROMPT ────────────────────────────────────────
 const SUMMARIZATION_PROMPT = `
 Write a standalone analytical summary of this Claude Code session.
-"Standalone" means readable cold with no access to the transcript.
-Output the document only — no preamble, no reasoning, no meta-commentary.
+\"Standalone\" means readable cold with no transcript access.
+Output the document only — no preamble, reasoning trace, or meta-commentary.
+
+This summary helps the user learn where they trusted Claude too much,
+where Claude acted faster than it should have, and where context or
+time was wasted. Catching code bugs is secondary to surfacing these
+trust-calibration and efficiency signals.
 
 ## Goal
-What was the user actually trying to accomplish? Infer the real objective. 1-3 sentences.
+What the user was actually trying to accomplish. Infer the real
+objective from opening context, not the first concrete request.
+1–3 sentences.
 
 ## What Happened & Why
-The through-line: what led to each major turn, what assumptions were active,
-where plans changed. Not a log — a narrative.
+Narrative, not a log. What drove each major turn? What assumptions
+were active? Where did plans change, and why? Do not enumerate tool
+calls. If the session wandered, re-did work, or pivoted mid-task,
+say so plainly.
 
-## Competence Signals
-What did the user independently identify, catch, or already know? Be specific.
-Note gaps too — where the user deferred without understanding.
+## Competence & Clarifications
+Two things, distinctly:
+- What the user independently knew, caught, or identified.
+- What the user asked Claude to explain or justify. Clarifying
+  questions (\"wtf is that syntax,\" \"is that timezone-safe\") are
+  competence signals about how the user is thinking — not mistakes —
+  even when Claude's answer is correct and no change results.
+Note gaps: places the user deferred without understanding.
 
-## Mistakes & What Caused Them
-Error, who made it, whether caught, and the underlying assumption that caused it.
+## Mistakes & Overreach
+Label each item as ERROR or OVERREACH.
+- ERROR: something wrong was produced. Record who made it, how it
+  was caught, and whether any process (test, validation, obvious
+  failure) would have caught it — or whether it was caught only
+  because someone happened to look. Flag luck-catches explicitly.
+- OVERREACH: Claude took an action without pausing when it should
+  have asked — running tools, editing files, picking an approach —
+  even if the result was fine. Also include cases where Claude
+  answered from assumption rather than reading available context.
+
+## Friction Points
+Rejected edits, interruptions, re-reads. For each, say which bucket:
+genuine catch, user confusion or caution, or Claude moving too fast.
+These are primary signals — do not omit them even if they resolved
+cleanly.
+
+## Waste & Efficiency
+Where context, tokens, or time got burned unnecessarily. Examples:
+Claude reading files it didn't need, running bash before asking
+where a file lived, re-doing work because it skipped reading an
+existing file, pulling large tool output that didn't inform the
+next step. Brief — one paragraph or a short list.
 
 ## Decisions (attributed)
-[USER] = independently proposed or diagnosed
-[CLAUDE] = Claude produced this; user may not have verified
-[USER-APPROVED] = user said okay/sure/sounds good without engaging
-Flag where confident framing by either party masked wrong assumptions or unclear scope.
+[USER]              independently proposed or diagnosed
+[USER-APPROVED]     user said okay/sure without engaging
+[USER-CLARIFIED]    user asked, Claude explained correctly, user
+                    accepted — no change needed
+[CLAUDE]            Claude produced this; user may not have verified
+[CLAUDE-UNPROMPTED] Claude did this without being asked, in a spot
+                    where asking first would have been appropriate
+
+Flag where confident framing by either party masked a wrong
+assumption or unclear scope.
 
 ## Open Threads
 Unfinished work. Concrete enough to act on.
 
-Rules: expand acronyms on first use. Sub-agent calls = Claude's work.
-Default to [CLAUDE] when uncertain who proposed something.
+Rules: expand acronyms on first use. Sub-agent calls count as
+Claude's work. When uncertain who proposed something, default to
+[CLAUDE].
 `.trim();
 
 // ─── SUMMARIZATION ───────────────────────────────────────────────
