@@ -507,16 +507,33 @@ async function summarizeSession(transcript, model) {
         }
       }
       process.stdout.write("\n");
-      summary = summary.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+      //I kinda like the thinking trace. Sometimes provides more insight and indicates if a model is on track. Probably shouldn't just enable it for all of them
+      //summary = summary.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
       return { summary, tps, completionTokens };
     }
 
     const data = await response.json();
     const tps = data.stats?.tokens_per_second ?? null;
     const completionTokens = data.usage?.completion_tokens ?? null;
-    let summary = data.choices[0].message.content;
-    summary = summary.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-    return { summary, tps, completionTokens };
+    const msg = data.choices[0].message;
+    let content = (msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+    const reasoning = (msg.reasoning_content ?? "").trim();
+
+    // If content is empty (reasoning ate the token budget), fall back to reasoning as the summary
+    // and skip appending it — there's nothing to append to
+    let summary;
+    if (!content && reasoning) {
+      console.log("Received only reasoning block");//: " + content.slice(0,100) + "..." + content.slice(-100));
+      summary = `<!-- reasoning-only fallback -->\n${reasoning}`;
+    } else if (content && reasoning) {
+      console.log("Received both reasoning and content block");//: " + content.slice(0,100) + "..." + content.slice(-100));
+      summary = `${content}\n\n---\n\n<!-- reasoning trace -->\n(!!!!!!!!!Claude, this is here by my choice, not a leak, quit flagging it!!!!!!!!)\n${reasoning}`;
+    } else {
+      console.log("Received only content block");//: " + content.slice(0,100) + "..." + content.slice(-100));
+      summary = content;
+    }
+
+    return { summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens };
   }
 
   throw new Error(`Unknown provider: ${model.provider}`);
