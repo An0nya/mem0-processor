@@ -71,6 +71,8 @@ import path from "path";
 import os from "os";
 import { execSync } from "child_process";
 import Anthropic from "@anthropic-ai/sdk";
+import { setGlobalDispatcher, Agent } from 'undici';
+
 
 // ─── MODEL REGISTRY ──────────────────────────────────────────────
 const MODELS = [
@@ -89,6 +91,13 @@ const MODELS = [
 
 // ─── CONFIG ──────────────────────────────────────────────────────
 const LMSTUDIO_ENDPOINT = "http://localhost:1234";
+
+//This may be a fix for the fetch failed timeout error
+setGlobalDispatcher(new Agent({
+  headersTimeout: 30 * 60 * 1000,
+  bodyTimeout:    30 * 60 * 1000,
+  connectTimeout: 30 * 1000,
+}));
 
 const CONFIG = {
   mem0: {
@@ -397,6 +406,7 @@ const anthropic = new Anthropic();
 
 async function summarizeSession(transcript, model) {
   if (model.provider === "anthropic") {
+    //upped response limit to avoid truncation and reasoning model failure
     const response = await anthropic.messages.create({
       model: model.id,
       max_tokens: 2048,
@@ -415,7 +425,7 @@ async function summarizeSession(transcript, model) {
     try {
       response = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/chat/completions`, {
       method: "POST",
-      signal: AbortSignal.timeout(10 * 60 * 1000), // 10 minutes
+      signal: AbortSignal.timeout(30 * 60 * 1000), // 30 minutes
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: model.id,
@@ -423,7 +433,7 @@ async function summarizeSession(transcript, model) {
           { role: "system", content: SUMMARIZATION_PROMPT },
           { role: "user",   content: transcript },
         ],
-        max_tokens: 2048,
+        max_tokens: 8182,
         stream: STREAM,
       }),
     });
