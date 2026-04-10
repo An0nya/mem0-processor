@@ -1,40 +1,38 @@
-// claude-code-mem0-uploader.mjs (v7 in progress)
+// claude-code-mem0-uploader.mjs (v7.2)
 //
 // Summarizes Claude Code session logs via a local or cloud LLM,
 // then uploads to Mem0 under a flat user_id namespace.
 //
 // KEY DESIGN DECISIONS:
-//   - All memories go to user_id="anya-sessions-v7" with NO run_id or agent_id.
-//   - infer=true (default): Mem0 decomposes summaries into atomic facts.
-//     Set INFER=false env var to store summaries as single blobs instead.
+//   - All memories go to user_id="summary-sessions" with NO run_id or agent_id.
+//   - infer=false (default): summaries stored as single blobs. Inference layer
+//     was producing hallucinated memories from adjacent context.
 //   - POST /v1/memories/ is the correct add endpoint.
 //   - Per-model state files are intentional — same sessions can be run
 //     through multiple models for benchmarking without collision.
 //   - LM Studio v0 API used at startup to get loaded model + context length.
-//     NOTE: /api/v0/models returns the model's maximum supported context, not
-//     the context length it was actually loaded with. If LM Studio is set to a
-//     shorter window (e.g. 16k), the script will overestimate effectiveMaxChars
-//     and longer transcripts will get a 400 from the inference endpoint.
+//     loaded_context_length reflects the actual loaded window, not model max.
+//     Falls back to CONFIG.maxTranscriptChars when no LM Studio info is available.
 //     If --model not given, defaults to whatever is currently loaded in LM Studio.
-//   - tps pulled from LM Studio v0 response stats object.
+//   - tps, ttft, prefillTps, promptTokens pulled from LM Studio v0 response stats.
 //   - GPU-wired RAM sampled via ioreg AGXAccelerator during summarization (peak + avg).
-//   - Runs are logged to ~/.claude/mem0_logs/ as JSONL.
+//   - Swap sampled via sysctl vm.swapusage; memory pressure via memory_pressure CLI.
+//   - Runs are logged to ~/.claude/mem0/logs/ as JSONL.
 //
-// v7 notes:
-//   - context length cap: max_context_length from LM Studio v0 API is used as a hard
-//     ceiling (chars = tokens * 3.5). Models with no perf data yet, or whose max
-//     observed RAM peak exceeds 12 GB, are capped at 32k tokens (~112k chars) to
-//     avoid KV cache pressure / context overflow. Falls back to CONFIG.maxTranscriptChars
-//     when no LM Studio info is available. Transcripts exceeding the cap are skipped
-//     (not truncated) — use --force-truncate to override. Chunking for oversized
-//     transcripts is not yet implemented.
-//   - minMessages removed as a filter (set to 0 — process all sessions).
-//   - Model perf store: ~/.claude/mem0_model_perf.json. One entry per session
-//     summarization, includes idleGb (sampled once per run before inference loop),
-//     peakGb, avgGb, tps, completionTokens, transcriptChars. Append-only per run.
-//   - Models in the perf store are auto-merged into MODELS at startup (provider
-//     defaults to lmstudio). Explicit MODELS entries take precedence. This means
-//     any model run once will appear in the registry on subsequent runs.
+// CONTEXT CAP:
+//   - Hard script ceiling: CONTEXT_CAP = 64k tokens * 3.5 chars/token.
+//   - Intersected with model's loaded_context_length * 3.5. Lower value wins.
+//   - Transcripts exceeding the cap are skipped (not truncated).
+//   - --no-token-cap bypasses the script ceiling only; model context is still the limit.
+//   - v8 will replace the hard ceiling with a per-model regression fit derived
+//     from perf store data (see TODO near CONTEXT_CAP definition).
+//
+// PERF STORE:
+//   - ~/.claude/mem0/perf.json. One entry per session summarization, append-only.
+//   - Fields: idleGb, preSessionIdleGb, peakGb, avgGb, tps, prefillTps, ttft,
+//     genTime, promptTokens, reasoningTokens, completionTokens, transcriptChars,
+//     loadedContextChars, startingSwap, maxSwap, peakPressure, pressureAvg.
+//   - Models in the perf store are auto-merged into MODELS at startup.
 //
 // KNOWN BUGS:
 //   - Script hangs after printing final stats instead of exiting cleanly.
@@ -42,22 +40,6 @@
 //     async timer). Mitigated: process.exit(0) appended to main() call.
 //     Root cause not yet identified — if this script is ever run in a test
 //     harness or daemonized, audit which client is leaving handles open.
-//
-// PLANNED:
-//   - Per-model maxSafeChars in registry: derive from perf store (e.g. largest
-//     transcriptChars where peakGb stayed under threshold) and store back onto the
-//     MODELS entry. Would let each model graduate out of the blanket 32k cap
-//     individually once it has enough data, rather than relying on the RAM > 12 GB
-//     heuristic. Same registry path would also accommodate manual overrides for
-//     models known to be run at the edge.
-//   - Chunked summarization for transcripts that exceed the effective cap: split
-//     into overlapping windows, summarize each, then merge. Currently these are
-//     just skipped with a warning.
-//
-// v6 fixes vs v5:
-//   - BUG: tps always null — inference was hitting /v1/chat/completions but
-//     stats.tokens_per_second only exists on /api/v0/chat/completions.
-//     Fixed: lmstudio inference now uses /api/v0/chat/completions.
 //   - BUG: model default was hardcoded MODELS[0] (gemma) even when a
 //     different model was loaded in LM Studio. listLoadedModels() existed
 //     in v5 but was never called from selectModel(). Fixed: --model-less
@@ -144,20 +126,9 @@ function appendPerfEntry(store, modelId, entry) {
   savePerfStore(store);
 }
 
-// Returns the highest peak RAM observed for a model, or null if no data.
-function getModelMaxPeak(store, modelId) {
-  const runs = store[modelId]?.runs ?? [];
-  const peaks = runs.map((r) => r.peakGb).filter((v) => v != null);
-  return peaks.length ? Math.max(...peaks) : null;
-}
-
-// Returns the smallest transcriptChars seen in a failed run, or null if none.
-// This is a hard observed ceiling — the model failed at this char count.
-function getModelFailCap(store, modelId) {
-  const runs = store[modelId]?.runs ?? [];
-  const failChars = runs.filter((r) => r.failed && r.transcriptChars != null).map((r) => r.transcriptChars);
-  return failChars.length ? Math.min(...failChars) : null;
-}
+// TODO v8: replace CONTEXT_CAP hard ceiling with per-model regression fit
+// (largest transcriptChars where peakPressure + swap stay under threshold).
+// getModelMaxPeak / getModelFailCap removed — superseded by this plan.
 
 // ─── MODEL SELECTION ─────────────────────────────────────────────
 async function selectModel() {
@@ -766,23 +737,14 @@ async function main() {
   // maybe we could set some kind of state where if the script doesn't update it to reflect success, we assume it failed? deadmanswitch style? probably not relevant
 
   const CONTEXT_CAP = 64_000 * 3.5; // ~64k tokens
-  //const maxPeak = getModelMaxPeak(perfStore, model.id);
-  //const failCap = getModelFailCap(perfStore, model.id);
-  //const noData = maxPeak === null;
-  //const ramConstrained = noData || maxPeak > 12;
   const effectiveMaxChars = (() => {
     const fromContext = modelInfo?.loaded_context_length
       ? Math.floor(modelInfo.loaded_context_length * 3.5)
       : CONFIG.maxTranscriptChars;
-    const contextLimit = Math.min(fromContext, CONTEXT_CAP);
-    return contextLimit;
-    // Hard ceiling: if we've seen the model fail at a given char count, stay below it.
-    //return RAM_CONSTRAINED_CAP; //in case I wanna control it
-    //return failCap != null ? Math.min(fromRam, failCap - 1) : fromRam;
+    return NO_TOKEN_CAP ? fromContext : Math.min(fromContext, CONTEXT_CAP);
   })();
-  //if (ramConstrained) console.log(`Context cap: ${effectiveMaxChars} chars (${noData ? "no perf data yet — defaulting to safe limit" : `max observed peak: ${maxPeak} GB`})`);
-  //if (failCap != null) console.log(`Fail cap: ${effectiveMaxChars} chars (model failed at ${failCap} chars)`);
-  if (CONTEXT_CAP < effectiveMaxChars) console.log(`  Max transcript size restricted to: ${effectiveMaxChars} chars instead of loaded model max transcript`);
+  if (!NO_TOKEN_CAP && CONTEXT_CAP < effectiveMaxChars) console.log(`  Max transcript size restricted to: ${effectiveMaxChars} chars instead of loaded model max transcript`);
+  if (NO_TOKEN_CAP) console.log(`  --no-token-cap: script ceiling bypassed, using model context limit (${effectiveMaxChars} chars)`);
 
   const sessions = findSessions();
   const runStats = [];
@@ -882,6 +844,7 @@ async function main() {
 ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
+        log.write({ sessionId: session.sessionId, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
 
         const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
         const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
@@ -926,7 +889,7 @@ ______________________________________________\n`);
           ttft:           ttft,
           genTime:        genTime,
           promptTokens:   promptTokens,
-          loadedContext:  effectiveMaxChars,
+          loadedContextChars:  effectiveMaxChars,
           startingSwap:   startingSwap,
           maxSwap:        maxSwap,
           peakPressure:   peakPressure,
@@ -959,7 +922,7 @@ ______________________________________________\n`);
           avgGb:           partial.avgUsedGb,
           tps:             null,
           runtime:         runtime,
-          loadedContext:   effectiveMaxChars,
+          loadedContextChars:   effectiveMaxChars,
           completionTokens: null,
           transcriptChars: finalTranscript.length,
           failed:          true,
