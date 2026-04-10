@@ -792,6 +792,7 @@ async function main() {
     //the two following lines i moved outside of the try block as they didn't get scoped into the catch. also, sampler didn't have a var/let/etc in front of it - either i missed its declaration somewhere or js said it's totally cool anyway...
     let summary, tps, completionTokens, peakUsedGb, avgUsedGb, preSessionIdleGb;
     let sampler = startRamSampler();
+    let runtime;
     try {
       //does the ignore cache logic have to be so hard to read?
       const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
@@ -801,14 +802,12 @@ async function main() {
         console.log(`  ↩ Using cached summary`);
       } else {
         preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
+        let startTime = performance.now();
         
         ({ summary, tps, completionTokens } = await summarizeSession(finalTranscript, model));
         ({ peakUsedGb, avgUsedGb } = sampler.stop());
 
-        if (tps != null) console.log(`  ⚡ ${tps.toFixed(1)} tok/s | (${completionTokens} tokens)`);
-        if (peakUsedGb != null) console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${peakUsedGb} GB | avg ${avgUsedGb} GB`);
-
-        console.log(`📖  summary preview: \n
+        runtime = Math.floor(.001 * (performance.now() - startTime));
 ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
