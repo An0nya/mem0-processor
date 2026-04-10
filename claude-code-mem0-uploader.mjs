@@ -886,18 +886,31 @@ ______________________________________________\n`);
       if (!DRY_RUN && peakUsedGb != null) {
         appendPerfEntry(perfStore, model.id, {
           ts:             new Date().toISOString(),
+          session:        session.sessionId,
           idleGb,
           preSessionIdleGb: preSessionIdleGb ?? null,
+          idleSwap:       idleSwap,
+          idleMemPressure: idleMemPressure,
           peakGb:         peakUsedGb,
           avgGb:          avgUsedGb,
+          ttft:           ttft,
+          genTime:        genTime,
+          promptTokens:   promptTokens,
+          loadedContext:  effectiveMaxChars,
+          startingSwap:   startingSwap,
+          maxSwap:        maxSwap,
+          peakPressure:   peakPressure,
+          pressureAvg:    pressureAvg,
           tps:            tps ?? null,
           completionTokens: completionTokens ?? null,
+          reasoningTokens: reasoningTokens ?? null,
           transcriptChars: finalTranscript.length,
         });
       }
 
-      runStats.push({ sessionId: session.sessionId, tps, completionTokens, peakUsedGb, avgUsedGb });
-      log.write({ sessionId: session.sessionId, model: model.id, tps, completionTokens, peakUsedGb, avgUsedGb, ts: new Date().toISOString() });
+      const inputChars = finalTranscript.length;
+      runStats.push({ sessionId: session.sessionId, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
+      log.write({ sessionId: session.sessionId, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
 
       console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${session.sessionId}`);
     } catch (err) {
@@ -907,6 +920,7 @@ ______________________________________________\n`);
       if (!DRY_RUN && model.provider === "lmstudio") {
         const partial = sampler ? sampler.stop() : { peakUsedGb: null, avgUsedGb: null };
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
+        //make sure this matches successful session runs in content
         appendPerfEntry(perfStore, model.id, {
           ts:              new Date().toISOString(),
           idleGb,
@@ -914,6 +928,8 @@ ______________________________________________\n`);
           peakGb:          partial.peakUsedGb,
           avgGb:           partial.avgUsedGb,
           tps:             null,
+          runtime:         runtime,
+          loadedContext:   effectiveMaxChars,
           completionTokens: null,
           transcriptChars: finalTranscript.length,
           failed:          true,
