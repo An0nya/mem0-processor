@@ -632,33 +632,69 @@ function openRunLog(model) {
 }
 
 // ─── RUNTIME SUMMARY ─────────────────────────────────────────────
+//
+//runStats.push({ sessionId: session.sessionId, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
+//
 function printSummary(model, modelInfo, stats) {
+  const ttftSamples = stats.filter((s) => s.ttft != null).map((s) => s.ttft);
+  const genTimeSamples = stats.filter((s) => s.genTime != null).map((s) => s.genTime);
+
   const tpsSamples = stats.filter((s) => s.tps != null).map((s) => s.tps);
-  const ramSamples = stats.filter((s) => s.peakUsedGb != null);
+  const prefillSamples = stats
+  .filter((s) => s.prefillTps != null)
+  .map((s) => parseFloat(s.prefillTps));  const ramSamples = stats.filter((s) => s.peakUsedGb != null);
+  const swapSamples = stats.filter((s) => s.maxSwap != null);
+  const pressureSamples = stats.filter((s) => s.peakPressure != null);
+
+  const totalPrefillTime = ttftSamples.reduce((a, s) => a + s, 0);
+  const totalGenTime = genTimeSamples.reduce((a, s) => a + s, 0);
+  const totalRuntime = totalPrefillTime + totalGenTime;
 
   const avgTps  = tpsSamples.length ? (tpsSamples.reduce((a, b) => a + b, 0) / tpsSamples.length).toFixed(1) : "n/a";
   const peakTps = tpsSamples.length ? Math.max(...tpsSamples).toFixed(1) : "n/a";
   const minTps  = tpsSamples.length ? Math.min(...tpsSamples).toFixed(1) : "n/a";
+  //fix prefill (NaN in summary...?)fixed?
+  //console.log(`prefill samples: ${prefillSamples}, prefill samples sum: ${prefillSamples.reduce((a, b) => a + b, 0)}, prefill samples length: ${prefillSamples.length}`);
+  const avgPrefill = prefillSamples.length ? (prefillSamples.reduce((a, b) => a + b, 0) / prefillSamples.length).toFixed(1) : "n/a";
+  const peakPrefill = prefillSamples.length ? Math.max(...prefillSamples).toFixed(1) : "n/a";
+  const minPrefill  = prefillSamples.length ? Math.min(...prefillSamples).toFixed(1) : "n/a";
 
   const peakRam = ramSamples.length ? Math.max(...ramSamples.map((s) => s.peakUsedGb)).toFixed(2) : "n/a";
   const avgRam  = ramSamples.length
     ? (ramSamples.reduce((a, b) => a + b.avgUsedGb, 0) / ramSamples.length).toFixed(2)
     : "n/a";
 
-  const totalTokens = stats.filter((s) => s.completionTokens).reduce((a, s) => a + s.completionTokens, 0);
+  const maxPressure = pressureSamples.length ? Math.max(...pressureSamples.map((s) => s.peakPressure)).toFixed(2) : "n/a";
+  const avgPressure  = pressureSamples.length
+    ? (pressureSamples.reduce((a, b) => a + b.pressureAvg, 0) / pressureSamples.length).toFixed(2)
+    : "n/a";  
 
-  const contextLen = modelInfo?.max_context_length ? `${(modelInfo.max_context_length / 1000).toFixed(0)}k` : "unknown";
+  const peakSwap = swapSamples.length ? Math.max(...swapSamples.map((s) => s.maxSwap)).toFixed(2) : "n/a";
+  const avgSwap  = swapSamples.length
+    ? (swapSamples.reduce((a, b) => a + b.maxSwap + b.startingSwap, 0) / (2 * swapSamples.length)).toFixed(2)
+    : "n/a";  
+
+  const totalTokens = stats.filter((s) => s.completionTokens).reduce((a, s) => a + s.completionTokens, 0);
+  const totalInputToks = stats.filter((s) => s.promptTokens).reduce((a, s) => a + s.promptTokens, 0);
+  const totalInputChars = stats.filter((s) => s.inputChars).reduce((a, s) => a + s.inputChars, 0);
+  const contextLen = modelInfo?.loaded_context_length ? `${(modelInfo.loaded_context_length / 1000).toFixed(0)}k` : "unknown";
   const quant      = modelInfo?.quantization ?? "unknown";
 
   console.log(`
 ─────────────────────────────────────────────────────
-Model:      ${model.id}
-Context:    ${contextLen}   Quant: ${quant}
+Model:           ${model.id}
+Context:         ${contextLen}   Quant: ${quant}
 ─────────────────────────────────────────────────────
-Sessions:   ${stats.filter((s) => !s.skipped && !s.error).length} processed  │  ${stats.filter((s) => s.skipped).length} skipped  │  ${stats.filter((s) => s.error).length} errors
-Tokens:     ${totalTokens} total output tokens
-tok/s:      avg ${avgTps}  │  peak ${peakTps}  │  min ${minTps}
-RAM (sys):  peak ${peakRam} GB  │  avg ${avgRam} GB
+Sessions:        ${stats.filter((s) => !s.skipped && !s.error).length} processed  │  ${stats.filter((s) => s.skipped).length} skipped  │  ${stats.filter((s) => s.error).length} errors
+Tokens:          ${totalInputToks} total input tokens  (total input chars: ${totalInputChars}, overall chars/tok: ${(totalInputChars/totalInputToks).toFixed(2)})  |  ${totalTokens} total output tokens
+Runtime:         total ${totalRuntime.toFixed(2)}s  |  prefill ${totalPrefillTime.toFixed(2)}s  |  gen ${totalGenTime.toFixed(2)}s
+   ---
+Output tok/s:    avg ${avgTps}  │  peak ${peakTps}  │  min ${minTps}
+Prefill tok/s:   avg ${avgPrefill}  |  peak ${peakPrefill}  |  min ${minPrefill}
+   ---
+RAM (sys):       peak ${peakRam} GB  │  avg ${avgRam} GB
+Swap (sys):      peak ${peakSwap} GB  |  avg ${avgSwap} GB
+Memory Pressure: peak ${maxPressure}%  |  avg ${avgPressure}%
 ─────────────────────────────────────────────────────`);
 }
 
