@@ -714,6 +714,7 @@ async function main() {
   // MODELS entries take precedence (provider overrides etc.); this just fills gaps.
   for (const id of Object.keys(perfStore)) {
     if (!MODELS.find((m) => m.id === id)) {
+      //are we just pushing new models to... a runtime variable?
       MODELS.push({ id, provider: "lmstudio" });
     }
   }
@@ -726,7 +727,7 @@ async function main() {
   if (model.provider === "lmstudio") {
     modelInfo = await getModelInfo(model.id);
     if (modelInfo) {
-      console.log(`Model info: context=${modelInfo.max_context_length} quant=${modelInfo.quantization} state=${modelInfo.state}`);
+      console.log(`Model info: loaded context=${modelInfo.loaded_context_length} quant=${modelInfo.quantization} state=${modelInfo.state}`);
       if (modelInfo.state !== "loaded") {
         console.error(`✗ Model "${model.id}" is not loaded in LM Studio. Load it manually and retry.`);
         process.exit(1);
@@ -786,8 +787,8 @@ async function main() {
   const sessions = findSessions();
   const runStats = [];
 
-  console.log(`Found ${sessions.length} session(s), model: ${model.id}`);
-  console.log(`infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
+  console.log(`  Found ${sessions.length} session(s), model: ${model.id}`);
+  console.log(`  infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
 
   for (const session of sessions) {
     const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && session.sessionId === REPROCESS_ID);
@@ -800,12 +801,12 @@ async function main() {
         continue;
       }
       if (NO_UPLOAD  && alreadySummarized) {
-        console.log(`⚠ Skipping past ${session.sessionId} — summary file is cached on disk`);
+        console.log(`  ⚠ Skipping past ${session.sessionId} — summary file is cached on disk`);
         log.write({ sessionId: session.sessionId, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
         continue;
       }
       if (!NO_UPLOAD && alreadyUploaded)   {
-        console.log(`⚠ Skipping past ${session.sessionId} — summary is cached and uploaded to mem0`);
+        console.log(`  ⚠ Skipping past ${session.sessionId} — summary is cached and uploaded to mem0`);
         log.write({ sessionId: session.sessionId, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
         continue;
       }
@@ -818,7 +819,7 @@ async function main() {
     const startedAt  = convEntries[0]?.timestamp ?? null;
     const endedAt    = convEntries[convEntries.length - 1]?.timestamp ?? null;
 
-    if (transcript.length > effectiveMaxChars && !FORCE_TRUNCATE) {
+    if (transcript.length > effectiveMaxChars) {
       console.log(`  ⚠ Skipping ${session.sessionId} (${transcript.length} chars, exceeds context limit — use --no-token-cap to override)`);
       runStats.push({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length });
       log.write({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length, ts: new Date().toISOString() });
@@ -831,7 +832,7 @@ async function main() {
     }
 
     if (finalTranscript.length < 500) {
-      console.log(`⚠ Skipping ${session.sessionId} (${finalTranscript.length} chars — too short to summarize)`);
+      console.log(`  ⚠ Skipping ${session.sessionId} (${finalTranscript.length} chars — too short to summarize)`);
       runStats.push({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length });
       log.write({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
       continue;
@@ -854,10 +855,10 @@ async function main() {
       } else {
         preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
         let startTime = performance.now();
-        
+
         ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model));
         ({ peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg} = sampler.stop());
-
+        
         runtime = Math.floor(.001 * (performance.now() - startTime));
         if (ttft != null) {
           prefillTps = (promptTokens / ttft).toFixed(2);

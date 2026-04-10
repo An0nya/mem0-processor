@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/An0nya/mem0-processor#readme",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.82.0"
+    "@anthropic-ai/sdk": "^0.82.0",
+    "undici": "^8.0.2"
   }
 }
