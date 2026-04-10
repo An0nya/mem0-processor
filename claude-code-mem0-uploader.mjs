@@ -689,6 +689,10 @@ async function main() {
     const alreadySummarized = loadCachedSummary(session.sessionId, model.id) !== null;
     const alreadyUploaded   = stEntry?.uploaded === true;
     if (!isReprocess) {
+      if (REPROCESS_ID && REPROCESS_ID !== "all") {
+        // targeting a specific session, skip everything else
+        continue;
+      }
       if (NO_UPLOAD  && alreadySummarized) {
         console.log(`⚠ Skipping past ${session.sessionId} — summary file is cached on disk`);
         log.write({ sessionId: session.sessionId, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
