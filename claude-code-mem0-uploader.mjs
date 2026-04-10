@@ -735,6 +735,14 @@ async function main() {
       console.warn(`⚠ Could not fetch model info from LM Studio v0 API — proceeding anyway`);
     }
   }
+  //
+  console.log(`
+  
+      ─────────────────────────────────────────────────────────────────────────────
+                 |       ${model.id}           |
+      ─────────────────────────────────────────────────────────────────────────────
+
+  `);
 
   // Sample idle GPU RAM after model confirmed loaded, before any inference.
   const idleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
@@ -829,9 +837,11 @@ async function main() {
       continue;
     }
 
-    console.log(`\n...\n💪 Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
+    console.log(`      |------${model.id}------|`);
+    console.log(`\n   Session ${runStats.length} of ${sessions.length}`);
+    console.log(`\n...\n  💪  Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
     //the two following lines i moved outside of the try block as they didn't get scoped into the catch. also, sampler didn't have a var/let/etc in front of it - either i missed its declaration somewhere or js said it's totally cool anyway...
-    let summary, tps, completionTokens, peakUsedGb, avgUsedGb, preSessionIdleGb;
+    let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, peakPressure, pressureAvg;
     let sampler = startRamSampler();
     let runtime;
     try {
@@ -839,16 +849,35 @@ async function main() {
       const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
       if (cached) {
         summary = cached;
-        tps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null;
+        tps = null; prefillTps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null; startingSwap = null; maxSwap = null; peakPressure = null; pressureAvg = null;
         console.log(`  ↩ Using cached summary`);
       } else {
         preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
         let startTime = performance.now();
         
-        ({ summary, tps, completionTokens } = await summarizeSession(finalTranscript, model));
-        ({ peakUsedGb, avgUsedGb } = sampler.stop());
+        ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model));
+        ({ peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg} = sampler.stop());
 
         runtime = Math.floor(.001 * (performance.now() - startTime));
+        if (ttft != null) {
+          prefillTps = (promptTokens / ttft).toFixed(2);
+          //console.log(`  ⏳  Timer says processing completed in ${runtime} sec.`);
+          console.log(`  ⌛️  Total time is ttft (${ttft}s) + genTime (${genTime}s) = ${(ttft + genTime).toFixed(2)}s`);
+          if (ttft < genTime) console.log(`  ⚠️   Time to first token or prefill time may be inaccurate if there is a KV cache hit.`); //may need to find a way to track, until then filter data where prefill < gen
+        }
+        if (completionTokens != null) {
+          console.log(`  🎟️   Prompt tokens: ${promptTokens} (${finalTranscript.length}chars). Ratio: ${(finalTranscript.length / promptTokens).toFixed(2)} chars/tok`);
+          console.log(`  💎  Output tokens: ${completionTokens} (${reasoningTokens ?? null} reasoning)`);
+        }
+        if (tps != null) {
+          //console.log(`  ⏱️  Based on tps and completion tokens, generation took ${Math.floor(completionTokens / tps)}sec and prefill took ${runtime - Math.floor(completionTokens / tps)} sec.`);
+          console.log(`  ⚡️  Output: ${tps.toFixed(1)} tok/s | (${completionTokens} tokens) | input: ${prefillTps} tok/s (${promptTokens} tokens)`);
+        }
+        if (peakUsedGb != null) console.log(`  🧠  Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${peakUsedGb} GB | avg ${avgUsedGb} GB`);
+        if (maxSwap != null) console.log(`  😰  Starting RAM Swap ${startingSwap}GB | Swap peak ${maxSwap} GB`);
+        if (peakPressure != null) console.log(`  🥵  Peak memory pressure ${peakPressure}% | Average memory pressure ${pressureAvg}%`);
+
+        console.log(`  📖  summary preview: \n
 ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
