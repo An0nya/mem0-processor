@@ -348,21 +348,55 @@ function gpuAllocGb() {
   }
 }
 
+function swapUsedGb() {
+  try {
+    const raw = execSync("sysctl vm.swapusage", { encoding: "utf8" });
+    const match = raw.match(/used\s*=\s*([\d.]+)([KMG])/);
+    if (!match) return null;
+    const val = parseFloat(match[1]);
+    const unit = match[2];
+    return +(val / (unit === "G" ? 1 : unit === "M" ? 1024 : 1048576)).toFixed(3);
+  } catch { return null; }
+}
+
+function memPressureLevel() {
+  try {
+    const raw = execSync("memory_pressure", { encoding: "utf8" });
+    const match = raw.match(/System-wide memory free percentage:\s*(\d+)%/);
+    if (!match) return null;
+    return 100 - parseInt(match[1], 10);
+  } catch { return null; }
+}
+
 function startRamSampler(intervalMs = 500) {
-  const samples = [];
+  const allocRamSamples = [];
+  const swapSamples = [];
+  const pressureSamples = [];
   const interval = setInterval(() => {
     const gb = gpuAllocGb();
-    if (gb !== null) samples.push(gb);
+    if (gb !== null) allocRamSamples.push(gb);
+    const swap = swapUsedGb();
+    if (swap !== null) swapSamples.push(swap);
+    const pressure = memPressureLevel();
+    if (pressure !== null) pressureSamples.push(pressure);
   }, intervalMs);
   return {
     stop() {
       clearInterval(interval);
-      if (samples.length === 0) return { peakUsedGb: null, avgUsedGb: null };
-      const peak = Math.max(...samples);
-      const avg  = samples.reduce((a, b) => a + b, 0) / samples.length;
+      if (allocRamSamples.length === 0) return { peakUsedGb: null, avgUsedGb: null };
+      const allocPeak = Math.max(...allocRamSamples);
+      const allocAvg  = allocRamSamples.reduce((a, b) => a + b, 0) / allocRamSamples.length;
+      const startingSwap = Math.min(...swapSamples);
+      const swapMax = Math.max(...swapSamples);
+      const pressurePeak = Math.max(...pressureSamples);
+      const pressureAvg = pressureSamples.reduce((a, b) => a + b, 0) / pressureSamples.length;
       return {
-        peakUsedGb: +peak.toFixed(2),
-        avgUsedGb:  +avg.toFixed(2),
+        peakUsedGb: +allocPeak.toFixed(2),
+        avgUsedGb:  +allocAvg.toFixed(2),
+        startingSwap: +startingSwap.toFixed(2),
+        maxSwap: +swapMax.toFixed(2),
+        peakPressure: +pressurePeak,
+        pressureAvg: +pressureAvg.toFixed(2)
       };
     },
   };
