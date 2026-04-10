@@ -103,7 +103,8 @@ const CONFIG = {
     apiKey: process.env.MEM0_API_KEY,
     userId: "summary-sessions",
   },
-  infer: process.env.INFER !== "false",
+  //sorry, changed this without mentioning, infer true was useless. I did think we had discussed this already by maybe not
+  infer: "false",
   toolResultMaxChars: 1000,
   maxTranscriptChars: 180000,
 };
