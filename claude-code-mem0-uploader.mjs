@@ -514,7 +514,13 @@ async function summarizeSession(transcript, model) {
 
     const data = await response.json();
     const tps = data.stats?.tokens_per_second ?? null;
+    const ttft = data.stats?.time_to_first_token ?? null;
+    const genTime = data.stats?.generation_time ?? null;
     const completionTokens = data.usage?.completion_tokens ?? null;
+    const promptTokens = data.usage?.prompt_tokens ?? null;
+    const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? null;
+    
+
     const msg = data.choices[0].message;
     let content = (msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
     const reasoning = (msg.reasoning_content ?? "").trim();
