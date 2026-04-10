@@ -106,7 +106,7 @@ const CONFIG = {
   //sorry, changed this without mentioning, infer true was useless. I did think we had discussed this already by maybe not
   infer: "false",
   toolResultMaxChars: 1000,
-  maxTranscriptChars: 180000,
+  maxTranscriptChars: 224000,
 };
 
 const PROJECTS_DIR    = path.join(os.homedir(), ".claude", "projects");
@@ -117,7 +117,7 @@ const LOGS_DIR        = path.join(MEM0_DIR, "logs");
 const PERF_STORE_PATH = path.join(MEM0_DIR, "perf.json");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
-const FORCE_TRUNCATE = process.argv.includes("--force-truncate");
+const NO_TOKEN_CAP = process.argv.includes("--no-token-cap");
 const STREAM         = process.argv.includes("--stream");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
 const REPROCESS_ID   = (() => {
@@ -647,24 +647,35 @@ async function main() {
   const idleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
   if (idleGb != null) console.log(`Idle GPU RAM: ${idleGb} GB`);
 
-  // Context ceiling: use LM Studio's reported max_context_length (chars = tokens * 3.5).
-  // If the model's historical peak RAM exceeds 12 GB, cap at ~32k tokens to limit
-  // KV cache pressure. Falls back to CONFIG.maxTranscriptChars when no API info.
-  const RAM_CONSTRAINED_CAP = 112_000; // ~32k tokens
-  const maxPeak = getModelMaxPeak(perfStore, model.id);
-  const failCap = getModelFailCap(perfStore, model.id);
-  const noData = maxPeak === null;
-  const ramConstrained = noData || maxPeak > 12;
+  // Context ceiling: use LM Studio's reported loaded_context_length (chars = tokens * 3.5).
+  // todo: we will calculate kvcache memory pressure vs context length and restrict max tokens via a regression curve
+  // Previously the perfstore was used to look up past fetch failed errors to the api call, but we
+  // discovered that it was failing due to timeout, not out of memory issues. thus, i extended the 
+  // timeout period and we shouldn't use past errors to restrict token length.
+  // That said, too many tokens on a model with a context limit set above 64k tkns,
+  // can still cause a fail, but that fail will be either the model spontaneously crashing
+  // and lmstudio recording it as unloaded (doesn't distinguish between why it unloaded)
+  // or via a kernel panic system crash in which case nothing is recorded as the script crashes too.
+  // maybe we could set some kind of state where if the script doesn't update it to reflect success, we assume it failed? deadmanswitch style? probably not relevant
+
+  const CONTEXT_CAP = 64_000 * 3.5; // ~64k tokens
+  //const maxPeak = getModelMaxPeak(perfStore, model.id);
+  //const failCap = getModelFailCap(perfStore, model.id);
+  //const noData = maxPeak === null;
+  //const ramConstrained = noData || maxPeak > 12;
   const effectiveMaxChars = (() => {
-    const fromContext = modelInfo?.max_context_length
-      ? Math.floor(modelInfo.max_context_length * 3.5)
+    const fromContext = modelInfo?.loaded_context_length
+      ? Math.floor(modelInfo.loaded_context_length * 3.5)
       : CONFIG.maxTranscriptChars;
-    const fromRam = ramConstrained ? Math.min(fromContext, RAM_CONSTRAINED_CAP) : fromContext;
+    const contextLimit = Math.min(fromContext, CONTEXT_CAP);
+    return contextLimit;
     // Hard ceiling: if we've seen the model fail at a given char count, stay below it.
-    return failCap != null ? Math.min(fromRam, failCap - 1) : fromRam;
+    //return RAM_CONSTRAINED_CAP; //in case I wanna control it
+    //return failCap != null ? Math.min(fromRam, failCap - 1) : fromRam;
   })();
-  if (ramConstrained) console.log(`Context cap: ${effectiveMaxChars} chars (${noData ? "no perf data yet — defaulting to safe limit" : `max observed peak: ${maxPeak} GB`})`);
-  if (failCap != null) console.log(`Fail cap: ${effectiveMaxChars} chars (model failed at ${failCap} chars)`);
+  //if (ramConstrained) console.log(`Context cap: ${effectiveMaxChars} chars (${noData ? "no perf data yet — defaulting to safe limit" : `max observed peak: ${maxPeak} GB`})`);
+  //if (failCap != null) console.log(`Fail cap: ${effectiveMaxChars} chars (model failed at ${failCap} chars)`);
+  if (CONTEXT_CAP < effectiveMaxChars) console.log(`  Max transcript size restricted to: ${effectiveMaxChars} chars instead of loaded model max transcript`);
 
   const sessions = findSessions();
   const runStats = [];
@@ -698,7 +709,7 @@ async function main() {
     const endedAt    = convEntries[convEntries.length - 1]?.timestamp ?? null;
 
     if (transcript.length > effectiveMaxChars && !FORCE_TRUNCATE) {
-      console.log(`⚠ Skipping ${session.sessionId} (${transcript.length} chars, exceeds context limit — use --force-truncate to override)`);
+      console.log(`  ⚠ Skipping ${session.sessionId} (${transcript.length} chars, exceeds context limit — use --no-token-cap to override)`);
       runStats.push({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length });
       log.write({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length, ts: new Date().toISOString() });
       continue;
@@ -706,8 +717,7 @@ async function main() {
 
     let finalTranscript = transcript;
     if (transcript.length > effectiveMaxChars) {
-      console.warn(`  ⚠ Truncating ${transcript.length} → ${effectiveMaxChars} chars`);
-      finalTranscript = transcript.slice(0, effectiveMaxChars) + "\n[TRUNCATED]";
+      console.warn(`  ⚠ Running ${transcript.length} char session on model with ${modelInfo.loaded_context_length} max token length, above the recommended ${effectiveMaxChars} maximum chars`);
     }
 
     if (finalTranscript.length < 500) {
