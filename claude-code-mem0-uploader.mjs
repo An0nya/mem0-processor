@@ -65,8 +65,7 @@
 //     matched against MODELS for provider info (defaults to lmstudio if
 //     unknown). State file and summary cache will now be named after the
 //     actual running model instead of silently defaulting to gemma.
-
-import fs, { truncate } from "fs";
+import fs from "fs";
 import path from "path";
 import os from "os";
 import { execSync } from "child_process";
