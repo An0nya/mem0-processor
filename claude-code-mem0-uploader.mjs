@@ -738,6 +738,7 @@ async function main() {
 
   // Sample idle GPU RAM after model confirmed loaded, before any inference.
   const idleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
+  if (idleGb != null) console.log(`\n  Idle GPU RAM: ${idleGb} GB`);
   const idleSwap = model.provider === "lmstudio" ? swapUsedGb() : null;
   if (idleSwap != null) console.log(`  Idle Swap RAM: ${idleSwap} GB`);
   const idleMemPressure = model.provider === "lmstudio" ? memPressureLevel() : null;
