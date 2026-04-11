@@ -800,6 +800,20 @@ async function main() {
     }
 
     const entries    = parseSession(session.filePath);
+
+    // Tier 1 hard-skip: no user/assistant entries with real (non-meta) content
+    const hasRealContent = entries.some(e =>
+      (e.type === "user" || e.type === "assistant") &&
+      !e.isMeta &&
+      extractContentBlocks(e) !== null
+    );
+    if (!hasRealContent) {
+      console.log(`  ⚠ Skipping ${displayId} — no user/assistant content (stub or meta-only)`);
+      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "no_content" });
+      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "no_content", ts: new Date().toISOString() });
+      continue;
+    }
+
     const transcript = buildTranscript(entries);
     const lineCount  = transcript.split("\n").length;
     const convEntries = entries.filter(e => e.type === "user" || e.type === "assistant");
