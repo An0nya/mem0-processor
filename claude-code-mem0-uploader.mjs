@@ -814,6 +814,29 @@ async function main() {
       continue;
     }
 
+    // Tier 2 soft-skip: user-side text only ≤ 20 chars AND no tool calls → noise
+    // Measure user text separately; combined char count is deceptive when assistant
+    // boilerplate (e.g. generic help wall) inflates a 4-char user input to 400+ combined.
+    let userTextChars = 0;
+    let hasToolCalls = false;
+    for (const e of entries) {
+      const extracted = extractContentBlocks(e);
+      if (!extracted) continue;
+      for (const block of extracted.blocks) {
+        if (block.type === "tool_use") { hasToolCalls = true; break; }
+        if (block.type === "text" && extracted.entryType === "user") {
+          userTextChars += (block.text ?? "").length;
+        }
+      }
+      if (hasToolCalls) break;
+    }
+    if (userTextChars <= 20 && !hasToolCalls) {
+      console.log(`  ⚠ Skipping ${displayId} — noise (${userTextChars} user chars, no tool calls)`);
+      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "noise", userTextChars });
+      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "noise", userTextChars, ts: new Date().toISOString() });
+      continue;
+    }
+
     const transcript = buildTranscript(entries);
     const lineCount  = transcript.split("\n").length;
     const convEntries = entries.filter(e => e.type === "user" || e.type === "assistant");
