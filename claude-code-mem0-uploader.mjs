@@ -190,26 +190,28 @@ function saveState(state, modelId) {
 }
 
 // ─── SUMMARY CACHE ───────────────────────────────────────────────
-function summaryPath(sessionId, modelId) {
+function summaryPath(sessionId, sessionSlug, modelId) {
   fs.mkdirSync(SUMMARIES_DIR, { recursive: true });
-  const slug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-  return path.join(SUMMARIES_DIR, `${sessionId}--${slug}.txt`);
+  const modelSlug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
+  const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
+  return path.join(SUMMARIES_DIR, `${prefix}--${modelSlug}.txt`);
 }
 
-function loadCachedSummary(sessionId, modelId) {
-  const p = summaryPath(sessionId, modelId);
+function loadCachedSummary(sessionId, sessionSlug, modelId) {
+  const p = summaryPath(sessionId, sessionSlug, modelId);
   if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
   return null;
 }
 
-function saveCachedSummary(sessionId, modelId, summary, archive = false) {
-  const p = summaryPath(sessionId, modelId);
+function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = false) {
+  const p = summaryPath(sessionId, sessionSlug, modelId);
   if (archive && fs.existsSync(p)) {
-    const slug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-    const archiveDir = path.join(ARCHIVE_DIR, slug);
+    const modelSlug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
+    const archiveDir = path.join(ARCHIVE_DIR, modelSlug);
     fs.mkdirSync(archiveDir, { recursive: true });
     const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    fs.renameSync(p, path.join(archiveDir, `${sessionId}--${ts}.txt`));
+    const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
+    fs.renameSync(p, path.join(archiveDir, `${prefix}--${ts}.txt`));
   }
   fs.writeFileSync(p, summary);
 }
@@ -252,6 +254,18 @@ function parseSession(filePath) {
     .filter((l) => l.trim())
     .map((l) => { try { return JSON.parse(l); } catch { return null; } })
     .filter(Boolean);
+}
+
+function extractSessionSlug(filePath) {
+  const lines = fs.readFileSync(filePath, "utf8").split("\n");
+  for (const line of lines.slice(0, 30)) {
+    if (!line.trim()) continue;
+    try {
+      const entry = JSON.parse(line);
+      if (entry.slug) return entry.slug;
+    } catch { /* skip */ }
+  }
+  return null;
 }
 
 // ─── CONTENT EXTRACTION ─────────────────────────────────────────
@@ -762,9 +776,11 @@ async function main() {
   console.log(`  infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
 
   for (const session of sessions) {
+    const sessionSlug = extractSessionSlug(session.filePath);
+    const displayId   = sessionSlug ? `${sessionSlug}--${session.sessionId.slice(0, 8)}` : session.sessionId;
     const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && session.sessionId === REPROCESS_ID);
     const stEntry           = state[session.sessionId];
-    const alreadySummarized = loadCachedSummary(session.sessionId, model.id) !== null;
+    const alreadySummarized = loadCachedSummary(session.sessionId, sessionSlug, model.id) !== null;
     const alreadyUploaded   = stEntry?.uploaded === true;
     if (!isReprocess) {
       if (REPROCESS_ID && REPROCESS_ID !== "all") {
@@ -772,13 +788,13 @@ async function main() {
         continue;
       }
       if (NO_UPLOAD  && alreadySummarized) {
-        console.log(`  ⚠ Skipping past ${session.sessionId} — summary file is cached on disk`);
-        log.write({ sessionId: session.sessionId, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
+        console.log(`  ⚠ Skipping past ${displayId} — summary file is cached on disk`);
+        log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
         continue;
       }
       if (!NO_UPLOAD && alreadyUploaded)   {
-        console.log(`  ⚠ Skipping past ${session.sessionId} — summary is cached and uploaded to mem0`);
-        log.write({ sessionId: session.sessionId, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
+        console.log(`  ⚠ Skipping past ${displayId} — summary is cached and uploaded to mem0`);
+        log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
         continue;
       }
     }
@@ -791,9 +807,9 @@ async function main() {
     const endedAt    = convEntries[convEntries.length - 1]?.timestamp ?? null;
 
     if (transcript.length > effectiveMaxChars) {
-      console.log(`  ⚠ Skipping ${session.sessionId} (${transcript.length} chars, exceeds context limit — use --no-token-cap to override)`);
-      runStats.push({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length });
-      log.write({ sessionId: session.sessionId, skipped: true, reason: "context_overflow", chars: transcript.length, ts: new Date().toISOString() });
+      console.log(`  ⚠ Skipping ${displayId} (${transcript.length} chars, exceeds context limit — use --no-token-cap to override)`);
+      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "context_overflow", chars: transcript.length });
+      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "context_overflow", chars: transcript.length, ts: new Date().toISOString() });
       continue;
     }
 
@@ -803,22 +819,22 @@ async function main() {
     }
 
     if (finalTranscript.length < 500) {
-      console.log(`  ⚠ Skipping ${session.sessionId} (${finalTranscript.length} chars — too short to summarize)`);
-      runStats.push({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length });
-      log.write({ sessionId: session.sessionId, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
+      console.log(`  ⚠ Skipping ${displayId} (${finalTranscript.length} chars — too short to summarize)`);
+      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "too_short", chars: finalTranscript.length });
+      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
       continue;
     }
 
     console.log(`      |------${model.id}------|`);
     console.log(`\n   Session ${runStats.length} of ${sessions.length}`);
-    console.log(`\n...\n  💪  Processing ${session.sessionId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
+    console.log(`\n...\n  💪  Processing ${displayId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
     //the two following lines i moved outside of the try block as they didn't get scoped into the catch. also, sampler didn't have a var/let/etc in front of it - either i missed its declaration somewhere or js said it's totally cool anyway...
     let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, peakPressure, pressureAvg;
     let sampler = startRamSampler();
     let runtime;
     try {
       //does the ignore cache logic have to be so hard to read?
-      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, model.id);
+      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, sessionSlug, model.id);
       if (cached) {
         summary = cached;
         tps = null; prefillTps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null; startingSwap = null; maxSwap = null; peakPressure = null; pressureAvg = null;
@@ -853,12 +869,12 @@ async function main() {
 ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
-        log.write({ sessionId: session.sessionId, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
+        log.write({ sessionId: session.sessionId, slug: sessionSlug, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
 
         const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
         const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
         summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
-        saveCachedSummary(session.sessionId, model.id, summary, isReprocess);
+        saveCachedSummary(session.sessionId, sessionSlug, model.id, summary, isReprocess);
         console.log(`  ✓ Summary cached`);
       }
 
@@ -911,14 +927,14 @@ ______________________________________________\n`);
       }
 
       const inputChars = finalTranscript.length;
-      runStats.push({ sessionId: session.sessionId, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
-      log.write({ sessionId: session.sessionId, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
+      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
+      log.write({ sessionId: session.sessionId, slug: sessionSlug, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
 
-      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${session.sessionId}`);
+      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${displayId}`);
     } catch (err) {
-      console.error(`  ✗ Failed: ${session.sessionId} — ${err.message}`);
-      runStats.push({ sessionId: session.sessionId, error: err.message });
-      log.write({ sessionId: session.sessionId, model: model.id, error: err.message, ts: new Date().toISOString() });
+      console.error(`  ✗ Failed: ${displayId} — ${err.message}`);
+      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, error: err.message });
+      log.write({ sessionId: session.sessionId, slug: sessionSlug, model: model.id, error: err.message, ts: new Date().toISOString() });
       if (!DRY_RUN && model.provider === "lmstudio") {
         const partial = sampler ? sampler.stop() : { peakUsedGb: null, avgUsedGb: null };
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
