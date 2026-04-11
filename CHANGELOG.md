@@ -184,6 +184,17 @@ Implementation:
 - If acompact file also exists for that compaction, cache analysis separately or append
 - Check for cached file before re-extracting; no mem0 upload yet
 
+### Transcript cache
+
+After building the rendered transcript string (post-tool-label processing, post-split,
+post-legend prepend), write it to `~/.claude/mem0/transcripts/<slug>--<sessionId>.txt`
+before sending to the summarizer.
+
+- Check for cached file before rebuilding; skip JSONL re-parse on reruns
+- On `--reprocess`, overwrite (same semantics as summary cache)
+- Enables comparison of transcript vs. summary output for quality evaluation
+- No format changes to the transcript itself; cache is the string as-sent
+
 ### Session splitting at compaction breakpoints
 
 When a session has `compact_boundary` entries, split the main transcript at each one:
@@ -221,6 +232,11 @@ Defer until compaction injection exists.
 at 500-char minimum) may have a throughline. If back-to-back and same CWD, merge with a
 `[SESSION BREAK]` marker; merged transcript gets one summary pass.
 
+> **Testing note**: the 500-char `too_short` check runs on the *built* transcript
+> (post-merge). If a merged cluster still lands under 500 chars it was probably merged
+> junk and the skip is correct. Verify during merge testing that the threshold still
+> makes sense at that stage, or tune it.
+
 **Useless session filtering** (prerequisite for merging — no point including noise):
 - Hard skip: no `type=user` or `type=assistant` entries with non-empty, non-meta text.
   Covers teleport stubs, queue-operation-only sessions, isMeta-only sessions.
@@ -253,9 +269,15 @@ the disaster and recovery; the merged cluster adds granularity on the frantic mi
 3. Small-session merge — CWD match + gap ≤ 15 min + sub-threshold; greedy forward walk
 4. Cross-session context injection — defer until compaction injection (step above) exists
 
-Open design question: does pre-session context (prev session summary, compaction summary,
-or a changelog/roadmap) help or hurt summarizer output? Worth A/B testing as a toggle
-once the injection mechanism exists.
+**Transcript variables to evaluate** (once injection infrastructure exists — A/B as toggles):
+- Per-turn timestamps in transcript entries — signal vs. noise for summarizer models, unknown
+- Compaction summary as `[PRIOR CONTEXT]` — planned for v7.3
+- Previous session summary as `[PREV SESSION CONTEXT]` — planned for v7.3
+- Changelog/roadmap injection — orients the model vs. biases it toward known topics?
+- Combos: compaction + prev session, timestamps + context header, etc.
+
+**Held / ruled out**:
+- Legend block in system prompt — ruled out; goes in transcript body for model/prompt portability
 
 Difficulty: Low (tool labels, slug, filter tiers 1–2), Medium (compaction extraction +
 split, session merge), Medium (context injection — depends on compaction work landing first).
