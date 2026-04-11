@@ -270,8 +270,10 @@ function extractContentBlocks(entry) {
 }
 
 // ─── TRANSCRIPT BUILDING ────────────────────────────────────────
+const TRANSCRIPT_LEGEND = "[TRANSCRIPT FORMAT: TOOL_AUTO = no user approval required OR user approved action type globally previously; TOOL_DENIED = user explicitly rejected; TOOL_ERROR = execution failed; TOOL_CALL/TOOL_RESULT = standard supervised tool use; THINKING = model extended reasoning trace]";
+
 function buildTranscript(entries) {
-  const lines = [];
+  const lines = [TRANSCRIPT_LEGEND];
   const cap = CONFIG.toolResultMaxChars;
 
   for (const entry of entries) {
@@ -295,6 +297,10 @@ function buildTranscript(entries) {
         if (raw.includes("<persisted-output>")) {
           const sizeMatch = raw.match(/Output too large \([\d.]+KB\)/);
           lines.push(`[TOOL_RESULT${agentTag}] ${sizeMatch?.[0] || "Large output"} — persisted to disk`);
+        } else if (block.is_error && raw.includes("The user doesn't want to proceed with this tool use")) {
+          const reasonMatch = raw.match(/The user provided the following reason for the rejection:\s*([\s\S]*)/);
+          const reason = reasonMatch ? reasonMatch[1].trim() : null;
+          lines.push(`[TOOL_DENIED${agentTag}]${reason ? `: ${reason}` : ""}`);
         } else {
           lines.push(`[${block.is_error ? "TOOL_ERROR" : "TOOL_RESULT"}${agentTag}] ${raw.slice(0, cap)}`);
         }
