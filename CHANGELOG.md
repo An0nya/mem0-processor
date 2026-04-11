@@ -123,6 +123,145 @@ Grouped by theme because the changes were made together and depend on each other
 
 ---
 
+## v7.3 — Transcript quality + session structure (planned)
+
+Patch before v8. Improves signal fidelity in transcripts fed to summarizer models.
+No new flags or config; all changes are internal to transcript building and session handling.
+
+### Tool label differentiation
+
+Current `[TOOL_ERROR]` covers three distinct events that summarizer models conflate:
+- **User denial**: `is_error: true` + content contains "The user doesn't want to proceed"
+  → emit `[TOOL_DENIED: <reason>]`. Reason extracted from after "The user provided the
+  following reason for the rejection:" if present, otherwise just `[TOOL_DENIED]`.
+- **Auto-approved**: tool_call immediately followed by tool_result with no intervening
+  user turn (always-allow or implicit harness approval) → emit `[TOOL_AUTO]` prefix on
+  result line so models can distinguish supervised from unsupervised execution.
+- **Genuine error**: `is_error: true` but not a denial → keep `[TOOL_ERROR]`.
+
+Prepend a legend block to the transcript before sending to the summarizer so models don't
+have to infer label meaning:
+```
+[TRANSCRIPT FORMAT: TOOL_AUTO = no user approval required OR user approved action type globally previously; TOOL_DENIED = user explicitly rejected; TOOL_ERROR = execution failed; TOOL_CALL/TOOL_RESULT = standard supervised tool use; THINKING = model extended reasoning trace]
+```
+Legend travels with the transcript regardless of model or prompt version.
+
+### Extended thinking traces
+
+`type=thinking` content blocks in assistant messages were previously silently dropped.
+They contain the model's full reasoning before a response — useful signal for summarizers
+(shows *why* a decision was made, not just what was done) and a complexity indicator
+(presence of thinking blocks = extended thinking was invoked on that turn).
+
+Emit as `[THINKING]\n<full text>\n[/THINKING]` — no truncation. Thinking traces are
+bounded by the model's reasoning budget; they don't inflate unboundedly. Summarizer
+models handle them well when clearly delineated.
+
+`type=thinking` blocks also carry a `signature` field (opaque token) — ignored in output.
+
+### Compaction summary extraction + local cache
+
+Compaction data appears in two places — one reliable, one inconsistent:
+
+**Primary (always present):** `type=user, isCompactSummary=true` entries in the main
+session JSONL. Each compaction produces a `type=system, subtype=compact_boundary` entry
+immediately followed by a `type=user, isCompactSummary=true` entry containing the full
+summary text. This pair is always written regardless of compaction method. Use the
+`compact_boundary` timestamp as the split point.
+
+**Secondary (present in some sessions only):** `subagents/agent-acompact-<id>.jsonl`
+files alongside the main session file. Not generated for all compactions — confirmed
+absent for at least two sessions (ef0cad9d, 06a657b2) that have inline summaries. When
+present, the last `type=assistant` entry contains `<analysis>` + `<summary>` blocks.
+The `<analysis>` block is the model's reasoning about what to preserve — potentially
+useful for quality scoring or surfacing what the model considered load-bearing context.
+Files where the last entry is `type=user` = incomplete run, skip.
+
+Implementation:
+- Scan main JSONL for `isCompactSummary=true` entries — use these as the reliable source
+- Also scan for `agent-acompact-*` files; if present, extract `<analysis>` and `<summary>`
+- Cache inline summary as `~/.claude/mem0/compaction-summaries/<sessionId>-<compactIndex>.md`
+- If acompact file also exists for that compaction, cache analysis separately or append
+- Check for cached file before re-extracting; no mem0 upload yet
+
+### Session splitting at compaction breakpoints
+
+When a session has `compact_boundary` entries, split the main transcript at each one:
+
+- Pre-compaction segment: processed normally as its own transcript chunk
+- Post-compaction segment: `isCompactSummary=true` text prepended as `[PRIOR CONTEXT]`
+  header, then remaining entries. Models get oriented without reading the full prior segment.
+- Multiple compactions = multiple splits; each post-compaction chunk uses most recent summary
+- Split point is the `compact_boundary` timestamp (always present; no dependency on acompact files)
+- Partially implements v10 chunking for compacted sessions. v10 still owns the fallback
+  (non-compacted oversize sessions) and small-session merging.
+
+### Slug-based session identification
+
+Every JSONL entry has a `slug` field (e.g. `"woolly-pondering-glacier"`). UUIDs are
+unreadable in logs and filenames.
+
+- Extract slug from first entry with a non-null `slug` field
+- Use `<slug>--<sessionId-prefix>` in output filenames and log lines (UUID prefix keeps
+  uniqueness; slug adds readability)
+- Archive paths already use slug; ensure consistency across all references
+
+### Session chaining + merging
+
+Adjacent sessions sharing CWD + close timestamps are likely continuous work. Two
+mechanisms, same investigation dependency:
+
+**Cross-session context injection**: when a session follows a recent one (same CWD,
+gap < threshold), prepend the previous session's last assistant message or compaction
+summary (whichever is more recent) as `[PREV SESSION CONTEXT]` header. Same mechanic as
+`[PRIOR CONTEXT]` for post-compaction segments — ~5 lines of difference once that exists.
+Defer until compaction injection exists.
+
+**Small-session merging**: sessions too short to summarize individually (currently skipped
+at 500-char minimum) may have a throughline. If back-to-back and same CWD, merge with a
+`[SESSION BREAK]` marker; merged transcript gets one summary pass.
+
+**Useless session filtering** (prerequisite for merging — no point including noise):
+- Hard skip: no `type=user` or `type=assistant` entries with non-empty, non-meta text.
+  Covers teleport stubs, queue-operation-only sessions, isMeta-only sessions.
+- Soft skip: user-side text ≤ ~20 chars AND no tool calls. Covers `claude "help"` →
+  generic response cases where assistant boilerplate inflates combined char count
+  deceptively. Measure user-side text separately; do not rely on combined char count.
+
+**Heuristic (investigated, resolved)**: CWD + timestamp gap is sufficient — no need for
+semantic matching. Gap threshold: ~15 minutes captures contiguous incident clusters
+without false positives. Walk forward greedily from the first sub-threshold session;
+only pull in sub-threshold neighbors. Do not absorb adjacent large sessions — they
+summarize independently and supply context through normal processing.
+
+Example — enter-key keybinding incident (`~/.claude/projects/-Users-anya/`, 2026-03-26):
+```
+03:32  27f6e18b  2237 chars  "how to resume a session"      above threshold → own summary
+03:43  049225b0   468 chars  claude "help" (4 user chars)   soft-skip / merge candidate
+03:47  b74252b3   100 chars  tool call, interrupted          merge candidate
+03:48  d19d5c64   316 chars  keybindings attempt, cut        merge candidate
+03:50  4ba5521d  1565 chars  Enter → newline keybinding      above threshold → own summary
+```
+Three sub-threshold sessions merged = 884 chars, gap 03:43–03:48 = 5 min. Narrative:
+*Enter broken → tried `claude "help"` from terminal → two interrupted keybinding attempts*.
+Parent session `888373a7` (01:26–04:14, 60 user turns) covers the full incident including
+the disaster and recovery; the merged cluster adds granularity on the frantic middle.
+
+**Implementation order**:
+1. Hard-skip filter — check for absent user/assistant text; trivial
+2. Soft-skip filter — measure user-side char count separately; flag ≤ 20 chars + no tool calls
+3. Small-session merge — CWD match + gap ≤ 15 min + sub-threshold; greedy forward walk
+4. Cross-session context injection — defer until compaction injection (step above) exists
+
+Open design question: does pre-session context (prev session summary, compaction summary,
+or a changelog/roadmap) help or hurt summarizer output? Worth A/B testing as a toggle
+once the injection mechanism exists.
+
+Difficulty: Low (tool labels, slug, filter tiers 1–2), Medium (compaction extraction +
+split, session merge), Medium (context injection — depends on compaction work landing first).
+
+---
+
 ## v8 — Data-driven context cap (planned)
 
 Replace the hardcoded 64k ceiling with a per-model computed max safe transcript size
@@ -166,23 +305,18 @@ Difficulty: Hard (mlx-lm launch), Unknown (turboquant).
 
 ---
 
-## v10 — Session chunking + merging (planned)
+## v10 — Fallback chunking for oversize sessions (planned)
 
-- **Chunking for oversize transcripts**: split at Claude compaction markers when present
-  (compaction summaries already divide the session at natural breakpoints). Process the
-  chunks through the summarizer and merge results.
-  - **Do not use compaction summaries verbatim or as input to the summarizer** — they
-    strip exactly the decisions/friction/mistakes/texture this pipeline exists to capture.
-    Use them as anchors only.
-  - For sessions without compaction markers, fall back to token-count windows with overlap.
-  - Investigate: are we already using compaction markers as breakpoints implicitly?
-- **Small-session merging**: merge or cross-reference summaries for adjacent small
-  sessions that represent continuous interactions (timestamp proximity + topic overlap).
-  Design depends on how the chunking pipeline resolves.
+v7.3 handles compacted sessions (split at compaction markers, context injection at
+boundaries, small-session merging). v10 handles the remaining hard case: sessions that
+are oversize AND have no compaction markers.
+
+- **Fallback chunking**: split at token-count windows with overlap when no compaction
+  anchor exists. Process chunks through the summarizer and merge results.
 - Timestamp-anchored filtering for summary retrieval (filter by session start/end times
   to find sessions with carryover context).
 
-Difficulty: Medium-Hard. Chunking design is the hard part; merging is I/O.
+Difficulty: Medium-Hard. Chunking design is the hard part.
 
 ---
 

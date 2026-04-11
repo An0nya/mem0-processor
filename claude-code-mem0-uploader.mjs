@@ -282,7 +282,10 @@ function buildTranscript(entries) {
     const agentTag = isSubAgent ? ` (sub-agent: ${model})` : "";
 
     for (const block of blocks) {
-      if (block.type === "thinking") continue;
+      if (block.type === "thinking") {
+        lines.push(`[THINKING]\n${block.thinking}\n[/THINKING]`);
+        continue;
+      }
       if (block.type === "text") {
         lines.push(`[${entryType === "user" ? "USER" : "ASSISTANT"}${agentTag}] ${block.text}`);
       } else if (block.type === "tool_use") {
