@@ -96,6 +96,7 @@ const MEM0_DIR        = path.join(os.homedir(), ".claude", "mem0");
 const SUMMARIES_DIR   = path.join(MEM0_DIR, "summaries");
 const ARCHIVE_DIR     = path.join(SUMMARIES_DIR, "archive");
 const LOGS_DIR        = path.join(MEM0_DIR, "logs");
+const TRANSCRIPTS_DIR = path.join(MEM0_DIR, "transcripts");
 const PERF_STORE_PATH = path.join(MEM0_DIR, "perf.json");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
@@ -216,6 +217,23 @@ function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = f
   fs.writeFileSync(p, summary);
 }
 
+// ─── TRANSCRIPT CACHE ────────────────────────────────────────────
+function transcriptCachePath(sessionId, sessionSlug) {
+  fs.mkdirSync(TRANSCRIPTS_DIR, { recursive: true });
+  const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
+  return path.join(TRANSCRIPTS_DIR, `${prefix}.txt`);
+}
+
+function loadCachedTranscript(sessionId, sessionSlug) {
+  const p = transcriptCachePath(sessionId, sessionSlug);
+  if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
+  return null;
+}
+
+function saveCachedTranscript(sessionId, sessionSlug, transcript) {
+  fs.writeFileSync(transcriptCachePath(sessionId, sessionSlug), transcript);
+}
+
 // ─── LM STUDIO v0 API ────────────────────────────────────────────
 async function getModelInfo(modelId) {
   try {
@@ -287,6 +305,30 @@ function extractContentBlocks(entry) {
 const TRANSCRIPT_LEGEND = "[TRANSCRIPT FORMAT: TOOL_AUTO = no user approval required OR user approved action type globally previously; TOOL_DENIED = user explicitly rejected; TOOL_ERROR = execution failed; TOOL_CALL/TOOL_RESULT = standard supervised tool use; THINKING = model extended reasoning trace]";
 
 function buildTranscript(entries) {
+  // Pre-pass: detect auto-approved tools (tool_use in assistant entry immediately followed
+  // by matching tool_result in next user entry, no other user entry in between).
+  const autoApprovedIds = new Set();
+  let pendingToolUseIds = new Set();
+  for (const entry of entries) {
+    const extracted = extractContentBlocks(entry);
+    if (!extracted) continue;
+    if (extracted.entryType === "assistant") {
+      pendingToolUseIds = new Set();
+      for (const block of extracted.blocks) {
+        if (block.type === "tool_use" && block.id) pendingToolUseIds.add(block.id);
+      }
+    } else if (extracted.entryType === "user") {
+      if (pendingToolUseIds.size > 0) {
+        for (const block of extracted.blocks) {
+          if (block.type === "tool_result" && pendingToolUseIds.has(block.tool_use_id)) {
+            autoApprovedIds.add(block.tool_use_id);
+          }
+        }
+      }
+      pendingToolUseIds = new Set();
+    }
+  }
+
   const lines = [TRANSCRIPT_LEGEND];
   const cap = CONFIG.toolResultMaxChars;
 
@@ -316,7 +358,8 @@ function buildTranscript(entries) {
           const reason = reasonMatch ? reasonMatch[1].trim() : null;
           lines.push(`[TOOL_DENIED${agentTag}]${reason ? `: ${reason}` : ""}`);
         } else {
-          lines.push(`[${block.is_error ? "TOOL_ERROR" : "TOOL_RESULT"}${agentTag}] ${raw.slice(0, cap)}`);
+          const isAuto = autoApprovedIds.has(block.tool_use_id);
+          lines.push(`[${block.is_error ? "TOOL_ERROR" : isAuto ? "TOOL_AUTO" : "TOOL_RESULT"}${agentTag}] ${raw.slice(0, cap)}`);
         }
       }
     }
@@ -837,7 +880,9 @@ async function main() {
       continue;
     }
 
-    const transcript = buildTranscript(entries);
+    const cachedTranscript = isReprocess ? null : loadCachedTranscript(session.sessionId, sessionSlug);
+    const transcript = cachedTranscript ?? buildTranscript(entries);
+    if (!cachedTranscript) saveCachedTranscript(session.sessionId, sessionSlug, transcript);
     const lineCount  = transcript.split("\n").length;
     const convEntries = entries.filter(e => e.type === "user" || e.type === "assistant");
     const startedAt  = convEntries[0]?.timestamp ?? null;
