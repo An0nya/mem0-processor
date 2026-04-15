@@ -97,7 +97,8 @@ const SUMMARIES_DIR   = path.join(MEM0_DIR, "summaries");
 const ARCHIVE_DIR     = path.join(SUMMARIES_DIR, "archive");
 const LOGS_DIR        = path.join(MEM0_DIR, "logs");
 const TRANSCRIPTS_DIR = path.join(MEM0_DIR, "transcripts");
-const PERF_STORE_PATH = path.join(MEM0_DIR, "perf.json");
+const PERF_STORE_PATH           = path.join(MEM0_DIR, "perf.json");
+const COMPACTION_SUMMARIES_DIR  = path.join(MEM0_DIR, "compaction-summaries");
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const NO_TOKEN_CAP = process.argv.includes("--no-token-cap");
@@ -281,6 +282,18 @@ function extractSessionSlug(filePath) {
     try {
       const entry = JSON.parse(line);
       if (entry.slug) return entry.slug;
+    } catch { /* skip */ }
+  }
+  return null;
+}
+
+function extractSessionStartTime(filePath) {
+  const lines = fs.readFileSync(filePath, "utf8").split("\n");
+  for (const line of lines.slice(0, 30)) {
+    if (!line.trim()) continue;
+    try {
+      const entry = JSON.parse(line);
+      if (entry.timestamp) return entry.timestamp;
     } catch { /* skip */ }
   }
   return null;
@@ -689,6 +702,40 @@ Memory Pressure: peak ${maxPressure}%  |  avg ${avgPressure}%
 ─────────────────────────────────────────────────────`);
 }
 
+// ─── COMPACTION EXTRACTION ───────────────────────────────────────
+// Walks entries for compact_boundary → isCompactSummary pairs, writes each
+// summary to COMPACTION_SUMMARIES_DIR/<sessionId>-<index>.md.
+// Returns array of { compactIndex, timestamp, summary, cachePath }.
+function extractAndCacheCompactionSummaries(sessionId, entries) {
+  const results = [];
+  let compactIndex = 0;
+  for (let i = 0; i < entries.length - 1; i++) {
+    const e = entries[i];
+    if (e.type === "system" && e.subtype === "compact_boundary") {
+      const next = entries[i + 1];
+      if (next?.isCompactSummary === true) {
+        const extracted = extractContentBlocks(next);
+        let summaryText = null;
+        if (extracted) {
+          summaryText = extracted.blocks
+            .filter(b => b.type === "text")
+            .map(b => b.text ?? "")
+            .join("\n")
+            .trim();
+        }
+        if (summaryText) {
+          fs.mkdirSync(COMPACTION_SUMMARIES_DIR, { recursive: true });
+          const cachePath = path.join(COMPACTION_SUMMARIES_DIR, `${sessionId}-${compactIndex}.md`);
+          fs.writeFileSync(cachePath, summaryText);
+          results.push({ compactIndex, boundaryIndex: i, timestamp: e.timestamp ?? null, summary: summaryText, cachePath });
+        }
+        compactIndex++;
+      }
+    }
+  }
+  return results;
+}
+
 // ─── MAIN ────────────────────────────────────────────────────────
 async function main() {
   if (DRY_RUN) console.log("🔍 DRY RUN — no uploads or state changes\n");
@@ -767,6 +814,14 @@ async function main() {
   if (NO_TOKEN_CAP) console.log(`  --no-token-cap: script ceiling bypassed, using model context limit (${effectiveMaxChars} chars)`);
 
   const sessions = findSessions();
+  sessions.sort((a, b) => {
+    const ta = extractSessionStartTime(a.filePath);
+    const tb = extractSessionStartTime(b.filePath);
+    if (!ta && !tb) return 0;
+    if (!ta) return 1;
+    if (!tb) return -1;
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
   const runStats = [];
   let batchIndex = 0;
 
@@ -798,6 +853,10 @@ async function main() {
     }
 
     const entries    = parseSession(session.filePath);
+    const compactionSummaries = extractAndCacheCompactionSummaries(session.sessionId, entries);
+    if (compactionSummaries.length > 0) {
+      console.log(`  📦 ${compactionSummaries.length} compaction summary(ies) extracted → ${COMPACTION_SUMMARIES_DIR}`);
+    }
 
     // Tier 1 hard-skip: no user/assistant entries with real (non-meta) content
     const hasRealContent = entries.some(e =>
