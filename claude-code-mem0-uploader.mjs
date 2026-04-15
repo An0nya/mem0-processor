@@ -736,6 +736,40 @@ function extractAndCacheCompactionSummaries(sessionId, entries) {
   return results;
 }
 
+// ─── SEGMENT BUILDER ─────────────────────────────────────────────
+// Splits entries at compaction boundaries into processable segments.
+// When compactionSummaries is empty, returns a single whole-session segment (partSuffix = "").
+// Each segment: { entries, partSuffix, priorContext, startTimestamp, endTimestamp }
+// priorContext is the compaction summary text to inject as [PRIOR CONTEXT] into the transcript.
+function buildSegments(entries, compactionSummaries) {
+  if (compactionSummaries.length === 0) {
+    return [{ entries, partSuffix: "", priorContext: null, startTimestamp: null, endTimestamp: null }];
+  }
+  const segments = [];
+  let segStart = 0;
+  for (let ci = 0; ci < compactionSummaries.length; ci++) {
+    const boundary = compactionSummaries[ci];
+    segments.push({
+      entries: entries.slice(segStart, boundary.boundaryIndex),
+      partSuffix: `-part${ci}`,
+      priorContext: ci === 0 ? null : compactionSummaries[ci - 1].summary,
+      startTimestamp: ci === 0 ? null : compactionSummaries[ci - 1].timestamp,
+      endTimestamp: boundary.timestamp,
+    });
+    segStart = boundary.boundaryIndex + 2; // skip compact_boundary + isCompactSummary entries
+  }
+  // Tail segment after the last boundary
+  const last = compactionSummaries[compactionSummaries.length - 1];
+  segments.push({
+    entries: entries.slice(segStart),
+    partSuffix: `-part${compactionSummaries.length}`,
+    priorContext: last.summary,
+    startTimestamp: last.timestamp,
+    endTimestamp: null,
+  });
+  return segments;
+}
+
 // ─── MAIN ────────────────────────────────────────────────────────
 async function main() {
   if (DRY_RUN) console.log("🔍 DRY RUN — no uploads or state changes\n");
@@ -832,42 +866,48 @@ async function main() {
     const sessionSlug = extractSessionSlug(session.filePath);
     const displayId   = sessionSlug ? `${sessionSlug}--${session.sessionId.slice(0, 8)}` : session.sessionId;
     const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && session.sessionId === REPROCESS_ID);
-    const stEntry           = state[session.sessionId];
-    const alreadySummarized = loadCachedSummary(session.sessionId, sessionSlug, model.id) !== null;
-    const alreadyUploaded   = stEntry?.uploaded === true;
-    if (!isReprocess) {
-      if (REPROCESS_ID && REPROCESS_ID !== "all") {
-        // targeting a specific session, skip everything else
-        continue;
-      }
-      if (NO_UPLOAD  && alreadySummarized) {
-        console.log(`  ⚠ Skipping past ${displayId} — summary file is cached on disk`);
-        log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
-        continue;
-      }
-      if (!NO_UPLOAD && alreadyUploaded)   {
-        console.log(`  ⚠ Skipping past ${displayId} — summary is cached and uploaded to mem0`);
-        log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
-        continue;
-      }
-    }
+    // Early exit: targeting a specific session — skip others before parsing
+    if (!isReprocess && REPROCESS_ID && REPROCESS_ID !== "all") continue;
 
     const entries    = parseSession(session.filePath);
     const compactionSummaries = extractAndCacheCompactionSummaries(session.sessionId, entries);
     if (compactionSummaries.length > 0) {
       console.log(`  📦 ${compactionSummaries.length} compaction summary(ies) extracted → ${COMPACTION_SUMMARIES_DIR}`);
     }
+    const segments = buildSegments(entries, compactionSummaries);
+
+    for (const seg of segments) {
+      const stateKey   = session.sessionId + seg.partSuffix;
+      const segSlug    = seg.partSuffix && sessionSlug ? sessionSlug + seg.partSuffix : sessionSlug;
+      const segDisplay = displayId + seg.partSuffix;
+
+      // Per-segment skip checks
+      const stEntry           = state[stateKey];
+      const alreadySummarized = loadCachedSummary(session.sessionId, segSlug, model.id) !== null;
+      const alreadyUploaded   = stEntry?.uploaded === true;
+      if (!isReprocess) {
+        if (NO_UPLOAD  && alreadySummarized) {
+          console.log(`  ⚠ Skipping past ${segDisplay} — summary file is cached on disk`);
+          log.write({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "already_summarized", ts: new Date().toISOString() });
+          continue;
+        }
+        if (!NO_UPLOAD && alreadyUploaded) {
+          console.log(`  ⚠ Skipping past ${segDisplay} — summary is cached and uploaded to mem0`);
+          log.write({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "already_uploaded", ts: new Date().toISOString() });
+          continue;
+        }
+      }
 
     // Tier 1 hard-skip: no user/assistant entries with real (non-meta) content
-    const hasRealContent = entries.some(e =>
+    const hasRealContent = seg.entries.some(e =>
       (e.type === "user" || e.type === "assistant") &&
       !e.isMeta &&
       extractContentBlocks(e) !== null
     );
     if (!hasRealContent) {
-      console.log(`  ⚠ Skipping ${displayId} — no user/assistant content (stub or meta-only)`);
-      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "no_content" });
-      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "no_content", ts: new Date().toISOString() });
+      console.log(`  ⚠ Skipping ${segDisplay} — no user/assistant content (stub or meta-only)`);
+      runStats.push({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "no_content" });
+      log.write({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "no_content", ts: new Date().toISOString() });
       continue;
     }
 
@@ -876,7 +916,7 @@ async function main() {
     // boilerplate (e.g. generic help wall) inflates a 4-char user input to 400+ combined.
     let userTextChars = 0;
     let hasToolCalls = false;
-    for (const e of entries) {
+    for (const e of seg.entries) {
       const extracted = extractContentBlocks(e);
       if (!extracted) continue;
       for (const block of extracted.blocks) {
@@ -888,24 +928,27 @@ async function main() {
       if (hasToolCalls) break;
     }
     if (userTextChars <= 20 && !hasToolCalls) {
-      console.log(`  ⚠ Skipping ${displayId} — noise (${userTextChars} user chars, no tool calls)`);
-      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "noise", userTextChars });
-      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "noise", userTextChars, ts: new Date().toISOString() });
+      console.log(`  ⚠ Skipping ${segDisplay} — noise (${userTextChars} user chars, no tool calls)`);
+      runStats.push({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "noise", userTextChars });
+      log.write({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "noise", userTextChars, ts: new Date().toISOString() });
       continue;
     }
 
-    const cachedTranscript = isReprocess ? null : loadCachedTranscript(session.sessionId, sessionSlug);
-    const transcript = cachedTranscript ?? buildTranscript(entries);
-    if (!cachedTranscript) saveCachedTranscript(session.sessionId, sessionSlug, transcript);
+    const cachedTranscript = isReprocess ? null : loadCachedTranscript(session.sessionId, segSlug);
+    let transcript = cachedTranscript ?? buildTranscript(seg.entries);
+    if (seg.priorContext && !cachedTranscript) {
+      transcript = `[PRIOR CONTEXT: Compaction summary from earlier in this session]\n${seg.priorContext}\n[/PRIOR CONTEXT]\n\n${transcript}`;
+    }
+    if (!cachedTranscript) saveCachedTranscript(session.sessionId, segSlug, transcript);
     const lineCount  = transcript.split("\n").length;
-    const convEntries = entries.filter(e => e.type === "user" || e.type === "assistant");
-    const startedAt  = convEntries[0]?.timestamp ?? null;
-    const endedAt    = convEntries[convEntries.length - 1]?.timestamp ?? null;
+    const segConvEntries = seg.entries.filter(e => e.type === "user" || e.type === "assistant");
+    const startedAt  = segConvEntries[0]?.timestamp     ?? seg.startTimestamp ?? null;
+    const endedAt    = segConvEntries[segConvEntries.length - 1]?.timestamp ?? seg.endTimestamp ?? null;
 
     if (transcript.length > effectiveMaxChars) {
-      console.log(`  ⚠ Skipping ${displayId} (${transcript.length} chars, exceeds context limit — use --no-token-cap to override)`);
-      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "context_overflow", chars: transcript.length });
-      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "context_overflow", chars: transcript.length, ts: new Date().toISOString() });
+      console.log(`  ⚠ Skipping ${segDisplay} (${transcript.length} chars, exceeds context limit — use --no-token-cap to override)`);
+      runStats.push({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "context_overflow", chars: transcript.length });
+      log.write({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "context_overflow", chars: transcript.length, ts: new Date().toISOString() });
       continue;
     }
 
@@ -915,22 +958,22 @@ async function main() {
     }
 
     if (finalTranscript.length < 500) {
-      console.log(`  ⚠ Skipping ${displayId} (${finalTranscript.length} chars — too short to summarize)`);
-      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "too_short", chars: finalTranscript.length });
-      log.write({ sessionId: session.sessionId, slug: sessionSlug, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
+      console.log(`  ⚠ Skipping ${segDisplay} (${finalTranscript.length} chars — too short to summarize)`);
+      runStats.push({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "too_short", chars: finalTranscript.length });
+      log.write({ sessionId: stateKey, slug: segSlug, skipped: true, reason: "too_short", chars: finalTranscript.length, ts: new Date().toISOString() });
       continue;
     }
 
     console.log(`      |------${model.id}------|`);
     console.log(`\n   Session ${runStats.length} of ${sessions.length}`);
-    console.log(`\n...\n  💪  Processing ${displayId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
+    console.log(`\n...\n  💪  Processing ${segDisplay} (${lineCount} lines, ${finalTranscript.length} chars)…`);
     //the two following lines i moved outside of the try block as they didn't get scoped into the catch. also, sampler didn't have a var/let/etc in front of it - either i missed its declaration somewhere or js said it's totally cool anyway...
     let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, peakPressure, pressureAvg, postSessionIdleGb, postSessionSwap, cacheHit, lastRun, timeSinceLastRunMin;
     let sampler = startRamSampler();
     let runtime;
     try {
       //does the ignore cache logic have to be so hard to read?
-      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, sessionSlug, model.id);
+      const cached = isReprocess ? null : loadCachedSummary(session.sessionId, segSlug, model.id);
       if (cached) {
         summary = cached;
         tps = null; prefillTps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null; startingSwap = null; maxSwap = null; peakPressure = null; pressureAvg = null;
@@ -964,7 +1007,7 @@ async function main() {
 	const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
         const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
         summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
-        saveCachedSummary(session.sessionId, sessionSlug, model.id, summary, isReprocess);
+        saveCachedSummary(session.sessionId, segSlug, model.id, summary, isReprocess);
         batchIndex++;
 	lastRun = perfStore[model.id]?.runs?.at(-1);
 	timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
@@ -976,15 +1019,15 @@ async function main() {
 ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
-        log.write({ sessionId: session.sessionId, slug: sessionSlug, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
+        log.write({ sessionId: stateKey, slug: segSlug, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
 
         
         console.log(`  ✓ Summary cached`);
       }
 
       if (!DRY_RUN) {
-        state[session.sessionId] = {
-          ...(state[session.sessionId] || {}),
+        state[stateKey] = {
+          ...(state[stateKey] || {}),
           startedAt,
           endedAt,
           summarizedAt:    new Date().toISOString(),
@@ -992,23 +1035,23 @@ ______________________________________________\n`);
           transcriptLines: lineCount,
           transcriptChars: finalTranscript.length,
           summarized:      true,
-          uploaded:        state[session.sessionId]?.uploaded ?? false,
+          uploaded:        state[stateKey]?.uploaded ?? false,
         };
         saveState(state, model.id);
       }
 
-      await uploadToMem0(summary, session.sessionId, session.projectDir, model);
+      await uploadToMem0(summary, stateKey, session.projectDir, model);
 
       if (!DRY_RUN && !NO_UPLOAD) {
-        state[session.sessionId].uploaded   = true;
-        state[session.sessionId].uploadedAt = new Date().toISOString();
+        state[stateKey].uploaded   = true;
+        state[stateKey].uploadedAt = new Date().toISOString();
         saveState(state, model.id);
       }
 
       if (!DRY_RUN && peakUsedGb != null) {
         appendPerfEntry(perfStore, model.id, {
           ts:             new Date().toISOString(),
-          session:        session.sessionId,
+          session:        stateKey,
           idleGb,
           preSessionIdleGb: preSessionIdleGb ?? null,
 	  postSessionIdleGb: postSessionIdleGb,
@@ -1036,15 +1079,15 @@ ______________________________________________\n`);
       }
 
       const inputChars = finalTranscript.length;
-      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
-      log.write({ sessionId: session.sessionId, slug: sessionSlug, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
+      runStats.push({ sessionId: stateKey, slug: segSlug, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
+      log.write({ sessionId: stateKey, slug: segSlug, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
 
-      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${displayId}`);
+      console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${segDisplay}`);
     } catch (err) {
-      console.error(`  ✗ Failed: ${displayId} — ${err.message}`);
+      console.error(`  ✗ Failed: ${segDisplay} — ${err.message}`);
       batchIndex++;
-      runStats.push({ sessionId: session.sessionId, slug: sessionSlug, error: err.message });
-      log.write({ sessionId: session.sessionId, slug: sessionSlug, model: model.id, error: err.message, ts: new Date().toISOString() });
+      runStats.push({ sessionId: stateKey, slug: segSlug, error: err.message });
+      log.write({ sessionId: stateKey, slug: segSlug, model: model.id, error: err.message, ts: new Date().toISOString() });
       if (!DRY_RUN && model.provider === "lmstudio") {
         const partial = sampler ? sampler.stop() : { peakUsedGb: null, avgUsedGb: null };
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
@@ -1064,7 +1107,8 @@ ______________________________________________\n`);
           failReason:      err.message,
         });
       }
-    }
+    } // end try/catch
+    } // end segment loop
   }
 
   log.close();
