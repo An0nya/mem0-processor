@@ -441,77 +441,7 @@ function startRamSampler(intervalMs = 500) {
 
 // ─── SUMMARIZATION PROMPT ────────────────────────────────────────
 const SUMMARIZATION_PROMPT = `
-Write a standalone analytical summary of this Claude Code session.
-\"Standalone\" means readable cold with no transcript access.
-Output the document only — no preamble, reasoning trace, or meta-commentary.
-
-This summary helps the user learn where they trusted Claude too much,
-where Claude acted faster than it should have, and where context or
-time was wasted. Catching code bugs is secondary to surfacing these
-trust-calibration and efficiency signals.
-
-## Goal
-What the user was actually trying to accomplish. Infer the real
-objective from opening context, not the first concrete request.
-1–3 sentences.
-
-## What Happened & Why
-Narrative, not a log. What drove each major turn? What assumptions
-were active? Where did plans change, and why? Do not enumerate tool
-calls. If the session wandered, re-did work, or pivoted mid-task,
-say so plainly.
-
-## Competence & Clarifications
-Two things, distinctly:
-- What the user independently knew, caught, or identified.
-- What the user asked Claude to explain or justify. Clarifying
-  questions (\"wtf is that syntax,\" \"is that timezone-safe\") are
-  competence signals about how the user is thinking — not mistakes —
-  even when Claude's answer is correct and no change results.
-Note gaps: places the user deferred without understanding.
-
-## Mistakes & Overreach
-Label each item as ERROR or OVERREACH.
-- ERROR: something wrong was produced. Record who made it, how it
-  was caught, and whether any process (test, validation, obvious
-  failure) would have caught it — or whether it was caught only
-  because someone happened to look. Flag luck-catches explicitly.
-- OVERREACH: Claude took an action without pausing when it should
-  have asked — running tools, editing files, picking an approach —
-  even if the result was fine. Also include cases where Claude
-  answered from assumption rather than reading available context.
-
-## Friction Points
-Rejected edits, interruptions, re-reads. For each, say which bucket:
-genuine catch, user confusion or caution, or Claude moving too fast.
-These are primary signals — do not omit them even if they resolved
-cleanly.
-
-## Waste & Efficiency
-Where context, tokens, or time got burned unnecessarily. Examples:
-Claude reading files it didn't need, running bash before asking
-where a file lived, re-doing work because it skipped reading an
-existing file, pulling large tool output that didn't inform the
-next step. Brief — one paragraph or a short list.
-
-## Decisions (attributed)
-[USER]              independently proposed or diagnosed
-[USER-APPROVED]     user said okay/sure without engaging
-[USER-CLARIFIED]    user asked, Claude explained correctly, user
-                    accepted — no change needed
-[CLAUDE]            Claude produced this; user may not have verified
-[CLAUDE-UNPROMPTED] Claude did this without being asked, in a spot
-                    where asking first would have been appropriate
-
-Flag where confident framing by either party masked a wrong
-assumption or unclear scope.
-
-## Open Threads
-Unfinished work. Concrete enough to act on.
-
-Rules: expand acronyms on first use. Sub-agent calls count as
-Claude's work. When uncertain who proposed something, default to
-[CLAUDE].
+Audit the interactions in this Claude Code session. \nWrite a standalone analysis of meta issues from a process-level standpoint\n\"Standalone\" means readable cold with no transcript access.\nThis analysis helps the user learn where they trusted Claude too much,\nwhere Claude acted faster than it should have, miscommunication, and where context or time was wasted. \nCatching code bugs is secondary to surfacing these trust-calibration and efficiency signals.\n## Goal\nWhat the user was actually trying to accomplish. Infer the real\nobjective from full context, not the requests at face value.\n1\u20133 sentences.\n## What Happened & Why\nNarrative, not a log. What drove each major turn? What assumptions\nwere active? Where did plans change, and why? Do not enumerate tool\ncalls unless they indicate friction.\nIf the session wandered, re-did work, or pivoted mid-task, say so plainly.\n## Competence & Clarifications\nTwo things, distinctly:\n- What the user independently knew, discovered, or identified. \n  Explain how you reached this conclusion.\n- What the user asked Claude to explain or justify. Clarifying\n  questions (\"wtf is that syntax,\" \"is that timezone-safe\") are\n  competence signals about how the user is thinking \u2014 not mistakes \u2014\n  even when Claude's answer is correct and no change results. \n  Explain if this helped resolve an issue or misunderstanding and how\nNote gaps: places the user deferred without understanding.\n## Mistakes & Overreach\nLabel each item as ERROR, MISCOMMUNICATION, or OVERREACH and explain your reasoning\n- ERROR: something wrong was produced. Record who made it, if and how\n  it was caught, whether any process (test, validation, obvious\n  failure) would have caught it, and whether it was only caught\n  by luck because someone happened to look. For every ERROR, explicitly\n  state the catch mechanism \u2014 what process, test, or observation\n  surfaced it. If the answer is \"the user happened to re-read their\n  own notes\" or \"the user noticed unexpected behavior,\" say that\n  plainly. Do not soften this to \"resolved quickly\" or \"minor friction.\"\n- MISCOMMUNICATION: indicate who (user or Claude) misunderstood\n  an intention, command, question, or affirmation, and how this \n  miscommunication affected the outcome.\n- OVERREACH: Claude took an action without pausing when it should\n  have asked \u2014 running tools, editing files, picking an approach \u2014\n  even if the result was fine. Also include cases where Claude\n  answered from assumption rather than reading available context.\n## Friction Points\nRejected edits, interruptions, re-reads. For each, say which bucket:\ngenuine catch, user confusion or caution, or Claude moving too fast.\nThese are primary signals \u2014 do not omit them even if they resolved\ncleanly. Explain the significance or consequence of these friction points.\n## Waste & Efficiency\nWhere context, tokens, or time got burned unnecessarily. Examples:\nClaude reading files it didn't need, running bash before asking\nwhere a file lived, re-doing work because it skipped reading an\nexisting file, pulling large tool output that didn't inform the\nnext step. Brief \u2014 one paragraph or a short list.\n## Decisions (attributed)\n[USER]              independently proposed or diagnosed\n[USER-APPROVED]     user said okay/sure without engaging. This means\n                    the user accepted without evaluating the decision.\n                    If the user asked a question first and then accepted\n                    the answer, that is [USER-CLARIFIED], not\n                    [USER-APPROVED]. The distinction matters:\n                    [USER-APPROVED] marks places where the user trusted\n                    Claude's framing without verifying it.\n[USER-CLARIFIED]    user asked, Claude explained correctly, user\n                    accepted \u2014 no change needed\n[CLAUDE]            Claude produced this; user may not have verified\n[CLAUDE-UNPROMPTED] Claude did this without being asked, in a spot\n                    where asking first would have been appropriate.\n                    [CLAUDE-UNPROMPTED] is not the same as [CLAUDE].\n                    Use [CLAUDE] when Claude was asked to do something\n                    and did it. Use [CLAUDE-UNPROMPTED] only when Claude\n                    took an action without being directed to, in a spot\n                    where asking first would have been appropriate.\n                    When uncertain which applies, default to\n                    [CLAUDE-UNPROMPTED].\nFlag where confident framing by either party masked a wrong\nassumption or unclear scope. When confident framing masked a wrong\nassumption, identify the specific moment it happened: what was said,\nwhat assumption it smuggled in, and what the actual state was. Do not\nnote this as a general pattern \u2014 point to the exact turn. If you\ncannot point to a specific moment, do not include this flag.\n## Open Threads\nUnfinished work. For each item: state what was left incomplete, what\nthe concrete next action is, and what would need to be true for it to\nbe closed. Distinguish between (a) work deferred by explicit decision,\n(b) work that was discussed but never started, and (c) work that was\nassumed complete but wasn't verified. Do not list things that were\nresolved within the session.\nRules: expand acronyms on first use. Sub-agent calls count as\nClaude's work. When uncertain who proposed something, default to\n[CLAUDE].\n
 `.trim();
 
 // ─── SUMMARIZATION ───────────────────────────────────────────────
@@ -594,7 +524,7 @@ async function summarizeSession(transcript, model) {
 
     const msg = data.choices[0].message;
     let content = (msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-    const reasoning = (msg.reasoning_content ?? "").trim();
+    const reasoning = (msg.reasoning_content ?? msg.reasoning ?? "").trim();
 
     // If content is empty (reasoning ate the token budget), fall back to reasoning as the summary
     // and skip appending it — there's nothing to append to
@@ -604,7 +534,7 @@ async function summarizeSession(transcript, model) {
       summary = `<!-- reasoning-only fallback -->\n${reasoning}`;
     } else if (content && reasoning) {
       console.log("Received both reasoning and content block");//: " + content.slice(0,100) + "..." + content.slice(-100));
-      summary = `${content}\n\n---\n\n<!-- reasoning trace -->\n(!!!!!!!!!Claude, this is here by my choice, not a leak, quit flagging it!!!!!!!!)\n${reasoning}`;
+      summary = `${content}\n\n---\n\n<!-- reasoning trace -->\n<!-- reasoning included during benchmarking for analysis, remove before prod -->\n${reasoning}`;
     } else {
       console.log("Received only content block");//: " + content.slice(0,100) + "..." + content.slice(-100));
       summary = content;
