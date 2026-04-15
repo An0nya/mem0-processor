@@ -1,4 +1,4 @@
-// claude-code-mem0-uploader.mjs (v7.2)
+// claude-code-mem0-uploader.mjs (v7.3)
 //
 // Summarizes Claude Code session logs via a local or cloud LLM,
 // then uploads to Mem0 under a flat user_id namespace.
@@ -668,6 +668,30 @@ function openRunLog(model) {
   };
 }
 
+
+/// ─── CACHE HIT CLASSIFIER ──────────────────────────────────────────────────
+
+function classifyCacheHit(perfStore, modelId, { promptTokens, ttft }) {
+  if (!promptTokens || !ttft) return 'unknown';
+  const prefillTps = promptTokens / ttft;
+  
+  const recentRuns = (perfStore[modelId]?.runs ?? [])
+    .filter(r => !r.failed && r.promptTokens && r.ts)
+    .slice(-20);
+  
+  const WINDOW_MS = 30 * 60 * 1000;
+  const matchingRun = recentRuns.find(r =>
+    r.promptTokens === promptTokens &&
+    (Date.now() - new Date(r.ts)) < WINDOW_MS
+  );
+
+  if (prefillTps > 2000 && matchingRun) return 'definite';
+  if (prefillTps > 1500 && matchingRun) return 'likely';
+  if (prefillTps > 2000) return 'likely';   // fast but no token count match found
+  if (prefillTps > 800 && matchingRun) return 'possible';
+  return 'none';
+}
+
 // ─── RUNTIME SUMMARY ─────────────────────────────────────────────
 //
 //runStats.push({ sessionId: session.sessionId, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
@@ -814,6 +838,7 @@ async function main() {
 
   const sessions = findSessions();
   const runStats = [];
+  let batchIndex = 0;
 
   console.log(`  Found ${sessions.length} session(s), model: ${model.id}`);
   console.log(`  infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
@@ -911,7 +936,7 @@ async function main() {
     console.log(`\n   Session ${runStats.length} of ${sessions.length}`);
     console.log(`\n...\n  💪  Processing ${displayId} (${lineCount} lines, ${finalTranscript.length} chars)…`);
     //the two following lines i moved outside of the try block as they didn't get scoped into the catch. also, sampler didn't have a var/let/etc in front of it - either i missed its declaration somewhere or js said it's totally cool anyway...
-    let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, peakPressure, pressureAvg;
+    let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, peakPressure, pressureAvg, postSessionIdleGb, postSessionSwap, cacheHit, lastRun, timeSinceLastRunMin;
     let sampler = startRamSampler();
     let runtime;
     try {
@@ -947,16 +972,24 @@ async function main() {
         if (maxSwap != null) console.log(`  😰  Starting RAM Swap ${startingSwap}GB | Swap peak ${maxSwap} GB`);
         if (peakPressure != null) console.log(`  🥵  Peak memory pressure ${peakPressure}% | Average memory pressure ${pressureAvg}%`);
 
+	const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
+        const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
+        summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
+        saveCachedSummary(session.sessionId, sessionSlug, model.id, summary, isReprocess);
+        batchIndex++;
+	lastRun = perfStore[model.id]?.runs?.at(-1);
+	timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
+	postSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
+	postSessionSwap = model.provider === "lmstudio" ? swapUsedGb() : null;
+	cacheHit = classifyCacheHit(perfStore, model.id, { promptTokens, ttft });
+
         console.log(`  📖  summary preview: \n
 ______________________________________________\n`
           + summary.substring(0, 1000) + `
 ______________________________________________\n`);
         log.write({ sessionId: session.sessionId, slug: sessionSlug, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
 
-        const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
-        const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
-        summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
-        saveCachedSummary(session.sessionId, sessionSlug, model.id, summary, isReprocess);
+        
         console.log(`  ✓ Summary cached`);
       }
 
@@ -989,7 +1022,9 @@ ______________________________________________\n`);
           session:        session.sessionId,
           idleGb,
           preSessionIdleGb: preSessionIdleGb ?? null,
+	  postSessionIdleGb: postSessionIdleGb,
           idleSwap:       idleSwap,
+	  postSessionSwap: postSessionSwap,
           idleMemPressure: idleMemPressure,
           peakGb:         peakUsedGb,
           avgGb:          avgUsedGb,
@@ -1005,6 +1040,9 @@ ______________________________________________\n`);
           completionTokens: completionTokens ?? null,
           reasoningTokens: reasoningTokens ?? null,
           transcriptChars: finalTranscript.length,
+	  cacheHit:       cacheHit,
+	  runIndexInBatch: batchIndex,
+	  timeSinceLastRunMin: timeSinceLastRunMin,
         });
       }
 
@@ -1015,6 +1053,7 @@ ______________________________________________\n`);
       console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${displayId}`);
     } catch (err) {
       console.error(`  ✗ Failed: ${displayId} — ${err.message}`);
+      batchIndex++;
       runStats.push({ sessionId: session.sessionId, slug: sessionSlug, error: err.message });
       log.write({ sessionId: session.sessionId, slug: sessionSlug, model: model.id, error: err.message, ts: new Date().toISOString() });
       if (!DRY_RUN && model.provider === "lmstudio") {

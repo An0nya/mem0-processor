@@ -123,10 +123,15 @@ Grouped by theme because the changes were made together and depend on each other
 
 ---
 
-## v7.3 — Transcript quality + session structure (planned)
+## v7.3 — Transcript quality + session structure (in progress)
 
 Patch before v8. Improves signal fidelity in transcripts fed to summarizer models.
 No new flags or config; all changes are internal to transcript building and session handling.
+
+**Shipped:** tool label differentiation, thinking traces, slug-based IDs, transcript
+cache, tier 1 + tier 2 session filters, post-session telemetry, cache hit classifier,
+prompt iteration 4.
+**Remaining:** compaction extraction + session splitting, session chaining/merging.
 
 ### Tool label differentiation
 
@@ -194,6 +199,54 @@ before sending to the summarizer.
 - On `--reprocess`, overwrite (same semantics as summary cache)
 - Enables comparison of transcript vs. summary output for quality evaluation
 - No format changes to the transcript itself; cache is the string as-sent
+
+### Post-session telemetry + cache hit classifier
+
+**Status: shipped.**
+
+After each session completes summarization, sample RAM and swap again:
+- `postSessionIdleGb` — GPU-wired RAM after inference completes
+- `postSessionSwap` — swap after inference completes
+- Both stored in perf entry alongside existing `preSessionIdleGb`
+
+`classifyCacheHit(perfStore, modelId, { promptTokens, ttft })` — new function that
+infers whether the model reused a KV cache hit from a recent run:
+- Looks up the last 20 non-failed runs for the model within a 30-minute window
+- Classifies as 'definite' (prefillTps > 2000 + matching token count), 'likely',
+  'possible', or 'none'. Returns 'unknown' if data is insufficient.
+- `cacheHit` stored in perf entry; useful for interpreting anomalously fast prefill TPS.
+
+Also added per-run:
+- `runIndexInBatch` — position of this session within the current script run (0-indexed,
+  increments on both success and failure)
+- `timeSinceLastRunMin` — minutes since the model's last perf store entry; useful for
+  gauging KV cache staleness and cooldown behavior between benchmark runs
+
+Fix: summary timestamp prepend and `saveCachedSummary` call were being called *after*
+the summary preview print, meaning the cached file was missing the timestamp header on
+the first write. Reordered so cache write happens before preview.
+
+### Summarization prompt — iteration 4
+
+**Status: shipped.**
+
+Revision focused on precision and attribution accuracy (shipped alongside telemetry
+expansion):
+- Added MISCOMMUNICATION label to Mistakes & Overreach (previously ERROR + OVERREACH only)
+- Friction Points: added explicit instruction to explain significance/consequence of each
+  friction event, not just classify it
+- [USER-APPROVED] vs [USER-CLARIFIED] distinction expanded with explicit counterexample
+  inline: if user asked first then accepted, that's [USER-CLARIFIED], not [USER-APPROVED]
+- [CLAUDE-UNPROMPTED] distinction tightened: explicit instruction not to use it when
+  Claude was asked; default to [CLAUDE-UNPROMPTED] when uncertain
+- Open Threads: restructured to require (a) what's incomplete, (b) concrete next action,
+  (c) what needs to be true to close it; and to distinguish deferred/unstarted/unverified
+- Competence & Clarifications: added instruction to explain how each conclusion was reached
+- Confident-framing flag: now requires pointing to a specific turn, not a general pattern
+- Framing shifted from "summary" to "audit" / "process-level analysis"
+
+Also: `msg.reasoning_content ?? msg.reasoning` fallback added to LM Studio response parse
+(gpt-oss uses `reasoning` field instead of `reasoning_content`).
 
 ### Session splitting at compaction breakpoints
 
