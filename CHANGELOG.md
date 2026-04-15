@@ -131,7 +131,8 @@ No new flags or config; all changes are internal to transcript building and sess
 **Shipped:** tool label differentiation, thinking traces, slug-based IDs, transcript
 cache, tier 1 + tier 2 session filters, post-session telemetry, cache hit classifier,
 prompt iteration 4.
-**Remaining:** compaction extraction + session splitting, session chaining/merging.
+**Remaining:** compaction extraction + session splitting, session chaining/merging,
+chronological session ordering.
 
 ### Tool label differentiation
 
@@ -429,6 +430,13 @@ branch. Decide at v11 planning time.
 - Unified log function for console + JSONL (currently rejected — formats differ too much,
   but worth revisiting if log enrichment lands)
 - `getModelFailCap()` final removal once v8 regression cap ships
+- **Chronological session ordering**: sessions currently processed in filesystem inode
+  order. Sort by session `startedAt` before the inference loop so batch runs and logs
+  read in actual temporal order. Low-effort; fits v7.3 session structure work.
+- **Inference settings per run**: log temperature, top_p, repeat_penalty, min_p, etc.
+  to the perf store alongside runtime telemetry. Not viable until v9 programmatic launch
+  — sampler params aren't returned in API responses and manual injection per model would
+  be fragile. Defer to v9.
 - **Empirical chars/token ratio**: replace flat 3.5 estimate with a per-model ratio
   derived from perf store (`transcriptChars / promptTokens` per run). Transcripts with
   heavy code or tool call JSON tokenize more efficiently than prose, so 3.5 can
