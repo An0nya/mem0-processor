@@ -114,7 +114,21 @@ const LLAMA_MODE = LLAMA_FLAG_IDX !== -1;
 const LLAMA_MODEL_ID = (() => {
   if (!LLAMA_MODE) return null;
   const next = process.argv[LLAMA_FLAG_IDX + 1];
-  return (next && !next.startsWith("--")) ? next : LLAMA_DEFAULT_MODEL;
+  const query = (next && !next.startsWith("--")) ? next : LLAMA_DEFAULT_MODEL;
+
+  // Resolve against registry: exact match, then substring filter
+  let registry = {};
+  try { registry = JSON.parse(fs.readFileSync(LLAMA_REGISTRY_PATH, "utf8")); } catch { /* registry missing; launchLlamaServer will throw */ }
+  const keys = Object.keys(registry);
+  if (keys.includes(query)) return query;
+  const matches = keys.filter(k => k.toLowerCase().includes(query.toLowerCase()));
+  if (matches.length === 1) return matches[0];
+  if (matches.length === 0) {
+    console.error(`\nNo registry model matches "${query}". Available:\n  ${keys.join("\n  ")}`);
+    process.exit(1);
+  }
+  console.error(`\nAmbiguous model "${query}" — ${matches.length} matches:\n  ${matches.join("\n  ")}\nBe more specific.`);
+  process.exit(1);
 })();
 
 const REPROCESS_ID   = (() => {
@@ -329,7 +343,7 @@ async function launchLlamaServer(modelId) {
   const modelLoadMs = Date.now() - launchStartMs;
   console.log(`  llama-server ready in ${(modelLoadMs / 1000).toFixed(1)}s  (log: ${logFile})\n`);
 
-  return { proc, modelLoadMs, logFile, entry };
+  return { proc, modelLoadMs, logFile, entry, isEarlyExit: () => earlyExit };
 }
 
 function shutdownLlamaServer(proc) {
@@ -552,7 +566,7 @@ Audit the interactions in this Claude Code session. \nWrite a standalone analysi
 // ─── SUMMARIZATION ───────────────────────────────────────────────
 const anthropic = new Anthropic();
 
-async function summarizeSession(transcript, model) {
+async function summarizeSession(transcript, model, registryEntry = null) {
   //gemma specific thinking token injection into prompt
   const useThinkingToken = /gem/i.test(model.id);
   const effectivePrompt = useThinkingToken
@@ -688,8 +702,21 @@ async function summarizeSession(transcript, model) {
     );
 
     const msg = data.choices[0].message;
-    let content = (msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-    const reasoning = (msg.reasoning_content ?? msg.reasoning ?? "").trim();
+    let content = (msg.content ?? "").trim();
+    let reasoning = (msg.reasoning_content ?? msg.reasoning ?? "").trim();
+
+    // Gemma: reasoning tokens are inline in content, not in reasoning_content
+    if (!reasoning && registryEntry?.reasoning) {
+      const { startString, endString } = registryEntry.reasoning;
+      const sIdx = content.indexOf(startString);
+      const eIdx = content.indexOf(endString);
+      if (sIdx !== -1 && eIdx !== -1) {
+        reasoning = content.slice(sIdx + startString.length, eIdx).trim();
+        content = content.slice(eIdx + endString.length).trim();
+      }
+    }
+    content = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
     const completionTokens = data.usage?.completion_tokens ?? null;
     const promptTokens = data.usage?.prompt_tokens ?? null;
     const tps      = data.timings?.predicted_per_second != null ? +data.timings.predicted_per_second.toFixed(2) : null;
@@ -991,7 +1018,7 @@ async function main() {
     }
   }
 
-  let model, llamaProc = null, modelLoadMs = null, llamaRegistryEntry = null;
+  let model, llamaProc = null, modelLoadMs = null, llamaRegistryEntry = null, isLlamaEarlyExit = null;
   let noModelGb = null, noModelSwap = null, noModelPressure = null;
   if (LLAMA_MODE) {
     console.log(`  --llama mode: model = ${LLAMA_MODEL_ID}\n`);
@@ -1003,6 +1030,7 @@ async function main() {
     llamaProc = launched.proc;
     modelLoadMs = launched.modelLoadMs;
     llamaRegistryEntry = launched.entry;
+    isLlamaEarlyExit = launched.isEarlyExit;
     model = { id: LLAMA_MODEL_ID, provider: "llama" };
     process.on('exit',    () => shutdownLlamaServer(llamaProc));
     process.on('SIGINT',  () => process.exit(130));
@@ -1240,6 +1268,11 @@ async function main() {
     }
 
 
+    if (isLlamaEarlyExit?.()) {
+      console.error(`\n  llama-server died — aborting remaining ${processUnits.length - unitIndex} session(s).`);
+      break;
+    }
+
     finalTranscript = finalTranscript + injectionGuard;
 
     console.log(`      |------${model.id}------|`);
@@ -1260,7 +1293,7 @@ async function main() {
         preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
         let startTime = performance.now();
 
-        ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model));
+        ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
         ({ peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg} = sampler.stop());
         
         runtime = Math.floor(.001 * (performance.now() - startTime));
