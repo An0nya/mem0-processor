@@ -50,7 +50,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { exec, execSync } from "child_process";
+import { exec, execSync, spawn } from "child_process";
 import Anthropic from "@anthropic-ai/sdk";
 import { setGlobalDispatcher, Agent } from 'undici';
 
@@ -99,11 +99,24 @@ const LOGS_DIR        = path.join(MEM0_DIR, "logs");
 const TRANSCRIPTS_DIR = path.join(MEM0_DIR, "transcripts");
 const PERF_STORE_PATH           = path.join(MEM0_DIR, "perf.json");
 const COMPACTION_SUMMARIES_DIR  = path.join(MEM0_DIR, "compaction-summaries");
+const LLAMA_RESPONSES_DIR       = path.join(MEM0_DIR, "llama-responses"); // step 7: disable once timings wired
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const NO_TOKEN_CAP = process.argv.includes("--no-token-cap");
 const STREAM         = process.argv.includes("--stream");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
+
+const LLAMA_REGISTRY_PATH = path.join(os.homedir(), ".claude", "mem0", "models-registry.json");
+const LLAMA_PORT = 8080;
+const LLAMA_DEFAULT_MODEL = "qwen3.5-0.8b-unsloth-q8";
+const LLAMA_FLAG_IDX = process.argv.indexOf("--llama");
+const LLAMA_MODE = LLAMA_FLAG_IDX !== -1;
+const LLAMA_MODEL_ID = (() => {
+  if (!LLAMA_MODE) return null;
+  const next = process.argv[LLAMA_FLAG_IDX + 1];
+  return (next && !next.startsWith("--")) ? next : LLAMA_DEFAULT_MODEL;
+})();
+
 const REPROCESS_ID   = (() => {
   const i = process.argv.indexOf("--reprocess");
   if (i === -1) return null;
@@ -244,6 +257,85 @@ async function getModelInfo(modelId) {
   } catch {
     return null;
   }
+}
+
+// ─── LLAMA SERVER ────────────────────────────────────────────────
+function loadLlamaRegistry() {
+  if (!fs.existsSync(LLAMA_REGISTRY_PATH)) throw new Error(`Registry not found: ${LLAMA_REGISTRY_PATH}`);
+  return JSON.parse(fs.readFileSync(LLAMA_REGISTRY_PATH, "utf8"));
+}
+
+function buildLlamaFlags(entry) {
+  const flags = [
+    "-m", entry.path,
+    "-c", String(entry.launch.ctxSize),
+    "-ngl", String(entry.launch.nGpuLayers),
+    "-ub", String(entry.launch.ubatchSize),
+    "-ctk", entry.launch.kvQuantK,
+    "-ctv", entry.launch.kvQuantV,
+    "-t", String(entry.launch.threads),
+    "--chat-template-file", entry.chatTemplatePath,
+    "--parallel", "1",
+    "--port", String(LLAMA_PORT),
+  ];
+  if (entry.launch.flashAttn) flags.push("-fa", "on");
+  if (entry.launch.nExpertsUsed) flags.push("--override-kv", `llm.expert_used_count=int:${entry.launch.nExpertsUsed}`);
+  return flags;
+}
+
+async function launchLlamaServer(modelId) {
+  const registry = loadLlamaRegistry();
+  const entry = registry[modelId];
+  if (!entry) {
+    const available = Object.keys(registry).join(", ");
+    throw new Error(`Model "${modelId}" not in registry. Available: ${available}`);
+  }
+
+  const flags = buildLlamaFlags(entry);
+  console.log(`  Spawning llama-server: ${modelId}`);
+  console.log(`  Flags: llama-server ${flags.join(" ")}\n`);
+
+  const proc = spawn("llama-server", flags, { stdio: ["ignore", "pipe", "pipe"] });
+
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
+  const logFile = path.join(LOGS_DIR, `llama-server-${Date.now()}.log`);
+  const logStream = fs.createWriteStream(logFile, { flags: "a" });
+  proc.stdout.pipe(logStream);
+  proc.stderr.pipe(logStream);
+
+  let earlyExit = false;
+  proc.on("error", (err) => { console.error(`  llama-server error: ${err.message}`); });
+  proc.on("exit", (code) => { if (code !== null) earlyExit = true; });
+
+  const launchStartMs = Date.now();
+  const HEALTH_URL = `http://localhost:${LLAMA_PORT}/health`;
+  const TIMEOUT_MS = 5 * 60 * 1000;
+
+  await new Promise((resolve, reject) => {
+    const deadline = Date.now() + TIMEOUT_MS;
+    const poll = async () => {
+      if (earlyExit) { reject(new Error("llama-server exited before becoming healthy")); return; }
+      if (Date.now() > deadline) { reject(new Error("llama-server health check timed out after 5 minutes")); return; }
+      try {
+        const res = await fetch(HEALTH_URL);
+        const body = await res.json();
+        if (body.status === "ok") { resolve(); return; }
+      } catch { /* not ready yet */ }
+      setTimeout(poll, 1000);
+    };
+    setTimeout(poll, 1000);
+  });
+
+  const modelLoadMs = Date.now() - launchStartMs;
+  console.log(`  llama-server ready in ${(modelLoadMs / 1000).toFixed(1)}s  (log: ${logFile})\n`);
+
+  return { proc, modelLoadMs, logFile, entry };
+}
+
+function shutdownLlamaServer(proc) {
+  if (!proc) return;
+  console.log("  Shutting down llama-server…");
+  proc.kill("SIGTERM");
 }
 
 // ─── SESSION DISCOVERY ───────────────────────────────────────────
@@ -549,13 +641,71 @@ async function summarizeSession(transcript, model) {
     // and skip appending it — there's nothing to append to
     let summary;
     if (!content && reasoning) {
-      console.log("Received only reasoning block");//: " + content.slice(0,100) + "..." + content.slice(-100));
-      summary = `<!-- reasoning-only fallback -->\n${reasoning}`;
+      console.log("Received only reasoning block");
+      summary = `\`\`\`reasoning-trace\n${reasoning}\n\`\`\``;
     } else if (content && reasoning) {
-      console.log("Received both reasoning and content block");//: " + content.slice(0,100) + "..." + content.slice(-100));
-      summary = `${content}\n\n---\n\n<!-- reasoning trace -->\n<!-- reasoning included during benchmarking for analysis, remove before prod -->\n${reasoning}`;
+      console.log("Received both reasoning and content block");
+      summary = `${content}\n\n---\n\n\`\`\`reasoning-trace\n${reasoning}\n\`\`\``;
     } else {
-      console.log("Received only content block");//: " + content.slice(0,100) + "..." + content.slice(-100));
+      console.log("Received only content block");
+      summary = content;
+    }
+
+    return { summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens };
+  }
+
+  if (model.provider === "llama") {
+    let response;
+    try {
+      response = await fetch(`http://localhost:${LLAMA_PORT}/v1/chat/completions`, {
+        method: "POST",
+        signal: AbortSignal.timeout(30 * 60 * 1000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: LLAMA_MODEL_ID,
+          messages: [
+            { role: "system", content: effectivePrompt },
+            { role: "user",   content: transcript },
+          ],
+          max_tokens: 8192,
+          stream: false,
+        }),
+      });
+    } catch (fetchErr) {
+      throw new Error(`llama-server fetch failed (${transcript.length} chars): ${fetchErr.message}`);
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`llama-server ${response.status} (${transcript.length} chars): ${body.slice(0, 300)}`);
+    }
+
+    const data = await response.json();
+    fs.mkdirSync(LLAMA_RESPONSES_DIR, { recursive: true });
+    fs.writeFileSync(
+      path.join(LLAMA_RESPONSES_DIR, `${Date.now()}--${LLAMA_MODEL_ID.replace(/[^a-zA-Z0-9-]/g, "-")}.json`),
+      JSON.stringify(data, null, 2)
+    );
+
+    const msg = data.choices[0].message;
+    let content = (msg.content ?? "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+    const reasoning = (msg.reasoning_content ?? msg.reasoning ?? "").trim();
+    const completionTokens = data.usage?.completion_tokens ?? null;
+    const promptTokens = data.usage?.prompt_tokens ?? null;
+    const tps      = data.timings?.predicted_per_second != null ? +data.timings.predicted_per_second.toFixed(2) : null;
+    const ttft     = data.timings?.prompt_ms != null ? +(data.timings.prompt_ms / 1000).toFixed(4) : null;
+    const genTime  = data.timings?.predicted_ms != null ? +(data.timings.predicted_ms / 1000).toFixed(4) : null;
+    const reasoningTokens = null;
+
+    let summary;
+    if (!content && reasoning) {
+      console.log("Received only reasoning block");
+      summary = `\`\`\`reasoning-trace\n${reasoning}\n\`\`\``;
+    } else if (content && reasoning) {
+      console.log("Received both reasoning and content block");
+      summary = `${content}\n\n---\n\n\`\`\`reasoning-trace\n${reasoning}\n\`\`\``;
+    } else {
+      console.log("Received only content block");
       summary = content;
     }
 
@@ -841,7 +991,26 @@ async function main() {
     }
   }
 
-  const model     = await selectModel();
+  let model, llamaProc = null, modelLoadMs = null, llamaRegistryEntry = null;
+  let noModelGb = null, noModelSwap = null, noModelPressure = null;
+  if (LLAMA_MODE) {
+    console.log(`  --llama mode: model = ${LLAMA_MODEL_ID}\n`);
+    noModelGb       = gpuAllocGb();
+    noModelSwap     = swapUsedGb();
+    noModelPressure = memPressureLevel();
+    console.log(`  Pre-launch GPU RAM: ${noModelGb} GB  swap: ${noModelSwap} GB  pressure: ${noModelPressure}%`);
+    const launched = await launchLlamaServer(LLAMA_MODEL_ID);
+    llamaProc = launched.proc;
+    modelLoadMs = launched.modelLoadMs;
+    llamaRegistryEntry = launched.entry;
+    model = { id: LLAMA_MODEL_ID, provider: "llama" };
+    process.on('exit',    () => shutdownLlamaServer(llamaProc));
+    process.on('SIGINT',  () => process.exit(130));
+    process.on('SIGTERM', () => process.exit(143));
+  } else {
+    model = await selectModel();
+  }
+
   const state     = loadState(model.id);
   const log       = openRunLog(model);
 
@@ -868,12 +1037,12 @@ async function main() {
   `);
 
   // Sample idle GPU RAM after model confirmed loaded, before any inference.
-  const idleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
-  if (idleGb != null) console.log(`\n  Idle GPU RAM: ${idleGb} GB`);
-  const idleSwap = model.provider === "lmstudio" ? swapUsedGb() : null;
-  if (idleSwap != null) console.log(`  Idle Swap RAM: ${idleSwap} GB`);
-  const idleMemPressure = model.provider === "lmstudio" ? memPressureLevel() : null;
-  if (idleMemPressure != null) console.log(`  Idle Memory Pressure: ${idleMemPressure}%\n`);
+  const idleGb = gpuAllocGb();
+  console.log(`\n  Idle GPU RAM: ${idleGb} GB`);
+  const idleSwap = swapUsedGb();
+  console.log(`  Idle Swap RAM: ${idleSwap} GB`);
+  const idleMemPressure = memPressureLevel();
+  console.log(`  Idle Memory Pressure: ${idleMemPressure}%\n`);
 
 
   // Context ceiling: use LM Studio's reported loaded_context_length (chars = tokens * 3.5).
@@ -1167,6 +1336,9 @@ ______________________________________________\n`);
           idleSwap:       idleSwap,
 	  postSessionSwap: postSessionSwap,
           idleMemPressure: idleMemPressure,
+          noModelGb,
+          noModelSwap,
+          noModelPressure,
           peakGb:         peakUsedGb,
           avgGb:          avgUsedGb,
           ttft:           ttft,
@@ -1179,13 +1351,15 @@ ______________________________________________\n`);
           pressureAvg:    pressureAvg,
           tps:            tps ?? null,
           prefillTps:     prefillTps ?? null,
-          ctxSize:        modelInfo?.loaded_context_length ?? null,
+          ctxSize:        modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch.ctxSize ?? null,
           completionTokens: completionTokens ?? null,
           reasoningTokens: reasoningTokens ?? null,
           transcriptChars: finalTranscript.length,
 	  cacheHit:       cacheHit,
 	  runIndexInBatch: batchIndex,
 	  timeSinceLastRunMin: timeSinceLastRunMin,
+          modelLoadMs,
+          launchParams:   llamaRegistryEntry?.launch ?? null,
         });
       }
 
@@ -1226,6 +1400,11 @@ ______________________________________________\n`);
           loadedContextChars:    effectiveMaxChars,
           transcriptChars:  finalTranscript.length,
           runIndexInBatch:  batchIndex - 1,
+          noModelGb,
+          noModelSwap,
+          noModelPressure,
+          modelLoadMs,
+          launchParams:     llamaRegistryEntry?.launch ?? null,
           failed:           true,
           failReason:       err.message,
         });
@@ -1233,6 +1412,8 @@ ______________________________________________\n`);
     } // end try/catch
   } // end unit loop
 
+  shutdownLlamaServer(llamaProc);
+  llamaProc = null;
   log.close();
   printSummary(model, modelInfo, runStats);
   console.log(`Log: ${log.path}\n`);

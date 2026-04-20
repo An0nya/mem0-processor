@@ -449,41 +449,100 @@ Difficulty: Medium. Data exists; mostly a curve fit + plumbing.
 
 ---
 
-## v9 — Programmatic model launch (planned)
+## v9 — Programmatic model launch (in progress)
 
-Launch models directly via `llama.cpp` (llama-server) instead of assuming LM Studio is
-pre-loaded. Enables clean isolated runs and right-sized context per session.
+Launch models directly via `llama-server` (the HTTP server binary from the llama.cpp
+project) instead of assuming LM Studio is pre-loaded. Enables clean isolated runs,
+right-sized context per session, and a true no-model baseline for v8's regression.
 
-llama.cpp preferred over mlx-lm: better fail state, and exposes controls that matter for
-stability at the memory edge — GPU offload layer count, KV cache quantization, rope
-scaling. mlx-lm is faster at token generation but less customizable and harder to recover
-from OOM. llama-server exposes a REST API close enough to LM Studio's v0 API that the
-calling code should need minimal changes.
+**Why v9 before v8**: LM Studio is already holding a model when `idleGb` is sampled, so
+there is no clean system baseline. v9 captures `noModelGb/noModelSwap/noModelPressure`
+before the model loads — the data v8's regression needs to be accurate. Running v8 on
+current data means regressing against dirty baselines.
 
-- Shell out to `llama-server` with model path, context size, sampler params; use v8
-  registry data for load parameters
-- **Right-sized context per session**: using v8 regression data, pick the smallest
-  context window that fits the upcoming transcript + safety margin. A 30k-char session
-  doesn't need a 64k-token window; smaller = less VRAM pressure = safer overnight batches.
-- Model restart between benchmarking sessions (KV cache flush)
-- **Preflight check**: verify `sudo sysctl iogpu.wired_limit_mb=14336` is active before
-  launch — this setting resets on restart and silently limits available GPU-wired RAM if
-  missed.
-- **turboquant investigation**: shell out to turboquant CLI before launch, cache quantized
-  output, load quantized model. Feasibility depends on CLI surface.
-- Enables PARO model testing
-- Monitor `preSessionIdleGb` vs `idleGb` for cooldown decisions; dynamic wait or bail
-  and prompt user to restart the model if RAM doesn't settle
-- **Pre-load baseline**: sample GPU-wired RAM, swap, and memory pressure before the model
-  loads; store as `noModelGb`, `noModelSwap`, `noModelPressure` in the perf entry.
-  Currently `idleGb` is captured at run start with LM Studio already holding the model,
-  so the true system baseline is unavailable. With programmatic launch we get it for free.
-  Swap and pressure are potentially stronger indicators of system overhead than GPU-wired
-  RAM alone; all three together give a complete pre-load picture. Enables accurate model
-  VRAM footprint calculation (`preSessionIdleGb - noModelGb`) and baseline-relative
-  pressure readings.
+**Pre-assembled (done)**:
+- `~/.claude/mem0/models-registry.json` — 3 models (gemma apex, rys qwen 9b, qwen3.6 35b)
+  with GGUF paths, launch params, and chat template paths
+- `~/.claude/mem0/templates/gemma.jinja`, `qwen.jinja`
 
-Difficulty: Hard (llama-server launch + param plumbing), Unknown (turboquant).
+**llama-server flag mappings** (registry → CLI):
+- `ctxSize` → `-c` / `--ctx-size`
+- `nGpuLayers` → `-ngl` (full offload = total layer count; -1 also works for dense models)
+- `ubatchSize` → `-ub`
+- `flashAttn: true` → `-fa on`
+- `kvQuantK/V` → `-ctk` / `-ctv`
+- `nExpertsUsed` → `--override-kv llm.expert_used_count=int:N` (no dedicated flag)
+- `chatTemplatePath` → `--chat-template-file`
+- `threads` → `-t`
+- Always: `--parallel 1` (single slot, lower memory overhead)
+- Port: 8080 (llama-server default; not LM Studio's 1234) — script constant, not per-model
+- Skip `--mlock`: on M4 full GPU offload, model weights are already in Metal buffers the
+  OS cannot swap. mlock is irrelevant.
+
+**Response format gap** (LM Studio `data.stats.*` vs llama-server `data.timings.*`):
+- LM Studio: `stats.tokens_per_second`, `stats.time_to_first_token`, `stats.generation_time`
+- llama-server: `timings.predicted_per_second`, `timings.prompt_ms/1000`,
+  `timings.predicted_ms/1000`
+- `usage.prompt_tokens/completion_tokens` — same in both
+- Response parsing branches on v9 vs LM Studio mode (wired in step 4)
+
+**12GB / 32k rule of thumb**: GGUF file ≤ 12GB with q4 KV cache → safe at 32k token
+context. 13–13.5GB → may work at smaller context. Above that: skip. All 3 registry
+models are ≤ 12GB. Fine-grained per-model data deferred to v8.
+
+### Step 1 — Get llama-server running (checkpoint)
+
+Add `--llama` flag. Default model: `qwen3.5-0.8b-unsloth-q8` (785MB Q8_0, fast load for
+iteration). Read registry, build flag list,
+spawn `llama-server`, poll `/health` until ready. Kill process after batch completes.
+Existing LM Studio + Anthropic path unchanged.
+
+### Step 2 — Get API working (checkpoint)
+
+Send chat completions request to `localhost:8080`. Get a response. Dump raw llama-server
+output (full response body) to summary file — no parsing or perf integration yet. Keep
+llama-server logs to stdout for debugging.
+
+### Step 3 — Integrate summary output into pipeline (checkpoint)
+
+Parse response text from `choices[0].message.content`. Write to summary cache, upload
+to mem0 normally. Script output looks like a normal run.
+
+### Step 4 — Runtime stats (checkpoint)
+
+- Sample `noModelGb/noModelSwap/noModelPressure` before `llama-server` spawns
+- Store `launchParams` (from registry) in perf entry
+- Branch response parsing: use `data.timings.*` for v9 mode instead of `data.stats.*`
+
+### Step 5 — Model selection (checkpoint)
+
+- `--llama <id>` to select any model from registry (fuzzy match on key)
+- Auto-populate registry from LM Studio runs: when user manually tests a new model in
+  LM Studio, script can detect and stub an entry so less has to be added manually
+
+### Step 6 — Output parsing fixes (checkpoint)
+
+- Gemma `<|channel>thought` / `<channel|>` reasoning markers (use registry
+  `reasoning.startString/endString` to strip/extract thinking from content field)
+- Chat template correctness issues
+- Runtime param validation
+
+### Step 7 — Polish (checkpoint)
+
+- Selectable sampler params per run
+- Preflight check: warn if `sysctl iogpu.wired_limit_mb` ≠ 14336
+- Log cleanup (redirect or suppress llama-server stdout once stable)
+- Cooldown monitoring: `preSessionIdleGb` vs `idleGb` gap detection
+- **Restart on crash**: detect `earlyExit` mid-batch, respawn server, retry the session
+  (max-retries cap TBD)
+- **Per-session restart option**: `--llama-fresh` flag (or similar) — kill and relaunch
+  llama-server between sessions to clear KV cache; useful for clean isolated benchmark runs
+- **Fail-fast on server death**: when `earlyExit` is detected mid-batch, abort remaining
+  sessions instead of grinding through them emitting errors (note: detectable once step 2
+  API call is live — consider pulling into step 3 or 4 if it proves annoying during dev)
+
+Difficulty: Hard (server lifecycle management, param plumbing), Medium (response parsing
+gap), Low (once server works, steps 3–5 are incremental).
 
 ---
 
