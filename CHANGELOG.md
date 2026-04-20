@@ -575,9 +575,9 @@ relationships. Key findings for v8 context cap design:
   have very different KV growth rates. V8 formula: `max_ctx ≈ (system_limit − model_base_GB) /
   kv_bytes_per_token`, where `kv_bytes_per_token` is a per-model empirical calibration.
   Proposed: add `kvBytesPerToken` field to registry populated from two-point measurement.
-- **Run 14 anomaly** (09:21, 32k q4_0 repeat): tps=45.4 vs norm 70, prefillTps=664 vs norm
-  1985. RAM/swap/pressure normal. Likely thermal throttle or transient CPU spike; no memory
-  cause.
+- **Run 14 — partial CPU offload** (09:21, 32k q4_0, nGpuLayers=12 vs normal 24): tps=45.4
+  vs norm 70 (−35%), prefillTps=664 vs norm 1985 (−67%). RAM/swap normal. Intentional test:
+  50% layer offload → ~3x prefill penalty, ~1.5x generation penalty on M4 16GB.
 - **Sweep harness idea**: loop `launchLlamaServer → single test session → shutdown → next
   config` from a param grid file. Fits 7b/post-7 scope once `--llama-fresh` exists as the
   primitive. Tagged for v8 benchmarking run mode.
