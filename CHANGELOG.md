@@ -383,12 +383,43 @@ checks for cached `.md` before re-extracting; `--reprocess` doesn't delete them 
 Fix: delete target session's compaction `.md` files before calling extraction when
 `isReprocess`.
 
-**Phase delineation in logs**: Phase 1 and Phase 3 both emit skip lines with no visual
-separator between them, making runs look like one undifferentiated wall. Add a delineator
-line and a Phase 1 summary (sessions parsed, skips by type) before Phase 3 begins.
+**`prefillTps` never stored in perf entries**: computed at summarization time and used in
+`printSummary` / `runStats`, but not passed to `appendPerfEntry`. Fixed: added
+`prefillTps: prefillTps ?? null` to success entries; `prefillTps: null` to failure entries.
 
-**Console/log file normalization**: audit pass — every console-emitted skip or event
-should have a matching `log.write()` call and vice versa.
+**`ctxSize` missing from perf entries**: `modelInfo.loaded_context_length` (token count of
+loaded context window) was never stored. Added `ctxSize: modelInfo?.loaded_context_length ?? null`
+to both success and failure entries. Distinct from `loadedContextChars` (the char-unit cap
+derived from context length × 3.5).
+
+**Failed run perf entries missing available data**: failure entries only stored a subset of
+fields. Pre-session fields (`idleGb`, `idleSwap`, `idleMemPressure`) are always available;
+in-try fields (`startingSwap`, `maxSwap`, `peakPressure`, `pressureAvg`, `promptTokens`,
+`ttft`) are available when the crash happens mid-generation (the useful case). All added
+with `?? null`. Note: `batchIndex` is incremented before `appendPerfEntry` in the catch
+block, so `runIndexInBatch` uses `batchIndex - 1` for failure entries.
+
+**Slug extraction 30-line cap**: `extractSessionSlug` only scanned the first 30 lines of
+each JSONL file. Newer Claude Code sessions have slug fields starting around line 115
+(early lines are meta/handshake entries without a slug). Fixed: scan the whole file.
+
+**`segSlug` null propagation swallows part suffix**: `segSlug` was constructed as
+`seg.partSuffix && sessionSlug ? sessionSlug + seg.partSuffix : sessionSlug`. When
+`sessionSlug` is null, the ternary always resolves to null regardless of `partSuffix` —
+all parts of a multi-segment session map to the same cache file and overwrite each other.
+Fixed: `seg.partSuffix ? (sessionSlug ? sessionSlug + seg.partSuffix : seg.partSuffix.slice(1)) : sessionSlug`.
+When slug is absent, part files are keyed as `partN--<sessionId8>--<model>.txt`.
+
+**`--reprocess` accepts session slug**: previously only accepted a UUID. Now matches
+against `sessionSlug` as a fallback (`piped-leaping-eagle` works; UUID still works).
+
+**Phase delineation in logs**: Phase 1 and Phase 3 both emit skip lines with no visual
+separator between them, making runs look like one undifferentiated wall. Added
+`── Phase 1 complete: N transcript(s) collected` and `── Phase 3: Summarize + upload ──`
+header with unit/merge counts.
+
+**Console/log file normalization**: `log.write()` added for the cached summary branch
+(`↩ Using cached summary`) — was console-only.
 
 **Token artifact in compaction cache** (no code change): `<|channel>thought>` / `<channel|>`
 tokens appeared in a compaction `.md` file from a Gemma model, causing a one-time 400
@@ -546,3 +577,13 @@ halves incomplete.
   heavy code or tool call JSON tokenize more efficiently than prose, so 3.5 can
   underestimate token count. Conservative percentile from observed runs would be more
   accurate than a hardcoded constant. Low priority until prod summarizer splits off.
+- **Summaries folder organization**: currently all summary `.txt` files are flat in
+  `~/.claude/mem0/summaries/`. Would be cleaner to nest by model or by session. Tricky
+  for benchmarking (multiple models per session = competing folder schemes). Defer until
+  v11 prod/benchmark split clarifies the right layout.
+- **`--reprocess` targeted session still iterates all sessions**: Phase 1 disables the
+  fast-skip for non-target sessions when `REPROCESS_ID` is set (to preserve merge group
+  reconstruction). Phase 3 then iterates all units, skipping non-targets one by one.
+  For large session pools this is wasteful. Fix: filter `processUnits` to reprocess-target
+  only (+ merge partners) before Phase 3 starts; stub non-target records in Phase 2 to
+  avoid transcript-build overhead.

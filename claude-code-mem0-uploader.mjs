@@ -277,7 +277,7 @@ function parseSession(filePath) {
 
 function extractSessionSlug(filePath) {
   const lines = fs.readFileSync(filePath, "utf8").split("\n");
-  for (const line of lines.slice(0, 30)) {
+  for (const line of lines) {
     if (!line.trim()) continue;
     try {
       const entry = JSON.parse(line);
@@ -918,7 +918,7 @@ async function main() {
   for (const session of sessions) {
     const sessionSlug = extractSessionSlug(session.filePath);
     const displayId   = sessionSlug ? `${sessionSlug}--${session.sessionId.slice(0, 8)}` : session.sessionId;
-    const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && session.sessionId === REPROCESS_ID);
+    const isReprocess = REPROCESS_ID === "all" || (REPROCESS_ID && (session.sessionId === REPROCESS_ID || sessionSlug === REPROCESS_ID));
 
     const entries             = parseSession(session.filePath);
     if (isReprocess && fs.existsSync(COMPACTION_SUMMARIES_DIR)) {
@@ -936,7 +936,7 @@ async function main() {
 
     for (const seg of segments) {
       const stateKey   = session.sessionId + seg.partSuffix;
-      const segSlug    = seg.partSuffix && sessionSlug ? sessionSlug + seg.partSuffix : sessionSlug;
+      const segSlug    = seg.partSuffix ? (sessionSlug ? sessionSlug + seg.partSuffix : seg.partSuffix.slice(1)) : sessionSlug;
       const segDisplay = displayId + seg.partSuffix;
 
       const stEntry           = state[stateKey];
@@ -1178,6 +1178,8 @@ ______________________________________________\n`);
           peakPressure:   peakPressure,
           pressureAvg:    pressureAvg,
           tps:            tps ?? null,
+          prefillTps:     prefillTps ?? null,
+          ctxSize:        modelInfo?.loaded_context_length ?? null,
           completionTokens: completionTokens ?? null,
           reasoningTokens: reasoningTokens ?? null,
           transcriptChars: finalTranscript.length,
@@ -1202,18 +1204,30 @@ ______________________________________________\n`);
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
         //make sure this matches successful session runs in content
         appendPerfEntry(perfStore, model.id, {
-          ts:              new Date().toISOString(),
+          ts:               new Date().toISOString(),
+          session:          stateKey,
           idleGb,
           preSessionIdleGb: preSessionIdleGb ?? null,
-          peakGb:          partial.peakUsedGb,
-          avgGb:           partial.avgUsedGb,
-          tps:             null,
-          runtime:         runtime,
-          loadedContextChars:   effectiveMaxChars,
+          idleSwap:         idleSwap,
+          idleMemPressure:  idleMemPressure,
+          peakGb:           partial.peakUsedGb,
+          avgGb:            partial.avgUsedGb,
+          tps:              null,
+          prefillTps:       null,
+          ctxSize:          modelInfo?.loaded_context_length ?? null,
+          ttft:             ttft ?? null,
+          promptTokens:     promptTokens ?? null,
           completionTokens: null,
-          transcriptChars: finalTranscript.length,
-          failed:          true,
-          failReason:      err.message,
+          startingSwap:     startingSwap ?? null,
+          maxSwap:          maxSwap ?? null,
+          peakPressure:     peakPressure ?? null,
+          pressureAvg:      pressureAvg ?? null,
+          runtime:          runtime,
+          loadedContextChars:    effectiveMaxChars,
+          transcriptChars:  finalTranscript.length,
+          runIndexInBatch:  batchIndex - 1,
+          failed:           true,
+          failReason:       err.message,
         });
       }
     } // end try/catch
