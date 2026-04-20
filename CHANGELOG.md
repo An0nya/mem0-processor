@@ -527,19 +527,60 @@ to mem0 normally. Script output looks like a normal run.
 - Chat template correctness issues
 - Runtime param validation
 
-### Step 7 — Polish (checkpoint)
+### Step 7 — Polish (in progress)
 
-- Selectable sampler params per run
+**7a — Fail-fast on server death (done)**
+- `isEarlyExit: () => earlyExit` getter returned from `launchLlamaServer` so `main()` can
+  poll closure state without holding a direct ref
+- Check `isLlamaEarlyExit?.()` at top of each process-unit loop iteration; `break` with a
+  count of skipped sessions on detection
+
+**7b — Per-run control (pending)**
+- `--llama-fresh`: kill and relaunch llama-server between sessions to clear KV cache; useful
+  for clean isolated benchmark runs
+- Selectable sampler params (`--temp`, `--seed`, `top_p`) passed through to chat completions body
+- Streaming: `stream: false` currently; needs SSE parser + timings from final chunk
+
+**7c — Hygiene (pending)**
 - Preflight check: warn if `sysctl iogpu.wired_limit_mb` ≠ 14336
-- Log cleanup (redirect or suppress llama-server stdout once stable)
-- Cooldown monitoring: `preSessionIdleGb` vs `idleGb` gap detection
-- **Restart on crash**: detect `earlyExit` mid-batch, respawn server, retry the session
-  (max-retries cap TBD)
-- **Per-session restart option**: `--llama-fresh` flag (or similar) — kill and relaunch
-  llama-server between sessions to clear KV cache; useful for clean isolated benchmark runs
-- **Fail-fast on server death**: when `earlyExit` is detected mid-batch, abort remaining
-  sessions instead of grinding through them emitting errors (note: detectable once step 2
-  API call is live — consider pulling into step 3 or 4 if it proves annoying during dev)
+- Log suppression/redirect once llama-server is stable
+- Cooldown monitoring: flag when `preSessionIdleGb` − `idleGb` gap exceeds threshold
+- Restart on crash: detect `earlyExit`, respawn server, retry session (max-retries TBD)
+
+### Perf fixes (this session)
+
+- `preSessionIdleGb`, `postSessionIdleGb`, `postSessionSwap` were null in llama mode:
+  provider guard changed from `=== "lmstudio"` to `!== "anthropic"` in 3 places (pre-session,
+  post-session, error path)
+- Added flat fields to perf entry (success + error path): `kvQuantK`, `kvQuantV`,
+  `nExpertsUsed`, `arch`, `fileSizeGb`, `nGpuLayers` — pulled from registry entry for
+  easier pivot/grouping without digging into nested `launchParams`
+- Error-path `ctxSize` now includes `llamaRegistryEntry?.launch.ctxSize` fallback (was
+  only reading `modelInfo.loaded_context_length`, which is always null in llama mode)
+
+### Calibration run — 0.8b ctx/kv sweep (2026-04-20)
+
+16 configs on `qwen3.5-0.8b-unsloth-q8` to establish baseline ctx↔RAM and kv-quant↔perf
+relationships. Key findings for v8 context cap design:
+
+- **Context vs RAM** (q4_0): flat 4k–32k (2.85–2.96 GB), then 64k=3.04, 128k=3.27,
+  256k=4.02 GB. KV growth rate ≈ 4.5 KB/token at q4_0 for this architecture.
+- **KV quant vs prefill speed**: q4_0 = 1985 tok/s; q8_0 = 1728, q4_1 = 1716, q5_0 = 1661.
+  ~13–17% prefill penalty for non-q4_0. Output TPS less affected (70→62 range).
+- **Gemma 26b baseline** (clean run, terminal-only): noModelGb=1.09 → idleGb=15.17 at 32k
+  ctx. Near system ceiling (~14 GB wired limit). Minimal headroom for larger contexts on
+  16 GB.
+- **File size → max ctx** is insufficient as a standalone heuristic: `kv_bytes_per_token`
+  varies enough by architecture (dense vs MoE, GQA config) that two same-size models can
+  have very different KV growth rates. V8 formula: `max_ctx ≈ (system_limit − model_base_GB) /
+  kv_bytes_per_token`, where `kv_bytes_per_token` is a per-model empirical calibration.
+  Proposed: add `kvBytesPerToken` field to registry populated from two-point measurement.
+- **Run 14 anomaly** (09:21, 32k q4_0 repeat): tps=45.4 vs norm 70, prefillTps=664 vs norm
+  1985. RAM/swap/pressure normal. Likely thermal throttle or transient CPU spike; no memory
+  cause.
+- **Sweep harness idea**: loop `launchLlamaServer → single test session → shutdown → next
+  config` from a param grid file. Fits 7b/post-7 scope once `--llama-fresh` exists as the
+  primitive. Tagged for v8 benchmarking run mode.
 
 Difficulty: Hard (server lifecycle management, param plumbing), Medium (response parsing
 gap), Low (once server works, steps 3–5 are incremental).

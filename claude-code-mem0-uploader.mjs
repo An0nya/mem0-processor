@@ -1290,7 +1290,7 @@ async function main() {
         console.log(`  ↩ Using cached summary`);
         log.write({ sessionId: stateKey, slug: segSlug, cachedSummary: true, ts: new Date().toISOString() });
       } else {
-        preSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
+        preSessionIdleGb = model.provider !== "anthropic" ? gpuAllocGb() : null;
         let startTime = performance.now();
 
         ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
@@ -1322,8 +1322,8 @@ async function main() {
         batchIndex++;
 	lastRun = perfStore[model.id]?.runs?.at(-1);
 	timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
-	postSessionIdleGb = model.provider === "lmstudio" ? gpuAllocGb() : null;
-	postSessionSwap = model.provider === "lmstudio" ? swapUsedGb() : null;
+	postSessionIdleGb = model.provider !== "anthropic" ? gpuAllocGb() : null;
+	postSessionSwap = model.provider !== "anthropic" ? swapUsedGb() : null;
 	cacheHit = classifyCacheHit(perfStore, model.id, { promptTokens, ttft });
 
         console.log(`  📖  summary preview: \n
@@ -1393,6 +1393,12 @@ ______________________________________________\n`);
 	  timeSinceLastRunMin: timeSinceLastRunMin,
           modelLoadMs,
           launchParams:   llamaRegistryEntry?.launch ?? null,
+          arch:           llamaRegistryEntry?.arch ?? null,
+          fileSizeGb:     llamaRegistryEntry?.fileSizeGb ?? null,
+          kvQuantK:       llamaRegistryEntry?.launch.kvQuantK ?? null,
+          kvQuantV:       llamaRegistryEntry?.launch.kvQuantV ?? null,
+          nExpertsUsed:   llamaRegistryEntry?.launch.nExpertsUsed ?? null,
+          nGpuLayers:     llamaRegistryEntry?.launch.nGpuLayers ?? null,
         });
       }
 
@@ -1406,7 +1412,7 @@ ______________________________________________\n`);
       batchIndex++;
       runStats.push({ sessionId: stateKey, slug: segSlug, error: err.message });
       log.write({ sessionId: stateKey, slug: segSlug, model: model.id, error: err.message, ts: new Date().toISOString() });
-      if (!DRY_RUN && model.provider === "lmstudio") {
+      if (!DRY_RUN && model.provider !== "anthropic") {
         const partial = sampler ? sampler.stop() : { peakUsedGb: null, avgUsedGb: null };
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
         //make sure this matches successful session runs in content
@@ -1421,7 +1427,7 @@ ______________________________________________\n`);
           avgGb:            partial.avgUsedGb,
           tps:              null,
           prefillTps:       null,
-          ctxSize:          modelInfo?.loaded_context_length ?? null,
+          ctxSize:          modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch.ctxSize ?? null,
           ttft:             ttft ?? null,
           promptTokens:     promptTokens ?? null,
           completionTokens: null,
@@ -1438,6 +1444,12 @@ ______________________________________________\n`);
           noModelPressure,
           modelLoadMs,
           launchParams:     llamaRegistryEntry?.launch ?? null,
+          arch:             llamaRegistryEntry?.arch ?? null,
+          fileSizeGb:       llamaRegistryEntry?.fileSizeGb ?? null,
+          kvQuantK:         llamaRegistryEntry?.launch.kvQuantK ?? null,
+          kvQuantV:         llamaRegistryEntry?.launch.kvQuantV ?? null,
+          nExpertsUsed:     llamaRegistryEntry?.launch.nExpertsUsed ?? null,
+          nGpuLayers:       llamaRegistryEntry?.launch.nGpuLayers ?? null,
           failed:           true,
           failReason:       err.message,
         });
