@@ -684,6 +684,18 @@ async function summarizeSession(transcript, model, registryEntry = null) {
 
   if (model.provider === "llama") {
     let response;
+    const slotsPoller = setInterval(async () => {
+      try {
+        const r = await fetch(`http://localhost:${LLAMA_PORT}/slots`, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) return;
+        const slots = await r.json();
+        const slot = Array.isArray(slots) ? slots[0] : null;
+        if (!slot) return;
+        const state = slot.state === 1 ? "processing" : "idle";
+        const nDecoded = slot.n_decoded ?? 0;
+        process.stdout.write(`\r  ⟳ /slots: ${state} · ${nDecoded} tok            `);
+      } catch { /* ignore poll errors */ }
+    }, 5000);
     try {
       response = await fetch(`http://localhost:${LLAMA_PORT}/v1/chat/completions`, {
         method: "POST",
@@ -700,8 +712,12 @@ async function summarizeSession(transcript, model, registryEntry = null) {
         }),
       });
     } catch (fetchErr) {
+      clearInterval(slotsPoller);
+      process.stdout.write("\n");
       throw new Error(`llama-server fetch failed (${transcript.length} chars): ${fetchErr.message}`);
     }
+    clearInterval(slotsPoller);
+    process.stdout.write("\n");
 
     if (!response.ok) {
       const body = await response.text();

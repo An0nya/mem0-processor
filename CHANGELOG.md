@@ -576,11 +576,9 @@ New logic but bounded scope: server lifecycle control and a progress signal duri
 - `--llama-fresh`: kill and relaunch llama-server between sessions to flush KV cache.
   Useful for clean isolated benchmark runs. Requires calling the existing shutdown +
   launch sequence between process-unit iterations when the flag is set.
-- `/slots` polling: GET `localhost:8080/slots` on an interval (e.g. 5s) concurrent with
-  the completion fetch; log `n_decoded` token count and slot state (`processing`/`idle`)
-  so there's a live signal during the silent wait. Replaces the need for SSE streaming —
-  we don't need every token, just a heartbeat that confirms the server is alive and making
-  progress. Requires a concurrent async loop alongside the fetch.
+- `/slots` polling (done): `setInterval` every 5s concurrent with the completion fetch;
+  writes `\r  ⟳ /slots: processing · N tok` to stdout in-place. Clears on fetch resolve
+  or throw. Slot state 1 = processing, 0 = idle. Single slot (--parallel 1).
 - Summary frontmatter: prepend a YAML block to every local summary cache file:
   ```
   ---
