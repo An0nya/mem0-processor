@@ -78,6 +78,16 @@ setGlobalDispatcher(new Agent({
   connectTimeout: 30 * 1000,
 }));
 
+// ─── PROCESS CLEANUP ─────────────────────────────────────────────
+let _llamaProc = null;
+for (const sig of ["SIGINT", "SIGTERM"]) {
+  process.on(sig, () => {
+    if (_llamaProc) { _llamaProc.kill("SIGTERM"); }
+    process.exit(sig === "SIGINT" ? 130 : 143);
+  });
+}
+process.on("exit", () => { if (_llamaProc) _llamaProc.kill("SIGTERM"); });
+
 const CONFIG = {
   mem0: {
     apiKey: process.env.MEM0_API_KEY,
@@ -109,7 +119,6 @@ const LLAMA_PORT = 8080;
 const LLAMA_DEFAULT_MODEL = "qwen3.5-0.8b-unsloth-q8";
 const LLAMA_FLAG_IDX = process.argv.indexOf("--llama");
 const LLAMA_MODE = LLAMA_FLAG_IDX !== -1;
-const LLAMA_FRESH = process.argv.includes("--llama-fresh");
 const RUN_TAG = (() => {
   const i = process.argv.indexOf("--run-tag");
   if (i === -1) return null;
@@ -324,7 +333,6 @@ function buildLlamaFlags(entry) {
     "-ctk", kvQuantK,
     "-ctv", kvQuantV,
     "-t", String(entry.launch.threads),
-    "--chat-template-file", entry.chatTemplatePath,
     "--parallel", "1",
     "--port", String(LLAMA_PORT),
     "--min-p", String(sampler.minP),
@@ -332,7 +340,9 @@ function buildLlamaFlags(entry) {
     "--temp", String(sampler.temp),
     "--defrag-thold", "0.1",
     "--prio", "2",
+    "--cache-ram", "0", //well this would have been nice to know, we're saving all the prompts in ram hence the swap growth
   ];
+  if (entry.chatTemplatePath) flags.push("--chat-template-file", entry.chatTemplatePath);
   if (entry.launch.flashAttn) flags.push("-fa", "on");
   if (entry.launch.nExpertsUsed) flags.push("--override-kv", `llm.expert_used_count=int:${entry.launch.nExpertsUsed}`);
   if (entry.launch.swaFull) flags.push("--swa-full");
@@ -353,6 +363,7 @@ async function launchLlamaServer(modelId) {
   console.log(`  Flags: llama-server ${flags.join(" ")}\n`);
 
   const proc = spawn("llama-server", flags, { stdio: ["ignore", "pipe", "pipe"] });
+  _llamaProc = proc;
 
   fs.mkdirSync(LOGS_DIR, { recursive: true });
   const logFile = path.join(LOGS_DIR, `llama-server-${Date.now()}.log`);
@@ -786,7 +797,10 @@ async function summarizeSession(transcript, model, registryEntry = null) {
     const tps      = data.timings?.predicted_per_second != null ? +data.timings.predicted_per_second.toFixed(2) : null;
     const ttft     = data.timings?.prompt_ms != null ? +(data.timings.prompt_ms / 1000).toFixed(4) : null;
     const genTime  = data.timings?.predicted_ms != null ? +(data.timings.predicted_ms / 1000).toFixed(4) : null;
-    const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? null;
+    //backup until we can actually count these or find where llama passes back reasoning tokens
+    const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens
+  ?? (reasoning ? Math.round(reasoning.length / 4) : null);
+    //const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? null;
 
     let summary;
     if (!content && reasoning) {
@@ -1116,9 +1130,6 @@ async function main() {
     llamaRegistryEntry = launched.entry;
     isLlamaEarlyExit = launched.isEarlyExit;
     model = { id: LLAMA_MODEL_ID, provider: "llama" };
-    process.on('exit',    () => shutdownLlamaServer(llamaProc));
-    process.on('SIGINT',  () => process.exit(130));
-    process.on('SIGTERM', () => process.exit(143));
   } else {
     model = await selectModel();
   }
@@ -1429,7 +1440,6 @@ async function main() {
           temp: resolved?.sampler.temp ?? null,
           min_p: resolved?.sampler.minP ?? null,
           top_k: resolved?.sampler.topK ?? null,
-          llama_fresh: LLAMA_FRESH,
           run_tag: RUN_TAG,
           cache_hit: cacheHit,
         };
@@ -1514,7 +1524,6 @@ ______________________________________________\n`);
           maxOutputTokens: resolved?.maxOutputTokens ?? null,
           nExpertsUsed:   llamaRegistryEntry?.launch.nExpertsUsed ?? null,
           nGpuLayers:     llamaRegistryEntry?.launch.nGpuLayers ?? null,
-          llamaFresh:     LLAMA_FRESH,
         });
       }
 
@@ -1581,22 +1590,12 @@ ______________________________________________\n`);
           maxOutputTokens:  resolved?.maxOutputTokens ?? null,
           nExpertsUsed:     llamaRegistryEntry?.launch.nExpertsUsed ?? null,
           nGpuLayers:       llamaRegistryEntry?.launch.nGpuLayers ?? null,
-          llamaFresh:       LLAMA_FRESH,
           failed:           true,
           failReason:       err.message,
         });
       }
     } // end try/catch
 
-    if (LLAMA_FRESH && LLAMA_MODE && unitIndex < processUnits.length && !isLlamaEarlyExit?.()) {
-      console.log(`\n  ↻ llama-fresh: restarting server before next unit…`);
-      shutdownLlamaServer(llamaProc);
-      llamaProc = null;
-      const relaunched = await launchLlamaServer(LLAMA_MODEL_ID);
-      llamaProc = relaunched.proc;
-      modelLoadMs = relaunched.modelLoadMs;
-      isLlamaEarlyExit = relaunched.isEarlyExit;
-    }
   } // end unit loop
 
   shutdownLlamaServer(llamaProc);
