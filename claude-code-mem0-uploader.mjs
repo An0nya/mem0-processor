@@ -507,6 +507,15 @@ function buildTranscript(entries) {
 // AGX/Metal layer directly and exposes "Alloc system memory from IOKit",
 // which is the total GPU-wired allocation (weights + KV cache). No sudo needed.
 // This is what tools like gpuer and asitop use under the hood.
+function gpuBudgetGb() {
+  try {
+    const raw = execSync("sysctl iogpu.wired_limit_mb", { encoding: "utf8" });
+    const match = raw.match(/iogpu\.wired_limit_mb:\s*(\d+)/);
+    if (!match) return null;
+    return +(parseInt(match[1], 10) / 1024).toFixed(2);
+  } catch { return null; }
+}
+
 function gpuAllocGb() {
   try {
     const raw = execSync("ioreg -r -c AGXAccelerator -d 2", { encoding: "utf8" });
@@ -1062,6 +1071,26 @@ async function main() {
     noModelSwap     = swapUsedGb();
     noModelPressure = memPressureLevel();
     console.log(`  Pre-launch GPU RAM: ${noModelGb} GB  swap: ${noModelSwap} GB  pressure: ${noModelPressure}%`);
+
+    // Preflight
+    const gpuBudget = gpuBudgetGb();
+    const EXPECTED_BUDGET_MB = 14336;
+    if (gpuBudget !== null && Math.round(gpuBudget * 1024) !== EXPECTED_BUDGET_MB) {
+      console.warn(`  ⚠ iogpu.wired_limit_mb = ${Math.round(gpuBudget * 1024)} (expected ${EXPECTED_BUDGET_MB}) — GPU budget may be misconfigured`);
+    }
+    let preflightRegistry = {};
+    try { preflightRegistry = JSON.parse(fs.readFileSync(LLAMA_REGISTRY_PATH, "utf8")); } catch {}
+    const preflightEntry = preflightRegistry[LLAMA_MODEL_ID];
+    if (gpuBudget !== null && noModelGb !== null && preflightEntry?.fileSizeGb) {
+      const available = +(gpuBudget - noModelGb).toFixed(2);
+      const needed = preflightEntry.fileSizeGb;
+      if (available < needed) {
+        console.warn(`  ⚠ Headroom: ${available} GB free of ${gpuBudget} GB budget — model needs ~${needed} GB. May fail to load.`);
+      } else {
+        console.log(`  Headroom: ${available} GB free of ${gpuBudget} GB budget (model ~${needed} GB)`);
+      }
+    }
+
     const launched = await launchLlamaServer(LLAMA_MODEL_ID);
     llamaProc = launched.proc;
     modelLoadMs = launched.modelLoadMs;

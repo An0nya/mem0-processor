@@ -604,7 +604,9 @@ New logic but bounded scope: server lifecycle control and a progress signal duri
 
 Lower priority; don't start until 7b + 7c are stable.
 
-- Preflight check: warn if `sysctl iogpu.wired_limit_mb` ≠ 14336
+- Preflight check (done): warn if `sysctl iogpu.wired_limit_mb` ≠ 14336; also compares
+  `fileSizeGb` from registry against available GPU headroom (budget − noModelGb) and warns
+  if the model may not fit. KV cache overhead not included — refine when batch sweep data exists.
 - Log suppression/redirect: pipe llama-server stderr to a file once stable
 - Cooldown monitoring: flag when `preSessionIdleGb` − `idleGb` gap exceeds threshold
 - Restart on crash + retry: detect `earlyExit`, respawn server, retry failed session
