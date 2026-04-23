@@ -111,6 +111,7 @@ const LLAMA_PORT = 8080;
 const LLAMA_DEFAULT_MODEL = "qwen3.5-0.8b-unsloth-q8";
 const LLAMA_FLAG_IDX = process.argv.indexOf("--llama");
 const LLAMA_MODE = LLAMA_FLAG_IDX !== -1;
+const LLAMA_FRESH = process.argv.includes("--llama-fresh");
 const LLAMA_MODEL_ID = (() => {
   if (!LLAMA_MODE) return null;
   const next = process.argv[LLAMA_FLAG_IDX + 1];
@@ -1412,6 +1413,7 @@ ______________________________________________\n`);
           kvQuantV:       llamaRegistryEntry?.launch.kvQuantV ?? null,
           nExpertsUsed:   llamaRegistryEntry?.launch.nExpertsUsed ?? null,
           nGpuLayers:     llamaRegistryEntry?.launch.nGpuLayers ?? null,
+          llamaFresh:     LLAMA_FRESH,
         });
       }
 
@@ -1463,11 +1465,22 @@ ______________________________________________\n`);
           kvQuantV:         llamaRegistryEntry?.launch.kvQuantV ?? null,
           nExpertsUsed:     llamaRegistryEntry?.launch.nExpertsUsed ?? null,
           nGpuLayers:       llamaRegistryEntry?.launch.nGpuLayers ?? null,
+          llamaFresh:       LLAMA_FRESH,
           failed:           true,
           failReason:       err.message,
         });
       }
     } // end try/catch
+
+    if (LLAMA_FRESH && LLAMA_MODE && unitIndex < processUnits.length && !isLlamaEarlyExit?.()) {
+      console.log(`\n  ↻ llama-fresh: restarting server before next unit…`);
+      shutdownLlamaServer(llamaProc);
+      llamaProc = null;
+      const relaunched = await launchLlamaServer(LLAMA_MODEL_ID);
+      llamaProc = relaunched.proc;
+      modelLoadMs = relaunched.modelLoadMs;
+      isLlamaEarlyExit = relaunched.isEarlyExit;
+    }
   } // end unit loop
 
   shutdownLlamaServer(llamaProc);

@@ -569,7 +569,7 @@ Pure config, no new control flow. All changes confined to `buildLlamaFlags` and
   uncertain). E.g. `--temp 0.8 --dynatemp-range 0.4` → 0.4–1.2 range. Add optional
   `sampler.dynaTemp` field; emit only when present.
 
-**7c — Control + progress (pending)**
+**7c — Control + progress (in progress)**
 
 New logic but bounded scope: server lifecycle control and a progress signal during inference.
 
