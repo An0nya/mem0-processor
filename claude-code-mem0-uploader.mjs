@@ -395,9 +395,48 @@ async function launchLlamaServer(modelId) {
   });
 
   const modelLoadMs = Date.now() - launchStartMs;
-  console.log(`  llama-server ready in ${(modelLoadMs / 1000).toFixed(1)}s  (log: ${logFile})\n`);
+  const meta = parseModelMeta(logFile);
+  console.log(`  llama-server ready in ${(modelLoadMs / 1000).toFixed(1)}s  (log: ${logFile})`);
+  if (meta) {
+    const offload = meta.offloadedLayers != null ? `${meta.offloadedLayers}/${meta.totalLayers}` : `?/${meta.nLayer ?? "?"}`;
+    const kv = meta.kvMib != null ? `${meta.kvMib} MiB` : null;
+    const kvDetail = (meta.kvLayers != null && meta.kvQuantK) ? ` (${meta.kvLayers} attn layers, ${meta.kvQuantK}${meta.kvQuantK !== meta.kvQuantV ? `/${meta.kvQuantV}` : ""})` : "";
+    console.log(`  ${meta.modelType ?? "?"}  ${meta.modelParams ?? "?"}  ${meta.quantType ?? "?"}${meta.bpw ? ` (${meta.bpw} BPW)` : ""}`);
+    console.log(`  Layers: ${meta.nLayer ?? "?"} total, ${offload} on GPU`);
+    if (kv) console.log(`  KV cache: ${kv}${kvDetail}`);
+    console.log(`  Context: ${entry.launch.ctxSize.toLocaleString()} / ${meta.nCtxTrain?.toLocaleString() ?? "?"} trained`);
+  }
+  console.log();
 
   return { proc, modelLoadMs, logFile, entry, isEarlyExit: () => earlyExit };
+}
+
+function parseModelMeta(logFile) {
+  let text;
+  try { text = fs.readFileSync(logFile, "utf8"); } catch { return null; }
+  const find = (re) => text.match(re)?.[1]?.trim() ?? null;
+  const nLayer     = find(/^print_info: n_layer\s+=\s+(\d+)/m);
+  const nCtxTrain  = find(/^print_info: n_ctx_train\s+=\s+(\d+)/m);
+  const modelType  = find(/^print_info: model type\s+=\s+(.+)/m);
+  const modelParams = find(/^print_info: model params\s+=\s+(.+)/m);
+  const quantType  = find(/^print_info: file type\s+=\s+(.+)/m);
+  const bpw        = find(/^print_info: file size\s+=.+\((.+) BPW\)/m);
+  const offloadMatch = text.match(/^load_tensors: offloaded (\d+)\/(\d+) layers to GPU/m);
+  const kvMatch    = text.match(/^llama_kv_cache: size =\s+([\d.]+) MiB \(.*?(\d+) layers.*K \((\w+)\).*V \((\w+)\)/m);
+  return {
+    nLayer:          nLayer ? +nLayer : null,
+    nCtxTrain:       nCtxTrain ? +nCtxTrain : null,
+    modelType,
+    modelParams,
+    quantType,
+    bpw,
+    offloadedLayers: offloadMatch ? +offloadMatch[1] : null,
+    totalLayers:     offloadMatch ? +offloadMatch[2] : null,
+    kvMib:           kvMatch ? +kvMatch[1] : null,
+    kvLayers:        kvMatch ? +kvMatch[2] : null,
+    kvQuantK:        kvMatch?.[3] ?? null,
+    kvQuantV:        kvMatch?.[4] ?? null,
+  };
 }
 
 function shutdownLlamaServer(proc) {
