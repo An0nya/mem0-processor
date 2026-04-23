@@ -569,7 +569,7 @@ Pure config, no new control flow. All changes confined to `buildLlamaFlags` and
   uncertain). E.g. `--temp 0.8 --dynatemp-range 0.4` → 0.4–1.2 range. Add optional
   `sampler.dynaTemp` field; emit only when present.
 
-**7c — Control + progress (in progress)**
+**7c — Control + progress (done)**
 
 New logic but bounded scope: server lifecycle control and a progress signal during inference.
 
@@ -609,9 +609,13 @@ Lower priority; don't start until 7b + 7c are stable.
 - Cooldown monitoring: flag when `preSessionIdleGb` − `idleGb` gap exceeds threshold
 - Restart on crash + retry: detect `earlyExit`, respawn server, retry failed session
   (max-retries TBD; needs backoff to avoid respawn loops)
-- Streaming (SSE): `stream: true` + SSE parser + timings from final chunk. Lower priority
-  now that `/slots` polling gives adequate progress signal; add if polling proves
-  insufficient or content preview becomes useful.
+- Streaming (SSE): `stream: true` + SSE parser + timings from final chunk. Worth adding
+  for three reasons: (1) prefill progress visible token-by-token (slots polling only shows
+  prefilling/generating, not per-token count during prefill); (2) reasoning vs content token
+  separation visible in real time (thinking tokens arrive in a distinct chunk before content);
+  (3) crash/interrupt safety — generated content can be flushed to log as tokens arrive,
+  so a shutdown or server crash doesn't lose the partial output. Requires SSE stream reader,
+  delta accumulation, and a partial-output flush path in the catch block.
 - **Exploratory — reasoning budget** (`--reasoning-budget N`): token cap on thinking
   traces (-1 = unlimited, 0 = off). Works for llama.cpp-recognized thinking tokens (Qwen3
   `<think>`, DeepSeek-R1). Gemma's `<|channel>thought` / `<channel|>` — needs llama.cpp

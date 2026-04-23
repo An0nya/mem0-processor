@@ -684,6 +684,7 @@ async function summarizeSession(transcript, model, registryEntry = null) {
 
   if (model.provider === "llama") {
     let response;
+    const startMs = Date.now();
     const slotsPoller = setInterval(async () => {
       try {
         const r = await fetch(`http://localhost:${LLAMA_PORT}/slots`, { signal: AbortSignal.timeout(3000) });
@@ -691,11 +692,16 @@ async function summarizeSession(transcript, model, registryEntry = null) {
         const slots = await r.json();
         const slot = Array.isArray(slots) ? slots[0] : null;
         if (!slot) return;
-        const state = slot.state === 1 ? "processing" : "idle";
-        const nDecoded = slot.n_decoded ?? 0;
-        process.stdout.write(`\r  ⟳ /slots: ${state} · ${nDecoded} tok            `);
+        const tok = slot.next_token?.[0]?.n_decoded ?? 0;
+        const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+        const label = !slot.is_processing
+          ? "idle"
+          : tok === 0
+            ? `prefilling… ${elapsed}s`
+            : `prompt processed, generated ${tok} tok, elapsed ${elapsed}s`;
+        process.stdout.write(`\r  ⟳ /slots: ${label}            `);
       } catch { /* ignore poll errors */ }
-    }, 5000);
+    }, 250);
     try {
       response = await fetch(`http://localhost:${LLAMA_PORT}/v1/chat/completions`, {
         method: "POST",
