@@ -280,20 +280,33 @@ function loadLlamaRegistry() {
 }
 
 function buildLlamaFlags(entry) {
+  const kvQuant = entry.fileSizeGb < 8 ? "q8_0" : "q4_0";
+  const kvQuantK = entry.launch.kvQuantK ?? kvQuant;
+  const kvQuantV = entry.launch.kvQuantV ?? kvQuant;
+
+  const sampler = { minP: 0.05, temp: 1.0, topK: 0, ...entry.sampler };
+
   const flags = [
     "-m", entry.path,
     "-c", String(entry.launch.ctxSize),
     "-ngl", String(entry.launch.nGpuLayers),
     "-ub", String(entry.launch.ubatchSize),
-    "-ctk", entry.launch.kvQuantK,
-    "-ctv", entry.launch.kvQuantV,
+    "-ctk", kvQuantK,
+    "-ctv", kvQuantV,
     "-t", String(entry.launch.threads),
     "--chat-template-file", entry.chatTemplatePath,
     "--parallel", "1",
     "--port", String(LLAMA_PORT),
+    "--min-p", String(sampler.minP),
+    "--top-k", String(sampler.topK),
+    "--temp", String(sampler.temp),
+    "--defrag-thold", "0.1",
+    "--prio", "2",
   ];
   if (entry.launch.flashAttn) flags.push("-fa", "on");
   if (entry.launch.nExpertsUsed) flags.push("--override-kv", `llm.expert_used_count=int:${entry.launch.nExpertsUsed}`);
+  if (entry.launch.swaFull) flags.push("--swa-full");
+  if (entry.sampler?.dynaTemp) flags.push("--dynatemp-range", String(entry.sampler.dynaTemp.range), "--dynatemp-exp", String(entry.sampler.dynaTemp.exp));
   return flags;
 }
 

@@ -535,17 +535,135 @@ to mem0 normally. Script output looks like a normal run.
 - Check `isLlamaEarlyExit?.()` at top of each process-unit loop iteration; `break` with a
   count of skipped sessions on detection
 
-**7b — Per-run control (pending)**
-- `--llama-fresh`: kill and relaunch llama-server between sessions to clear KV cache; useful
-  for clean isolated benchmark runs
-- Selectable sampler params (`--temp`, `--seed`, `top_p`) passed through to chat completions body
-- Streaming: `stream: false` currently; needs SSE parser + timings from final chunk
+**7b — Flags + registry (done)**
 
-**7c — Hygiene (pending)**
+Pure config, no new control flow. All changes confined to `buildLlamaFlags` and
+`models-registry.json`.
+
+- Sampler defaults: hardcode `--min-p 0.05 --top-k 0 --temp 1.0` in `buildLlamaFlags`.
+  Better stack than llama-server defaults (top-k 40, top-p 0.95, temp ~0.8) for
+  summarization: min-p scales with model confidence; top-k 0 disables the hard cutoff;
+  top-p dropped entirely (redundant when min-p + top-k 0 is set).
+- `sampler` block in registry schema: per-model overrides, merged at flag-build time
+  (model value wins over hardcoded default):
+  ```json
+  "sampler": { "minP": 0.05, "temp": 1.0, "topK": 0 }
+  ```
+  Known variants: GLM → `minP: 0.01`; Nemotron → `temp: 0.6` (sensitive to high temp);
+  GPT-oss → `topK: 0` (already our default).
+- `--defrag-thold 0.1`: hardcode in `buildLlamaFlags`; prevents progressive KV cache
+  fragmentation slowdown across long sessions.
+- `--prio 2`: hardcode in `buildLlamaFlags`; raises process priority for jitter reduction.
+- `--swa-full` for Gemma: add `swaFull: true` boolean to registry; emit flag conditionally
+  in `buildLlamaFlags`. See 7c audit entry for SWA explanation. Qwen unaffected.
+- KV quant selection: auto-select based on available VRAM headroom rather than hardcoding
+  per model. Logic: `headroom = system_limit - fileSizeGb`; if headroom comfortably covers
+  q8_0 KV at target ctx, use q8_0; else fall back to q4_0. Precise calculation needs
+  `kvBytesPerToken` per model (deferred to v8 calibration). Near-term heuristic:
+  `fileSizeGb < 8` → q8_0, else q4_0 — matches known data (0.8b + 9b have headroom,
+  26b doesn't). Registry `kvQuantK/V` override stays as escape hatch; auto-selection only
+  when override is absent. ~13% prefill penalty for q8_0 is acceptable; better quality.
+- DynaTemp (optional, test after basics): `--dynatemp-range R` sets a band around base
+  temp; scales within it by output entropy (conservative on confident tokens, expansive on
+  uncertain). E.g. `--temp 0.8 --dynatemp-range 0.4` → 0.4–1.2 range. Add optional
+  `sampler.dynaTemp` field; emit only when present.
+
+**7c — Control + progress (pending)**
+
+New logic but bounded scope: server lifecycle control and a progress signal during inference.
+
+- `--llama-fresh`: kill and relaunch llama-server between sessions to flush KV cache.
+  Useful for clean isolated benchmark runs. Requires calling the existing shutdown +
+  launch sequence between process-unit iterations when the flag is set.
+- `/slots` polling: GET `localhost:8080/slots` on an interval (e.g. 5s) concurrent with
+  the completion fetch; log `n_decoded` token count and slot state (`processing`/`idle`)
+  so there's a live signal during the silent wait. Replaces the need for SSE streaming —
+  we don't need every token, just a heartbeat that confirms the server is alive and making
+  progress. Requires a concurrent async loop alongside the fetch.
+- Summary frontmatter: prepend a YAML block to every local summary cache file:
+  ```
+  ---
+  session: woolly-pondering-glacier--a3f2c1b4
+  timestamp: 2026-04-23T14:32:01
+  model: gemma-4-26b-a4b-it-claude-opus-distill-apex
+  temp: 1.0
+  min_p: 0.05
+  top_k: 0
+  kv_quant: q4_0
+  ctx: 32000
+  n_gpu_layers: 30
+  swa_full: false
+  tps: 45.2
+  ttft: 8.3s
+  gen_time: 94.1s
+  ---
+  ```
+  Strip everything up to and including the second `---` before any re-use (v10 injection,
+  etc.). Perf store gets the same values as flat fields for programmatic querying.
+
+**7d — Infra polish (optional, pending)**
+
+Lower priority; don't start until 7b + 7c are stable.
+
 - Preflight check: warn if `sysctl iogpu.wired_limit_mb` ≠ 14336
-- Log suppression/redirect once llama-server is stable
+- Log suppression/redirect: pipe llama-server stderr to a file once stable
 - Cooldown monitoring: flag when `preSessionIdleGb` − `idleGb` gap exceeds threshold
-- Restart on crash: detect `earlyExit`, respawn server, retry session (max-retries TBD)
+- Restart on crash + retry: detect `earlyExit`, respawn server, retry failed session
+  (max-retries TBD; needs backoff to avoid respawn loops)
+- Streaming (SSE): `stream: true` + SSE parser + timings from final chunk. Lower priority
+  now that `/slots` polling gives adequate progress signal; add if polling proves
+  insufficient or content preview becomes useful.
+- **Exploratory — reasoning budget** (`--reasoning-budget N`): token cap on thinking
+  traces (-1 = unlimited, 0 = off). Works for llama.cpp-recognized thinking tokens (Qwen3
+  `<think>`, DeepSeek-R1). Gemma's `<|channel>thought` / `<channel|>` — needs llama.cpp
+  support verification. Not the same as LM Studio's "reasoning effort" (OpenAI API feature
+  for o1/o3-class models only). Add `reasoningBudget` to registry when support confirmed.
+- **Deferred — Mirostat** (`--mirostat 1|2`): perplexity-targeting alternative to
+  min-p/top-k. Mutually exclusive paradigm; skip until we have quality baselines to compare.
+- **Deferred — `--samplers` order**: controls pipeline order (`top_k;top_p;min_p;temp`).
+  Reordering changes output distribution meaningfully; not actionable without quality data.
+
+### llama-server setup audit
+
+Reviewed flags and registry config against known llama-server optimization surface.
+Findings, in priority order:
+
+**`--defrag-thold 0.1`** (missing from `buildLlamaFlags`) — auto-defrag KV cache when
+fragmentation hits 10%. Critical for long sessions; without it, processing speed
+degrades progressively as the KV cache becomes fragmented. Single hardcoded flag; no
+registry schema change needed.
+
+**`--swa-full` for Gemma** — Gemma 4 uses sliding window attention; this flag forces full
+SWA cache instead of chunked. Quality improvement on longer contexts at some RAM cost.
+Not in registry, not wired in `buildLlamaFlags`. Needs a boolean registry field (e.g.
+`swaFull: true`) + conditional in `buildLlamaFlags`.
+
+**KV quant: q4_0 → q8_0 for non-memory-constrained models** — currently q4_0 everywhere.
+q8_0 is the quality sweet spot (minimal quality loss vs ~13% prefill penalty per calibration
+data). Gemma at the 16GB ceiling stays q4_0 (intentional headroom trade-off). 0.8b and 9b
+models have headroom for q8_0.
+
+**Sampling params — total absence** — no sampler flags are passed, so llama-server defaults
+apply (top-k 40, top-p 0.95, temp ~0.8). For summarization, a better stack: `--min-p 0.05
+--top-k 0` (disable top-k, let min-p do the work). min-p cuts tokens below a probability
+threshold relative to the top token — scales with model confidence, cleaner than top-k.
+Needs a `sampling` key in registry schema + wiring in `buildLlamaFlags`. Alternatively
+hardcode sane defaults in `buildLlamaFlags` for now.
+
+**`--metrics` + `--slots`** — `--metrics` exposes a Prometheus endpoint (`/metrics`) with
+server-level aggregate stats (tps, KV cache %, queue depth). `--slots` exposes `/slots`
+with per-slot state: `n_decoded` (tokens generated so far on active request), slot state
+(idle/processing). Together these enable a polling loop during in-flight inference — "X
+tokens generated, server alive" — eliminating the silent 5s–10min wait. `/slots` polling
+is distinct from streaming (step 7b): polling gives progress counts, streaming gives
+content as it arrives. Both are worth having; `/slots` poll is easier to add. Requires
+polling loop running concurrently with the completion fetch.
+
+**`--prio 2`** — raise llama-server process priority. Easy jitter reduction during
+benchmarks. One flag, no registry change.
+
+**`--mlock` confirmed skip** — on M4 with full GPU offload, model weights are in Metal
+buffers the OS cannot swap. Already excluded; confirmed still correct.
 
 ### Perf fixes (this session)
 
