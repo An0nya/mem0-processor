@@ -461,8 +461,9 @@ before the model loads — the data v8's regression needs to be accurate. Runnin
 current data means regressing against dirty baselines.
 
 **Pre-assembled (done)**:
-- `~/.claude/mem0/models-registry.json` — 3 models (gemma apex, rys qwen 9b, qwen3.6 35b)
-  with GGUF paths, launch params, and chat template paths
+- `config/models-registry.json` (in repo) — 49 models across NVMe + WD-elements, with GGUF
+  paths, launch params, chat template paths, and `source` field. Moved from
+  `~/.claude/mem0/models-registry.json` so it's version-controlled.
 - `~/.claude/mem0/templates/gemma.jinja`, `qwen.jinja`
 
 **llama-server flag mappings** (registry → CLI):

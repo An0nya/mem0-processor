@@ -106,7 +106,7 @@ const NO_TOKEN_CAP = process.argv.includes("--no-token-cap");
 const STREAM         = process.argv.includes("--stream");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
 
-const LLAMA_REGISTRY_PATH = path.join(os.homedir(), ".claude", "mem0", "models-registry.json");
+const LLAMA_REGISTRY_PATH = new URL("config/models-registry.json", import.meta.url).pathname;
 const LLAMA_PORT = 8080;
 const LLAMA_DEFAULT_MODEL = "qwen3.5-0.8b-unsloth-q8";
 const LLAMA_FLAG_IDX = process.argv.indexOf("--llama");

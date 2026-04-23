@@ -1,0 +1,759 @@
+{
+  "qwen3.5-0.8b-unsloth-q8": {
+    "path": "/Volumes/NVME External/lmstudio_models/unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf",
+    "fileSizeGb": 0.8,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": 24,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "gemma-4-26b-a4b-it-claude-opus-distill-apex": {
+    "path": "/Volumes/NVMe External/lmstudio_models/mudler/gemma-4-26B-A4B-it-Claude-Opus-Distill-APEX-GGUF/gemma-4-26B-A4B-Claude-Distill-APEX-I-Mini.gguf",
+    "fileSizeGb": 12.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    },
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": 30,
+      "nExpertsUsed": 10,
+      "ubatchSize": 64,
+      "swaFull": true,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "xpressai/qwen3.5-9b-rys-ud-q4_k_xl-gguf/qwen3.5-9b-rys_22-25-ud-q4_k_xl.gguf": {
+    "path": "/Volumes/NVMe External/lmstudio_models/XpressAI/Qwen3.5-9B-RYS-UD-Q4_K_XL-GGUF/Qwen3.5-9B-rys_22-25-UD-Q4_K_XL.gguf",
+    "fileSizeGb": 6.1,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "qwen_qwen3.6-35b-a3b-iq2": {
+    "path": "/Volumes/NVMe External/lmstudio_models/bartowski/Qwen_Qwen3.6-35B-A3B-GGUF/Qwen_Qwen3.6-35B-A3B-IQ2_M.gguf",
+    "fileSizeGb": 11.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": 40,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+
+  "jackrong/qwopus-glm-18b": {
+    "path": "/Volumes/NVME External/lmstudio_models/Jackrong/Qwopus-GLM-18B-Merged-GGUF/Qwopus-GLM-18B-Healed-Q4_K_M.gguf",
+    "fileSizeGb": 9.2,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "bartowski/nemotron-nano-9b-v2": {
+    "path": "/Volumes/NVME External/lmstudio_models/bartowski/nvidia_NVIDIA-Nemotron-Nano-9B-v2-GGUF/nvidia_NVIDIA-Nemotron-Nano-9B-v2-Q4_K_L.gguf",
+    "fileSizeGb": 6.3,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwen3.5-27b-heretic-rys-xl": {
+    "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Qwen3.5-27B-heretic-RYS-XL-i1-GGUF/Qwen3.5-27B-heretic-RYS-XL.i1-IQ3_XXS.gguf",
+    "fileSizeGb": 11.6,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/gemma-4-31b": {
+    "path": "/Volumes/NVME External/lmstudio_models/mradermacher/gemma-4-31B-i1-GGUF/gemma-4-31B.i1-IQ3_XXS.gguf",
+    "fileSizeGb": 11.2,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "rico03/qwen3.6-35b-a3b-opus": {
+    "path": "/Volumes/NVME External/lmstudio_models/rico03/Qwen3.6-35B-Opus-Reasoning-GGUF/Qwen3.6-35B-A3B-Opus-IQ2_M.gguf",
+    "fileSizeGb": 10.9,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "squ11z1/gpt-oss-9b": {
+    "path": "/Volumes/NVME External/lmstudio_models/squ11z1/gpt-oss-nano/gpt-oss-9b-q4_k_m.gguf",
+    "fileSizeGb": 6.4,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "tvall43/qwen3.5-14b-a3b-claude-opus": {
+    "path": "/Volumes/NVME External/lmstudio_models/tvall43/Qwen3.5-14B-A3B-Claude-4.6-Opus-Reasoning-Distilled-reap-gguf/Qwen3.5-14B-A3B-Claude-Opus-Reasoning-Distilled-4.6-MXFP4_MOE.gguf",
+    "fileSizeGb": 8.2,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "unsloth/glm-4.7-flash": {
+    "path": "/Volumes/NVME External/lmstudio_models/unsloth/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-UD-IQ3_XXS.gguf",
+    "fileSizeGb": 12.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "unsloth/ministral-3-14b-instruct": {
+    "path": "/Volumes/NVME External/lmstudio_models/unsloth/Ministral-3-14B-Instruct-2512-GGUF/Ministral-3-14B-Instruct-2512-IQ4_XS.gguf",
+    "fileSizeGb": 6.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+
+  "biomanticus/ornstein-35b-a3b-rys": {
+    "path": "/Volumes/WD-elements/llm-offload/Biomanticus/Ornstein-3.6-35B-A3B-RYS-gguf/Ornstein-3.6-35B-A3B-RYS-F16_Q2_K.gguf",
+    "fileSizeGb": 12.2,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "biomanticus/rys-qwen3.5-27b": {
+    "path": "/Volumes/WD-elements/llm-offload/Biomanticus/RYS-Qwen3.5-27B-gguf/RYS-Qwen3.5-27B-Q2_K.gguf",
+    "fileSizeGb": 10.4,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "jackrong/qwen3.5-27b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-27B.Q2_K.gguf",
+    "fileSizeGb": 9.4,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "jackrong/qwen3.5-4b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-4B.Q8_0.gguf",
+    "fileSizeGb": 4.2,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "jackrong/qwen3.5-9b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf",
+    "fileSizeGb": 5.2,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "quietimpostor/nemotron-21b-a3b-reap": {
+    "path": "/Volumes/WD-elements/llm-offload/QuietImpostor/Nemotron-3-Nano-REAP-21B-A3B-MXFP4-GGUF/Nemotron-3-Nano-REAP-21B-A3B-MXFP4.gguf",
+    "fileSizeGb": 11.3,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "teichai/glm-4.7-flash-claude": {
+    "path": "/Volumes/WD-elements/llm-offload/TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF/glm-4.7-flash-claude-4.5-opus.iq3_xs.gguf",
+    "fileSizeGb": 11.5,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "teichai/nemotron-cascade-14b": {
+    "path": "/Volumes/WD-elements/llm-offload/TeichAI/Nemotron-Cascade-14B-Thinking-Claude-4.5-Opus-High-Reasoning-Distill-GGUF/Nemotron-Cascade-14B-Thinking-Claude-4.5-Opus-Distill.iq4_xs.gguf",
+    "fileSizeGb": 7.6,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "arsovskidev/gemma-4-e4b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/arsovskidev/Gemma-4-E4B-Claude-4.6-Opus-Reasoning-Distilled/gemma-4-E4B-it.Q8_0.gguf",
+    "fileSizeGb": 7.5,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "bartowski/olmo-3.1-32b-think": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/allenai_Olmo-3.1-32B-Think-GGUF/allenai_Olmo-3.1-32B-Think-IQ3_XXS.gguf",
+    "fileSizeGb": 11.7,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "bartowski/gemma-4-31b-it": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/google_gemma-4-31B-it-GGUF/google_gemma-4-31B-it-IQ2_XS.gguf",
+    "fileSizeGb": 10.7,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "bartowski/granite-4.0-h-small": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/ibm-granite_granite-4.0-h-small-GGUF/ibm-granite_granite-4.0-h-small-IQ2_M.gguf",
+    "fileSizeGb": 9.7,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "bartowski/nemotron-super-49b": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/nvidia_Llama-3_3-Nemotron-Super-49B-v1-GGUF/nvidia_Llama-3_3-Nemotron-Super-49B-v1-IQ2_XXS.gguf",
+    "fileSizeGb": 12.7,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "lmstudio-community/ministral-14b-reasoning": {
+    "path": "/Volumes/WD-elements/llm-offload/lmstudio-community/Ministral-3-14B-Reasoning-2512-GGUF/Ministral-3-14B-Reasoning-2512-Q4_K_M.gguf",
+    "fileSizeGb": 7.7,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/hermes-4.3-36b": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Hermes-4.3-36B-heretic-i1-GGUF/Hermes-4.3-36B-heretic.i1-IQ2_M.gguf",
+    "fileSizeGb": 11.7,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/kimi-linear-35b-a3b": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Kimi-Linear-REAP-35B-A3B-Instruct-GGUF/Kimi-Linear-REAP-35B-A3B-Instruct.Q2_K.gguf",
+    "fileSizeGb": 12.1,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/ministral-14b-instruct-bf16": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Ministral-3-14B-Instruct-2512-BF16-i1-GGUF/Ministral-3-14B-Instruct-2512-BF16.i1-IQ4_XS.gguf",
+    "fileSizeGb": 6.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/ministral-14b-reasoning": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Ministral-3-14B-Reasoning-2512-i1-GGUF/Ministral-3-14B-Reasoning-2512.i1-IQ4_XS.gguf",
+    "fileSizeGb": 6.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/mistral-nemo-12b-thinking": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC-GGUF/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC.Q4_K_M.gguf",
+    "fileSizeGb": 7.0,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/mistral-small-24b": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Small-3.2-24B-Instruct-2506-Text-Only-Heretic-v1.2-i1-GGUF/Mistral-Small-3.2-24B-Instruct-2506-Text-Only-Heretic-v1.2.i1-IQ3_M.gguf",
+    "fileSizeGb": 9.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/mixtral-8x7b-limerp": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mixtral-8x7B-Instruct-v0.1-LimaRP-ZLoss-i1-GGUF/Mixtral-8x7B-Instruct-v0.1-LimaRP-ZLoss.i1-IQ2_XXS.gguf",
+    "fileSizeGb": 11.7,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 2,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwen3-coder-40b-a3b": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3-Coder-Next-REAP-40B-A3B-i1-GGUF/Qwen3-Coder-Next-REAP-40B-A3B.i1-IQ2_XS.gguf",
+    "fileSizeGb": 11.3,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwen3.5-21b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-21B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking-i1-GGUF/Qwen3.5-21B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking.i1-Q4_K_S.gguf",
+    "fileSizeGb": 11.3,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwen3.5-27b-claude-opus-heretic-v2": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-heretic-v2-i1-GGUF/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-heretic-v2.i1-IQ3_M.gguf",
+    "fileSizeGb": 11.7,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwen3.5-40b-claude-opus-deckard": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-40B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking-i1-GGUF/Qwen3.5-40B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking.i1-IQ2_S.gguf",
+    "fileSizeGb": 11.5,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwopus-moe-35b-a3b": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwopus-MoE-35B-A3B-i1-GGUF/Qwopus-MoE-35B-A3B.i1-IQ2_M.gguf",
+    "fileSizeGb": 10.9,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwopus3.5-9b-v3": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwopus3.5-9B-v3-GGUF/Qwopus3.5-9B-v3.Q4_K_M.gguf",
+    "fileSizeGb": 5.2,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/gemma-4-19b-a4b-reap": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-19b-a4b-it-REAP-i1-GGUF/gemma-4-19b-a4b-it-REAP.i1-IQ4_XS.gguf",
+    "fileSizeGb": 9.5,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 10,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/gemma-4-26b-a4b-broken-template": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-26B-A4B-i1-GGUF-broken-template/gemma-4-26B-A4B.i1-IQ3_M.gguf",
+    "fileSizeGb": 11.5,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "notes": "broken chat template per folder name — needs custom template before use",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 10,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/gemma-4-31b-broken-template": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-31B-i1-GGUF-broken-template/gemma-4-31B.i1-IQ3_XXS.gguf",
+    "fileSizeGb": 11.2,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "notes": "broken chat template per folder name — needs custom template before use",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/gpt-oss-20b-heretic": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gpt-oss-20b-heretic-heretic-GGUF/gpt-oss-20b-heretic-heretic.IQ4_XS.gguf",
+    "fileSizeGb": 11.4,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mudler/glm-4.7-flash-apex": {
+    "path": "/Volumes/WD-elements/llm-offload/mudler/GLM-4.7-Flash-APEX-GGUF/GLM-4.7-Flash-APEX-I-Mini.gguf",
+    "fileSizeGb": 11.1,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mudler/gemopus-4-26b-a4b": {
+    "path": "/Volumes/WD-elements/llm-offload/mudler/Gemopus-4-26B-A4B-it-Preview-APEX-GGUF/gemopus-4-26B-A4B-APEX-I-Mini.gguf",
+    "fileSizeGb": 12.1,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 10,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mudler/qwen3-coder-30b-apex": {
+    "path": "/Volumes/WD-elements/llm-offload/mudler/Qwen3-Coder-30B-APEX-GGUF/Qwen3-Coder-30B-APEX-Mini.gguf",
+    "fileSizeGb": 11.3,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "nvidia/nemotron-nano-4b": {
+    "path": "/Volumes/WD-elements/llm-offload/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
+    "fileSizeGb": 2.6,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "sandeshrajx/qwen3.5-24b-a3b-reap": {
+    "path": "/Volumes/WD-elements/llm-offload/sandeshrajx/Qwen3.5-24B-A3B-REAP-0.32-GGUF/Qwen3.5-18B-REAP-A3B-Coding-IQ4_K_M.gguf",
+    "fileSizeGb": 11.3,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "notes": "folder says 24B-A3B but filename says 18B — verify before use",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  }
+}
