@@ -123,7 +123,7 @@ Grouped by theme because the changes were made together and depend on each other
 
 ---
 
-## v7.3 — Transcript quality + session structure (in progress)
+## v7.3 — Transcript quality + session structure (shipped)
 
 Patch before v8. Improves signal fidelity in transcripts fed to summarizer models.
 No new flags or config; all changes are internal to transcript building and session handling.
@@ -131,8 +131,8 @@ No new flags or config; all changes are internal to transcript building and sess
 **Shipped:** tool label differentiation, thinking traces, slug-based IDs, transcript
 cache, tier 1 + tier 2 session filters, post-session telemetry, cache hit classifier,
 prompt iteration 4, compaction extraction + session splitting, chronological session
-ordering, small-session merging, Gemma thinking token injection, injection guard.
-**Remaining:** bug fixes + logging cleanup (see below).
+ordering, small-session merging, Gemma thinking token injection, injection guard, and
+the full bug-fixes + logging cleanup batch below.
 **Cross-session context injection deferred to v10** — see v10 for the open question.
 
 ### Tool label differentiation
@@ -367,7 +367,7 @@ model on its task at the point where context is longest and attention drift most
 depending on entry structure. Compaction extraction was assuming array; added
 `typeof extracted.blocks === "string"` branch.
 
-### Bug fixes + logging cleanup (pending v7.3 close)
+### Bug fixes + logging cleanup
 
 **Session counter (Phase 3)**: `runStats.length + 1` used as position numerator, but
 Phase 1 noise/no_content skips push to `runStats` before Phase 3 starts. Fix: dedicated
@@ -528,7 +528,7 @@ to mem0 normally. Script output looks like a normal run.
 - Chat template correctness issues
 - Runtime param validation
 
-### Step 7 — Polish (in progress)
+### Step 7 — Polish (7a/7b/7c done, 7d optional pending)
 
 **7a — Fail-fast on server death (done)**
 - `isEarlyExit: () => earlyExit` getter returned from `launchLlamaServer` so `main()` can
@@ -707,6 +707,87 @@ relationships. Key findings for v8 context cap design:
 
 Difficulty: Hard (server lifecycle management, param plumbing), Medium (response parsing
 gap), Low (once server works, steps 3–5 are incremental).
+
+---
+
+## v9.1 — Data integrity + cleanup pass (shipped)
+
+Pre-v8 hardening. Targets the perf store so v8's regression fit has clean inputs, and
+drops dead code paths that inflate the script without contributing.
+
+### Anthropic provider removed
+
+- `claude-haiku-4-5-20251001` entry dropped from `MODELS`; `Anthropic` import, SDK
+  instance, and the `model.provider === "anthropic"` branch in `summarizeSession`
+  removed. Every `model.provider !== "anthropic"` guard in `main()` simplified (only
+  lmstudio + llama remain). No active plans to route through the Anthropic API —
+  keeping the branch was adding bulk and forcing defensive checks in the llama path.
+
+### Per-model `maxOutputTokens` (default 4096)
+
+- Hardcoded `max_tokens: 8192` in the llama fetch replaced with
+  `entry.launch.maxOutputTokens ?? 4096`. Registry models can override (gpt-oss etc.
+  that legitimately think long); unbounded runaway (e.g. Qwen spending 8k tokens on a
+  short session) now capped at 4k by default.
+- Added to perf entries as `maxOutputTokens` and to summary frontmatter as
+  `max_output_tokens` so v8 regressions can slice by it.
+
+### Resolved launch values recorded (not registry raw)
+
+- New `resolveLaunch(entry)` helper returns the *effective* values used to launch the
+  server: `kvQuantK`, `kvQuantV` (auto-selected via `fileSizeGb < 8 → q8_0 else q4_0`
+  when registry doesn't override), sampler `minP/temp/topK`, and `maxOutputTokens`.
+- `buildLlamaFlags` now consumes the resolver (single source of truth).
+- Perf entries record resolved `kvQuantK/V`, `minP`, `temp`, `topK`, `maxOutputTokens`
+  — previously recorded the *registry* values, which were often `null` when auto-select
+  kicked in, conflating q4_0 and q8_0 runs in the 0.8b/9b models and hiding sampler
+  state entirely.
+
+### Summary frontmatter (closes 7c)
+
+- `saveCachedSummary` prepends a YAML block with session + launch + perf metadata
+  (`session`, `model`, `started_at`, `ended_at`, `transcript_chars`, `prompt_tokens`,
+  `completion_tokens`, `reasoning_tokens`, `tps`, `ttft`, `gen_time`, `ctx_size`,
+  `max_output_tokens`, `kv_quant_k/v`, `temp`, `min_p`, `top_k`, `llama_fresh`,
+  `run_tag`, `cache_hit`).
+- `loadCachedSummary` strips the block before returning, so mem0 upload content is
+  unchanged from pre-frontmatter runs. Existing cached summaries without frontmatter
+  pass through unchanged.
+
+### Perf entry hygiene
+
+- `batchIndex` incremented once at the top of the process-unit loop; both success and
+  error paths record the same `runIndexInBatch` value. Previously the failure path
+  wrote `batchIndex - 1` while success wrote `batchIndex`, giving inconsistent
+  indexing on mixed success/fail batches.
+- Error path now records the same post-session fields the success path does:
+  `postSessionIdleGb`, `postSessionSwap`, `cacheHit`, `timeSinceLastRunMin`,
+  `reasoningTokens`, plus all resolved launch values. Sampler stats
+  (`startingSwap/maxSwap/avgSwap/peakPressure/pressureAvg`) are now sourced from the
+  `sampler.stop()` return in the catch block rather than from possibly-unset success-
+  path locals.
+- `lastRun` lookup filters `!r.failed` — cache-hit classification previously measured
+  "time since last *attempt*," skewing labels when the preceding run crashed.
+
+### Sampler: real `avgSwap`
+
+- `startRamSampler.stop()` now returns `avgSwap` (mean of collected samples) alongside
+  `startingSwap` / `maxSwap`. Previous `printSummary` formula averaged `maxSwap +
+  startingSwap` per sample and divided by `2 × count` — that's the midpoint of peak
+  and starting, not an average. Fixed; field propagates to perf entries and runStats.
+
+### Misc
+
+- `reasoningTokens` captured in the llama path via
+  `data.usage.completion_tokens_details.reasoning_tokens` (was hardcoded `null`).
+- `/slots` poll interval 250ms → 1000ms. Human-readable progress only needs 1Hz; 4Hz
+  was hitting the server harder than necessary during inference.
+- `--run-tag <name>` flag + `runTag` field on perf entries and summary frontmatter.
+  Lets batch sweeps (tagged) and ad-hoc runs (untagged) be filtered cleanly when v8
+  starts fitting regressions — you can't infer intent from timestamps alone.
+- `kvBytesPerToken` passthrough from registry into perf entries (null until
+  populated). Slot reserved for the v8 calibration formula without requiring another
+  perf-entry schema change later.
 
 ---
 

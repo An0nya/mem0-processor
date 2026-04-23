@@ -51,7 +51,6 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { exec, execSync, spawn } from "child_process";
-import Anthropic from "@anthropic-ai/sdk";
 import { setGlobalDispatcher, Agent } from 'undici';
 
 
@@ -67,7 +66,6 @@ const MODELS = [
   { id: "mistralai_ministral-3-14b-instruct-2512-mlx",     provider: "lmstudio" },
   { id: "meta-llama-3.1-8b-instruct",                      provider: "lmstudio" },
   { id: "qwen/qwen3-8b",                    		   provider: "lmstudio" },
-  { id: "claude-haiku-4-5-20251001",                       provider: "anthropic" },
 ];
 
 // ─── CONFIG ──────────────────────────────────────────────────────
@@ -112,6 +110,12 @@ const LLAMA_DEFAULT_MODEL = "qwen3.5-0.8b-unsloth-q8";
 const LLAMA_FLAG_IDX = process.argv.indexOf("--llama");
 const LLAMA_MODE = LLAMA_FLAG_IDX !== -1;
 const LLAMA_FRESH = process.argv.includes("--llama-fresh");
+const RUN_TAG = (() => {
+  const i = process.argv.indexOf("--run-tag");
+  if (i === -1) return null;
+  const next = process.argv[i + 1];
+  return (next && !next.startsWith("--")) ? next : null;
+})();
 const LLAMA_MODEL_ID = (() => {
   if (!LLAMA_MODE) return null;
   const next = process.argv[LLAMA_FLAG_IDX + 1];
@@ -227,13 +231,32 @@ function summaryPath(sessionId, sessionSlug, modelId) {
   return path.join(SUMMARIES_DIR, `${prefix}--${modelSlug}.txt`);
 }
 
+function stripFrontmatter(raw) {
+  if (!raw.startsWith("---\n")) return raw;
+  const end = raw.indexOf("\n---\n", 4);
+  if (end === -1) return raw;
+  return raw.slice(end + 5);
+}
+
 function loadCachedSummary(sessionId, sessionSlug, modelId) {
   const p = summaryPath(sessionId, sessionSlug, modelId);
-  if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
+  if (fs.existsSync(p)) return stripFrontmatter(fs.readFileSync(p, "utf8"));
   return null;
 }
 
-function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = false) {
+function buildFrontmatter(meta) {
+  if (!meta || Object.keys(meta).length === 0) return "";
+  const lines = ["---"];
+  for (const [k, v] of Object.entries(meta)) {
+    if (v === undefined) continue;
+    const val = v === null ? "null" : typeof v === "string" ? JSON.stringify(v) : String(v);
+    lines.push(`${k}: ${val}`);
+  }
+  lines.push("---", "");
+  return lines.join("\n");
+}
+
+function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = false, meta = null) {
   const p = summaryPath(sessionId, sessionSlug, modelId);
   if (archive && fs.existsSync(p)) {
     const modelSlug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
@@ -243,7 +266,7 @@ function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = f
     const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
     fs.renameSync(p, path.join(archiveDir, `${prefix}--${ts}.txt`));
   }
-  fs.writeFileSync(p, summary);
+  fs.writeFileSync(p, buildFrontmatter(meta) + summary);
 }
 
 // ─── TRANSCRIPT CACHE ────────────────────────────────────────────
@@ -280,12 +303,18 @@ function loadLlamaRegistry() {
   return JSON.parse(fs.readFileSync(LLAMA_REGISTRY_PATH, "utf8"));
 }
 
-function buildLlamaFlags(entry) {
-  const kvQuant = entry.fileSizeGb < 8 ? "q8_0" : "q4_0";
-  const kvQuantK = entry.launch.kvQuantK ?? kvQuant;
-  const kvQuantV = entry.launch.kvQuantV ?? kvQuant;
+function resolveLaunch(entry) {
+  const kvDefault = entry.fileSizeGb < 8 ? "q8_0" : "q4_0";
+  return {
+    kvQuantK: entry.launch.kvQuantK ?? kvDefault,
+    kvQuantV: entry.launch.kvQuantV ?? kvDefault,
+    sampler: { minP: 0.05, temp: 1.0, topK: 0, ...entry.sampler },
+    maxOutputTokens: entry.launch.maxOutputTokens ?? 4096,
+  };
+}
 
-  const sampler = { minP: 0.05, temp: 1.0, topK: 0, ...entry.sampler };
+function buildLlamaFlags(entry) {
+  const { kvQuantK, kvQuantV, sampler } = resolveLaunch(entry);
 
   const flags = [
     "-m", entry.path,
@@ -567,6 +596,7 @@ function startRamSampler(intervalMs = 500) {
       const allocAvg  = allocRamSamples.reduce((a, b) => a + b, 0) / allocRamSamples.length;
       const startingSwap = Math.min(...swapSamples);
       const swapMax = Math.max(...swapSamples);
+      const swapAvg = swapSamples.reduce((a, b) => a + b, 0) / swapSamples.length;
       const pressurePeak = Math.max(...pressureSamples);
       const pressureAvg = pressureSamples.reduce((a, b) => a + b, 0) / pressureSamples.length;
       return {
@@ -574,6 +604,7 @@ function startRamSampler(intervalMs = 500) {
         avgUsedGb:  +allocAvg.toFixed(2),
         startingSwap: +startingSwap.toFixed(2),
         maxSwap: +swapMax.toFixed(2),
+        avgSwap: +swapAvg.toFixed(3),
         peakPressure: +pressurePeak,
         pressureAvg: +pressureAvg.toFixed(2)
       };
@@ -587,25 +618,12 @@ Audit the interactions in this Claude Code session. \nWrite a standalone analysi
 `.trim();
 
 // ─── SUMMARIZATION ───────────────────────────────────────────────
-const anthropic = new Anthropic();
-
 async function summarizeSession(transcript, model, registryEntry = null) {
   //gemma specific thinking token injection into prompt
   const useThinkingToken = /gem/i.test(model.id);
   const effectivePrompt = useThinkingToken
   ? SUMMARIZATION_PROMPT + "\n<|think|>"
   : SUMMARIZATION_PROMPT;
-  
-  if (model.provider === "anthropic") {
-    //upped response limit to avoid truncation and reasoning model failure
-    const response = await anthropic.messages.create({
-      model: model.id,
-      max_tokens: 2048,
-      system: SUMMARIZATION_PROMPT,
-      messages: [{ role: "user", content: transcript }],
-    });
-    return { summary: response.content[0].text, tps: null, completionTokens: response.usage.output_tokens };
-  }
 
   if (model.provider === "lmstudio") {
     // FIX (v6): was /v1/chat/completions — that endpoint does NOT populate
@@ -692,6 +710,7 @@ async function summarizeSession(transcript, model, registryEntry = null) {
   }
 
   if (model.provider === "llama") {
+    const resolved = registryEntry ? resolveLaunch(registryEntry) : { maxOutputTokens: 4096 };
     let response;
     const startMs = Date.now();
     const slotsPoller = setInterval(async () => {
@@ -710,7 +729,7 @@ async function summarizeSession(transcript, model, registryEntry = null) {
             : `prompt processed, generated ${tok} tok, elapsed ${elapsed}s`;
         process.stdout.write(`\r  ⟳ /slots: ${label}            `);
       } catch { /* ignore poll errors */ }
-    }, 250);
+    }, 1000);
     try {
       response = await fetch(`http://localhost:${LLAMA_PORT}/v1/chat/completions`, {
         method: "POST",
@@ -722,7 +741,7 @@ async function summarizeSession(transcript, model, registryEntry = null) {
             { role: "system", content: effectivePrompt },
             { role: "user",   content: transcript },
           ],
-          max_tokens: 8192,
+          max_tokens: resolved.maxOutputTokens,
           stream: false,
         }),
       });
@@ -767,7 +786,7 @@ async function summarizeSession(transcript, model, registryEntry = null) {
     const tps      = data.timings?.predicted_per_second != null ? +data.timings.predicted_per_second.toFixed(2) : null;
     const ttft     = data.timings?.prompt_ms != null ? +(data.timings.prompt_ms / 1000).toFixed(4) : null;
     const genTime  = data.timings?.predicted_ms != null ? +(data.timings.predicted_ms / 1000).toFixed(4) : null;
-    const reasoningTokens = null;
+    const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? null;
 
     let summary;
     if (!content && reasoning) {
@@ -902,9 +921,9 @@ function printSummary(model, modelInfo, stats) {
     : "n/a";  
 
   const peakSwap = swapSamples.length ? Math.max(...swapSamples.map((s) => s.maxSwap)).toFixed(2) : "n/a";
-  const avgSwap  = swapSamples.length
-    ? (swapSamples.reduce((a, b) => a + b.maxSwap + b.startingSwap, 0) / (2 * swapSamples.length)).toFixed(2)
-    : "n/a";  
+  const avgSwap  = swapSamples.length && swapSamples.some(s => s.avgSwap != null)
+    ? (swapSamples.filter(s => s.avgSwap != null).reduce((a, b) => a + b.avgSwap, 0) / swapSamples.filter(s => s.avgSwap != null).length).toFixed(2)
+    : "n/a";
 
   const totalTokens = stats.filter((s) => s.completionTokens).reduce((a, s) => a + s.completionTokens, 0);
   const totalInputToks = stats.filter((s) => s.promptTokens).reduce((a, s) => a + s.promptTokens, 0);
@@ -1343,7 +1362,9 @@ async function main() {
     console.log(`      |------${model.id}------|`);
     console.log(`\n   Session ${unitIndex} of ${processUnits.length}`);
     console.log(`\n...\n  💪  Processing ${segDisplay} (${lineCount} lines, ${finalTranscript.length} chars)…`);
-    let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, peakPressure, pressureAvg, postSessionIdleGb, postSessionSwap, cacheHit, lastRun, timeSinceLastRunMin;
+    batchIndex++;
+    const resolved = llamaRegistryEntry ? resolveLaunch(llamaRegistryEntry) : null;
+    let summary, tps, prefillTps, ttft, genTime, completionTokens, promptTokens, reasoningTokens, peakUsedGb, avgUsedGb, preSessionIdleGb, startingSwap, maxSwap, avgSwap, peakPressure, pressureAvg, postSessionIdleGb, postSessionSwap, cacheHit, lastRun, timeSinceLastRunMin;
     let sampler = startRamSampler();
     let runtime;
     try {
@@ -1351,45 +1372,68 @@ async function main() {
       const cached = isReprocessUnit ? null : loadCachedSummary(primarySessionId, segSlug, model.id);
       if (cached) {
         summary = cached;
-        tps = null; prefillTps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null; startingSwap = null; maxSwap = null; peakPressure = null; pressureAvg = null;
+        tps = null; prefillTps = null; completionTokens = null; peakUsedGb = null; avgUsedGb = null; startingSwap = null; maxSwap = null; avgSwap = null; peakPressure = null; pressureAvg = null;
         console.log(`  ↩ Using cached summary`);
         log.write({ sessionId: stateKey, slug: segSlug, cachedSummary: true, ts: new Date().toISOString() });
       } else {
-        preSessionIdleGb = model.provider !== "anthropic" ? gpuAllocGb() : null;
+        preSessionIdleGb = gpuAllocGb();
         let startTime = performance.now();
 
         ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
-        ({ peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg} = sampler.stop());
-        
+        ({ peakUsedGb, avgUsedGb, startingSwap, maxSwap, avgSwap, peakPressure, pressureAvg} = sampler.stop());
+
         runtime = Math.floor(.001 * (performance.now() - startTime));
         if (ttft != null) {
           prefillTps = (promptTokens / ttft).toFixed(2);
-          //console.log(`  ⏳  Timer says processing completed in ${runtime} sec.`);
           console.log(`  ⌛️  Total time is ttft (${ttft}s) + genTime (${genTime}s) = ${(ttft + genTime).toFixed(2)}s`);
-          if (ttft < genTime) console.log(`  ⚠️   Time to first token or prefill time may be inaccurate if there is a KV cache hit.`); //may need to find a way to track, until then filter data where prefill < gen
+          if (ttft < genTime) console.log(`  ⚠️   Time to first token or prefill time may be inaccurate if there is a KV cache hit.`);
         }
         if (completionTokens != null) {
           console.log(`  🎟️   Prompt tokens: ${promptTokens} (${finalTranscript.length}chars). Ratio: ${(finalTranscript.length / promptTokens).toFixed(2)} chars/tok`);
           console.log(`  💎  Output tokens: ${completionTokens} (${reasoningTokens ?? null} reasoning)`);
         }
         if (tps != null) {
-          //console.log(`  ⏱️  Based on tps and completion tokens, generation took ${Math.floor(completionTokens / tps)}sec and prefill took ${runtime - Math.floor(completionTokens / tps)} sec.`);
           console.log(`  ⚡️  Output: ${tps.toFixed(1)} tok/s | (${completionTokens} tokens) | input: ${prefillTps} tok/s (${promptTokens} tokens)`);
         }
         if (peakUsedGb != null) console.log(`  🧠  Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${peakUsedGb} GB | avg ${avgUsedGb} GB`);
-        if (maxSwap != null) console.log(`  😰  Starting RAM Swap ${startingSwap}GB | Swap peak ${maxSwap} GB`);
+        if (maxSwap != null) console.log(`  😰  Starting RAM Swap ${startingSwap}GB | Swap peak ${maxSwap} GB | avg ${avgSwap} GB`);
         if (peakPressure != null) console.log(`  🥵  Peak memory pressure ${peakPressure}% | Average memory pressure ${pressureAvg}%`);
 
-	const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
+        const summaryTs    = startedAt ? startedAt.slice(0, 16).replace("T", " ") : new Date().toISOString().slice(0, 16).replace("T", " ");
         const summaryTsEnd = endedAt   ? endedAt.slice(0, 16).replace("T", " ")   : null;
         summary = `[${summaryTs}${summaryTsEnd ? ` → ${summaryTsEnd}` : ""}]\n${summary}`;
-        saveCachedSummary(primarySessionId, segSlug, model.id, summary, isReprocessUnit);
-        batchIndex++;
-	lastRun = perfStore[model.id]?.runs?.at(-1);
-	timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
-	postSessionIdleGb = model.provider !== "anthropic" ? gpuAllocGb() : null;
-	postSessionSwap = model.provider !== "anthropic" ? swapUsedGb() : null;
-	cacheHit = classifyCacheHit(perfStore, model.id, { promptTokens, ttft });
+
+        lastRun = perfStore[model.id]?.runs?.filter(r => !r.failed).at(-1);
+        timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
+        postSessionIdleGb = gpuAllocGb();
+        postSessionSwap = swapUsedGb();
+        cacheHit = classifyCacheHit(perfStore, model.id, { promptTokens, ttft });
+
+        const summaryMeta = {
+          session: stateKey,
+          model: model.id,
+          provider: model.provider,
+          started_at: startedAt,
+          ended_at: endedAt,
+          transcript_chars: finalTranscript.length,
+          prompt_tokens: promptTokens ?? null,
+          completion_tokens: completionTokens ?? null,
+          reasoning_tokens: reasoningTokens ?? null,
+          tps: tps ?? null,
+          ttft,
+          gen_time: genTime,
+          ctx_size: modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch?.ctxSize ?? null,
+          max_output_tokens: resolved?.maxOutputTokens ?? null,
+          kv_quant_k: resolved?.kvQuantK ?? null,
+          kv_quant_v: resolved?.kvQuantV ?? null,
+          temp: resolved?.sampler.temp ?? null,
+          min_p: resolved?.sampler.minP ?? null,
+          top_k: resolved?.sampler.topK ?? null,
+          llama_fresh: LLAMA_FRESH,
+          run_tag: RUN_TAG,
+          cache_hit: cacheHit,
+        };
+        saveCachedSummary(primarySessionId, segSlug, model.id, summary, isReprocessUnit, summaryMeta);
 
         console.log(`  📖  summary preview: \n
 ______________________________________________\n`
@@ -1397,7 +1441,6 @@ ______________________________________________\n`
 ______________________________________________\n`);
         log.write({ sessionId: stateKey, slug: segSlug, summaryPreview: summary.substring(0, 1000), ts: new Date().toISOString() });
 
-        
         console.log(`  ✓ Summary cached`);
       }
 
@@ -1428,11 +1471,12 @@ ______________________________________________\n`);
         appendPerfEntry(perfStore, model.id, {
           ts:             new Date().toISOString(),
           session:        stateKey,
+          runTag:         RUN_TAG,
           idleGb,
           preSessionIdleGb: preSessionIdleGb ?? null,
-	  postSessionIdleGb: postSessionIdleGb,
+          postSessionIdleGb: postSessionIdleGb ?? null,
           idleSwap:       idleSwap,
-	  postSessionSwap: postSessionSwap,
+          postSessionSwap: postSessionSwap ?? null,
           idleMemPressure: idleMemPressure,
           noModelGb,
           noModelSwap,
@@ -1445,23 +1489,29 @@ ______________________________________________\n`);
           loadedContextChars:  effectiveMaxChars,
           startingSwap:   startingSwap,
           maxSwap:        maxSwap,
+          avgSwap:        avgSwap ?? null,
           peakPressure:   peakPressure,
           pressureAvg:    pressureAvg,
           tps:            tps ?? null,
           prefillTps:     prefillTps ?? null,
-          ctxSize:        modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch.ctxSize ?? null,
+          ctxSize:        modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch?.ctxSize ?? null,
           completionTokens: completionTokens ?? null,
           reasoningTokens: reasoningTokens ?? null,
           transcriptChars: finalTranscript.length,
-	  cacheHit:       cacheHit,
-	  runIndexInBatch: batchIndex,
-	  timeSinceLastRunMin: timeSinceLastRunMin,
+          cacheHit:       cacheHit,
+          runIndexInBatch: batchIndex,
+          timeSinceLastRunMin: timeSinceLastRunMin,
           modelLoadMs,
           launchParams:   llamaRegistryEntry?.launch ?? null,
           arch:           llamaRegistryEntry?.arch ?? null,
           fileSizeGb:     llamaRegistryEntry?.fileSizeGb ?? null,
-          kvQuantK:       llamaRegistryEntry?.launch.kvQuantK ?? null,
-          kvQuantV:       llamaRegistryEntry?.launch.kvQuantV ?? null,
+          kvBytesPerToken: llamaRegistryEntry?.kvBytesPerToken ?? null,
+          kvQuantK:       resolved?.kvQuantK ?? null,
+          kvQuantV:       resolved?.kvQuantV ?? null,
+          minP:           resolved?.sampler.minP ?? null,
+          temp:           resolved?.sampler.temp ?? null,
+          topK:           resolved?.sampler.topK ?? null,
+          maxOutputTokens: resolved?.maxOutputTokens ?? null,
           nExpertsUsed:   llamaRegistryEntry?.launch.nExpertsUsed ?? null,
           nGpuLayers:     llamaRegistryEntry?.launch.nGpuLayers ?? null,
           llamaFresh:     LLAMA_FRESH,
@@ -1469,42 +1519,52 @@ ______________________________________________\n`);
       }
 
       const inputChars = finalTranscript.length;
-      runStats.push({ sessionId: stateKey, slug: segSlug, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg });
-      log.write({ sessionId: stateKey, slug: segSlug, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
+      runStats.push({ sessionId: stateKey, slug: segSlug, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, inputChars, peakUsedGb, avgUsedGb, startingSwap, maxSwap, avgSwap, peakPressure, pressureAvg });
+      log.write({ sessionId: stateKey, slug: segSlug, model: model.id, ttft, genTime, tps, prefillTps, promptTokens, completionTokens, peakUsedGb, avgUsedGb, startingSwap, maxSwap, avgSwap, peakPressure, pressureAvg, ts: new Date().toISOString() });
 
       console.log(`  ✓ ${DRY_RUN ? "Dry-run complete" : NO_UPLOAD ? "Summarized (no upload)" : "Uploaded"}: ${segDisplay}`);
     } catch (err) {
       console.error(`  ✗ Failed: ${segDisplay} — ${err.message}`);
-      batchIndex++;
       runStats.push({ sessionId: stateKey, slug: segSlug, error: err.message });
       log.write({ sessionId: stateKey, slug: segSlug, model: model.id, error: err.message, ts: new Date().toISOString() });
-      if (!DRY_RUN && model.provider !== "anthropic") {
+      if (!DRY_RUN) {
         const partial = sampler ? sampler.stop() : { peakUsedGb: null, avgUsedGb: null };
+        postSessionIdleGb = gpuAllocGb();
+        postSessionSwap = swapUsedGb();
+        cacheHit = classifyCacheHit(perfStore, model.id, { promptTokens, ttft });
+        lastRun = perfStore[model.id]?.runs?.filter(r => !r.failed).at(-1);
+        timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
-        //make sure this matches successful session runs in content
         appendPerfEntry(perfStore, model.id, {
           ts:               new Date().toISOString(),
           session:          stateKey,
+          runTag:           RUN_TAG,
           idleGb,
           preSessionIdleGb: preSessionIdleGb ?? null,
+          postSessionIdleGb: postSessionIdleGb ?? null,
           idleSwap:         idleSwap,
+          postSessionSwap:  postSessionSwap ?? null,
           idleMemPressure:  idleMemPressure,
           peakGb:           partial.peakUsedGb,
           avgGb:            partial.avgUsedGb,
           tps:              null,
           prefillTps:       null,
-          ctxSize:          modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch.ctxSize ?? null,
+          ctxSize:          modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch?.ctxSize ?? null,
           ttft:             ttft ?? null,
           promptTokens:     promptTokens ?? null,
           completionTokens: null,
-          startingSwap:     startingSwap ?? null,
-          maxSwap:          maxSwap ?? null,
-          peakPressure:     peakPressure ?? null,
-          pressureAvg:      pressureAvg ?? null,
+          reasoningTokens:  null,
+          startingSwap:     partial.startingSwap ?? null,
+          maxSwap:          partial.maxSwap ?? null,
+          avgSwap:          partial.avgSwap ?? null,
+          peakPressure:     partial.peakPressure ?? null,
+          pressureAvg:      partial.pressureAvg ?? null,
           runtime:          runtime,
           loadedContextChars:    effectiveMaxChars,
           transcriptChars:  finalTranscript.length,
-          runIndexInBatch:  batchIndex - 1,
+          cacheHit:         cacheHit,
+          runIndexInBatch:  batchIndex,
+          timeSinceLastRunMin: timeSinceLastRunMin,
           noModelGb,
           noModelSwap,
           noModelPressure,
@@ -1512,8 +1572,13 @@ ______________________________________________\n`);
           launchParams:     llamaRegistryEntry?.launch ?? null,
           arch:             llamaRegistryEntry?.arch ?? null,
           fileSizeGb:       llamaRegistryEntry?.fileSizeGb ?? null,
-          kvQuantK:         llamaRegistryEntry?.launch.kvQuantK ?? null,
-          kvQuantV:         llamaRegistryEntry?.launch.kvQuantV ?? null,
+          kvBytesPerToken:  llamaRegistryEntry?.kvBytesPerToken ?? null,
+          kvQuantK:         resolved?.kvQuantK ?? null,
+          kvQuantV:         resolved?.kvQuantV ?? null,
+          minP:             resolved?.sampler.minP ?? null,
+          temp:             resolved?.sampler.temp ?? null,
+          topK:             resolved?.sampler.topK ?? null,
+          maxOutputTokens:  resolved?.maxOutputTokens ?? null,
           nExpertsUsed:     llamaRegistryEntry?.launch.nExpertsUsed ?? null,
           nGpuLayers:       llamaRegistryEntry?.launch.nGpuLayers ?? null,
           llamaFresh:       LLAMA_FRESH,
