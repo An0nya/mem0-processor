@@ -449,7 +449,7 @@ Difficulty: Medium. Data exists; mostly a curve fit + plumbing.
 
 ---
 
-## v9 — Programmatic model launch (in progress)
+## v9 — Programmatic model launch (shipped)
 
 Launch models directly via `llama-server` (the HTTP server binary from the llama.cpp
 project) instead of assuming LM Studio is pre-loaded. Enables clean isolated runs,
@@ -788,6 +788,32 @@ drops dead code paths that inflate the script without contributing.
 - `kvBytesPerToken` passthrough from registry into perf entries (null until
   populated). Slot reserved for the v8 calibration formula without requiring another
   perf-entry schema change later.
+
+### Registry backfill + rescan + auto-populate (shipped with v9.1)
+
+**`backfill-registry-meta.mjs`** (new standalone script): imports model metadata from
+existing llama-server logs into the registry. Scans all `~/.claude/mem0/logs/llama-server-*.log`
+files > 3KB (smallest real loads; port-bind failures are smaller), matches each to a
+registry entry by `path`, and writes missing `nLayer`/`nCtxTrain`/`modelType`/
+`modelParams`/`quantType`/`bpw` fields. Dry-run by default; `--write` to apply.
+
+- Backfill run: 30 of 49 entries updated (19 had no matching log — never run or logs
+  rolled off)
+- Drive rescan: 3 stale entries deleted, 5 paths updated (NVMe → WD-elements), 10 new
+  model stubs added → 56 entries total, all paths verified on disk
+
+**Registry auto-populate on launch**: after every successful `launchLlamaServer` call,
+the 6 metadata fields are written back to the registry entry from the live log. Fires
+unconditionally (overwrites, not fill-missing-only) since the GGUF is ground truth.
+Warns to console if a value differs from what was already in the registry, so manual
+corrections aren't silently stomped.
+
+**`--defrag-thold 0.1` removed** from `buildLlamaFlags`: flag deprecated upstream
+(superseded by KV cache shifting architecture); with per-session cache clearing it has
+no effect anyway.
+
+**`maxOutputTokens: 8192`** override added to three models that hit the 4k output wall:
+`jackrong/qwopus-glm-18b`, `xpressai/qwen3.5-9b-rys`, `qwen/qwen3.6-35b-a3b-iq2`.
 
 ---
 
