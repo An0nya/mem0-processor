@@ -12,11 +12,17 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 24,
+    "nCtxTrain": 262144,
+    "modelType": "0.8B",
+    "modelParams": "752.39 M",
+    "quantType": "Q8_0",
+    "bpw": "8.52"
   },
   "gemma-4-26b-a4b-it-claude-opus-distill-apex": {
     "path": "/Volumes/NVMe External/lmstudio_models/mudler/gemma-4-26B-A4B-it-Claude-Opus-Distill-APEX-GGUF/gemma-4-26B-A4B-Claude-Distill-APEX-I-Mini.gguf",
-    "fileSizeGb": 12.0,
+    "fileSizeGb": 12,
     "format": "gguf",
     "arch": "moe",
     "source": "nvme",
@@ -33,7 +39,13 @@
       "swaFull": true,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 30,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "25.23 B",
+    "quantType": "Q3_K - Medium",
+    "bpw": "4.11"
   },
   "xpressai/qwen3.5-9b-rys-ud-q4_k_xl-gguf/qwen3.5-9b-rys_22-25-ud-q4_k_xl.gguf": {
     "path": "/Volumes/NVMe External/lmstudio_models/XpressAI/Qwen3.5-9B-RYS-UD-Q4_K_XL-GGUF/Qwen3.5-9B-rys_22-25-UD-Q4_K_XL.gguf",
@@ -47,12 +59,19 @@
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
-      "threads": 8
-    }
+      "threads": 8,
+      "maxOutputTokens": 8192
+    },
+    "nLayer": 36,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "9.82 B",
+    "quantType": "Q4_K - Medium",
+    "bpw": "5.31"
   },
   "qwen_qwen3.6-35b-a3b-iq2": {
     "path": "/Volumes/NVMe External/lmstudio_models/bartowski/Qwen_Qwen3.6-35B-A3B-GGUF/Qwen_Qwen3.6-35B-A3B-IQ2_M.gguf",
-    "fileSizeGb": 11.0,
+    "fileSizeGb": 11,
     "format": "gguf",
     "arch": "moe",
     "source": "nvme",
@@ -63,31 +82,44 @@
       "nExpertsUsed": 8,
       "ubatchSize": 64,
       "flashAttn": true,
-      "threads": 8
-    }
+      "threads": 8,
+      "maxOutputTokens": 8192
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "35B.A3B",
+    "modelParams": "34.66 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.78"
   },
-
   "jackrong/qwopus-glm-18b": {
-    "path": "/Volumes/NVME External/lmstudio_models/Jackrong/Qwopus-GLM-18B-Merged-GGUF/Qwopus-GLM-18B-Healed-Q4_K_M.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwopus-GLM-18B-Merged-GGUF/Qwopus-GLM-18B-Healed-Q4_K_M.gguf",
     "fileSizeGb": 9.2,
     "format": "gguf",
     "arch": "dense",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
-      "threads": 8
-    }
+      "threads": 8,
+      "maxOutputTokens": 8192
+    },
+    "nLayer": 64,
+    "nCtxTrain": 262144,
+    "modelType": "27B",
+    "modelParams": "15.87 B",
+    "quantType": "Q4_K - Medium",
+    "bpw": "4.95"
   },
   "bartowski/nemotron-nano-9b-v2": {
-    "path": "/Volumes/NVME External/lmstudio_models/bartowski/nvidia_NVIDIA-Nemotron-Nano-9B-v2-GGUF/nvidia_NVIDIA-Nemotron-Nano-9B-v2-Q4_K_L.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/nvidia_NVIDIA-Nemotron-Nano-9B-v2-GGUF/nvidia_NVIDIA-Nemotron-Nano-9B-v2-Q4_K_L.gguf",
     "fileSizeGb": 6.3,
     "format": "gguf",
     "arch": "dense",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": null,
     "launch": {
       "ctxSize": 32000,
@@ -95,7 +127,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 56,
+    "nCtxTrain": 1048576,
+    "modelType": "9B",
+    "modelParams": "8.89 B",
+    "quantType": "Q4_K - Medium",
+    "bpw": "6.06"
   },
   "mradermacher/qwen3.5-27b-heretic-rys-xl": {
     "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Qwen3.5-27B-heretic-RYS-XL-i1-GGUF/Qwen3.5-27B-heretic-RYS-XL.i1-IQ3_XXS.gguf",
@@ -110,7 +148,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 72,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "29.94 B",
+    "quantType": "IQ3_XXS - 3.0625 bpw",
+    "bpw": "3.31"
   },
   "mradermacher/gemma-4-31b": {
     "path": "/Volumes/NVME External/lmstudio_models/mradermacher/gemma-4-31B-i1-GGUF/gemma-4-31B.i1-IQ3_XXS.gguf",
@@ -141,14 +185,20 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "35B.A3B",
+    "modelParams": "34.66 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.69"
   },
   "squ11z1/gpt-oss-9b": {
-    "path": "/Volumes/NVME External/lmstudio_models/squ11z1/gpt-oss-nano/gpt-oss-9b-q4_k_m.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/squ11z1/gpt-oss-nano/gpt-oss-9b-q4_k_m.gguf",
     "fileSizeGb": 6.4,
     "format": "gguf",
     "arch": "moe",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": null,
     "launch": {
       "ctxSize": 32000,
@@ -172,14 +222,20 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "35B.A3B",
+    "modelParams": "14.14 B",
+    "quantType": "MXFP4 MoE",
+    "bpw": "5.00"
   },
   "unsloth/glm-4.7-flash": {
-    "path": "/Volumes/NVME External/lmstudio_models/unsloth/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-UD-IQ3_XXS.gguf",
-    "fileSizeGb": 12.0,
+    "path": "/Volumes/WD-elements/llm-offload/unsloth/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-UD-IQ3_XXS.gguf",
+    "fileSizeGb": 12,
     "format": "gguf",
     "arch": "moe",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": null,
     "launch": {
       "ctxSize": 32000,
@@ -190,11 +246,11 @@
     }
   },
   "unsloth/ministral-3-14b-instruct": {
-    "path": "/Volumes/NVME External/lmstudio_models/unsloth/Ministral-3-14B-Instruct-2512-GGUF/Ministral-3-14B-Instruct-2512-IQ4_XS.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/unsloth/Ministral-3-14B-Instruct-2512-GGUF/Ministral-3-14B-Instruct-2512-IQ4_XS.gguf",
     "fileSizeGb": 6.9,
     "format": "gguf",
     "arch": "dense",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": null,
     "launch": {
       "ctxSize": 32000,
@@ -202,24 +258,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
-  },
-
-  "biomanticus/ornstein-35b-a3b-rys": {
-    "path": "/Volumes/WD-elements/llm-offload/Biomanticus/Ornstein-3.6-35B-A3B-RYS-gguf/Ornstein-3.6-35B-A3B-RYS-F16_Q2_K.gguf",
-    "fileSizeGb": 12.2,
-    "format": "gguf",
-    "arch": "moe",
-    "source": "wd-elements",
-    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
-    "launch": {
-      "ctxSize": 32000,
-      "nGpuLayers": -1,
-      "nExpertsUsed": 8,
-      "ubatchSize": 64,
-      "flashAttn": true,
-      "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "14B",
+    "modelParams": "13.51 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.40"
   },
   "biomanticus/rys-qwen3.5-27b": {
     "path": "/Volumes/WD-elements/llm-offload/Biomanticus/RYS-Qwen3.5-27B-gguf/RYS-Qwen3.5-27B-Q2_K.gguf",
@@ -234,7 +279,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 72,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "29.94 B",
+    "quantType": "Q2_K - Medium",
+    "bpw": "2.99"
   },
   "jackrong/qwen3.5-27b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-27B.Q2_K.gguf",
@@ -264,7 +315,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "4B",
+    "modelParams": "4.21 B",
+    "quantType": "Q8_0",
+    "bpw": "8.51"
   },
   "jackrong/qwen3.5-9b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf",
@@ -294,7 +351,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 52,
+    "nCtxTrain": 1048576,
+    "modelType": "31B.A3.5B",
+    "modelParams": "20.56 B",
+    "quantType": "MXFP4 MoE",
+    "bpw": "4.71"
   },
   "teichai/glm-4.7-flash-claude": {
     "path": "/Volumes/WD-elements/llm-offload/TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF/glm-4.7-flash-claude-4.5-opus.iq3_xs.gguf",
@@ -309,7 +372,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 47,
+    "nCtxTrain": 202752,
+    "modelType": "30B.A3B",
+    "modelParams": "29.94 B",
+    "quantType": "IQ3_XS - 3.3 bpw",
+    "bpw": "3.30"
   },
   "teichai/nemotron-cascade-14b": {
     "path": "/Volumes/WD-elements/llm-offload/TeichAI/Nemotron-Cascade-14B-Thinking-Claude-4.5-Opus-High-Reasoning-Distill-GGUF/Nemotron-Cascade-14B-Thinking-Claude-4.5-Opus-Distill.iq4_xs.gguf",
@@ -324,7 +393,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 32768,
+    "modelType": "14B",
+    "modelParams": "14.77 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.39"
   },
   "arsovskidev/gemma-4-e4b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/arsovskidev/Gemma-4-E4B-Claude-4.6-Opus-Reasoning-Distilled/gemma-4-E4B-it.Q8_0.gguf",
@@ -339,7 +414,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 42,
+    "nCtxTrain": 131072,
+    "modelType": "E4B",
+    "modelParams": "7.52 B",
+    "quantType": "Q8_0",
+    "bpw": "8.53"
   },
   "bartowski/olmo-3.1-32b-think": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/allenai_Olmo-3.1-32B-Think-GGUF/allenai_Olmo-3.1-32B-Think-IQ3_XXS.gguf",
@@ -354,7 +435,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 64,
+    "nCtxTrain": 65536,
+    "modelType": "32B",
+    "modelParams": "32.23 B",
+    "quantType": "IQ3_XXS - 3.0625 bpw",
+    "bpw": "3.11"
   },
   "bartowski/gemma-4-31b-it": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/google_gemma-4-31B-it-GGUF/google_gemma-4-31B-it-IQ2_XS.gguf",
@@ -369,7 +456,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 60,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "30.70 B",
+    "quantType": "IQ2_XS - 2.3125 bpw",
+    "bpw": "2.99"
   },
   "bartowski/granite-4.0-h-small": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/ibm-granite_granite-4.0-h-small-GGUF/ibm-granite_granite-4.0-h-small-IQ2_M.gguf",
@@ -384,7 +477,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 1048576,
+    "modelType": "32B",
+    "modelParams": "32.21 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.60"
   },
   "bartowski/nemotron-super-49b": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/nvidia_Llama-3_3-Nemotron-Super-49B-v1-GGUF/nvidia_Llama-3_3-Nemotron-Super-49B-v1-IQ2_XXS.gguf",
@@ -444,7 +543,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 27,
+    "nCtxTrain": 1048576,
+    "modelType": "48B.A3B",
+    "modelParams": "35.13 B",
+    "quantType": "Q2_K - Medium",
+    "bpw": "2.95"
   },
   "mradermacher/ministral-14b-instruct-bf16": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Ministral-3-14B-Instruct-2512-BF16-i1-GGUF/Ministral-3-14B-Instruct-2512-BF16.i1-IQ4_XS.gguf",
@@ -459,7 +564,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "14B",
+    "modelParams": "13.51 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.39"
   },
   "mradermacher/ministral-14b-reasoning": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Ministral-3-14B-Reasoning-2512-i1-GGUF/Ministral-3-14B-Reasoning-2512.i1-IQ4_XS.gguf",
@@ -474,11 +585,17 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "14B",
+    "modelParams": "13.51 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.39"
   },
   "mradermacher/mistral-nemo-12b-thinking": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC-GGUF/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC.Q4_K_M.gguf",
-    "fileSizeGb": 7.0,
+    "fileSizeGb": 7,
     "format": "gguf",
     "arch": "dense",
     "source": "wd-elements",
@@ -551,7 +668,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 48,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "20.81 B",
+    "quantType": "Q4_K - Small",
+    "bpw": "4.66"
   },
   "mradermacher/qwen3.5-27b-claude-opus-heretic-v2": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-heretic-v2-i1-GGUF/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-heretic-v2.i1-IQ3_M.gguf",
@@ -597,7 +720,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "35B.A3B",
+    "modelParams": "34.66 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.69"
   },
   "mradermacher/qwopus3.5-9b-v3": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwopus3.5-9B-v3-GGUF/Qwopus3.5-9B-v3.Q4_K_M.gguf",
@@ -628,40 +757,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
-  },
-  "mradermacher/gemma-4-26b-a4b-broken-template": {
-    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-26B-A4B-i1-GGUF-broken-template/gemma-4-26B-A4B.i1-IQ3_M.gguf",
-    "fileSizeGb": 11.5,
-    "format": "gguf",
-    "arch": "moe",
-    "source": "wd-elements",
-    "notes": "broken chat template per folder name — needs custom template before use",
-    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
-    "launch": {
-      "ctxSize": 32000,
-      "nGpuLayers": -1,
-      "nExpertsUsed": 10,
-      "ubatchSize": 64,
-      "flashAttn": true,
-      "threads": 8
-    }
-  },
-  "mradermacher/gemma-4-31b-broken-template": {
-    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-31B-i1-GGUF-broken-template/gemma-4-31B.i1-IQ3_XXS.gguf",
-    "fileSizeGb": 11.2,
-    "format": "gguf",
-    "arch": "dense",
-    "source": "wd-elements",
-    "notes": "broken chat template per folder name — needs custom template before use",
-    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
-    "launch": {
-      "ctxSize": 32000,
-      "nGpuLayers": -1,
-      "ubatchSize": 64,
-      "flashAttn": true,
-      "threads": 8
-    }
+    },
+    "nLayer": 30,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "18.45 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.43"
   },
   "mradermacher/gpt-oss-20b-heretic": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/gpt-oss-20b-heretic-heretic-GGUF/gpt-oss-20b-heretic-heretic.IQ4_XS.gguf",
@@ -676,7 +778,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 24,
+    "nCtxTrain": 131072,
+    "modelType": "20B",
+    "modelParams": "20.91 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.68"
   },
   "mudler/glm-4.7-flash-apex": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/GLM-4.7-Flash-APEX-GGUF/GLM-4.7-Flash-APEX-I-Mini.gguf",
@@ -691,7 +799,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 47,
+    "nCtxTrain": 202752,
+    "modelType": "30B.A3B",
+    "modelParams": "29.94 B",
+    "quantType": "Q3_K - Medium",
+    "bpw": "3.19"
   },
   "mudler/gemopus-4-26b-a4b": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/Gemopus-4-26B-A4B-it-Preview-APEX-GGUF/gemopus-4-26B-A4B-APEX-I-Mini.gguf",
@@ -707,7 +821,13 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 30,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "25.23 B",
+    "quantType": "Q3_K - Medium",
+    "bpw": "4.11"
   },
   "mudler/qwen3-coder-30b-apex": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/Qwen3-Coder-30B-APEX-GGUF/Qwen3-Coder-30B-APEX-Mini.gguf",
@@ -745,12 +865,165 @@
     "format": "gguf",
     "arch": "moe",
     "source": "wd-elements",
-    "notes": "folder says 24B-A3B but filename says 18B — verify before use",
+    "notes": "folder says 24B-A3B but filename says 18B \u2014 verify before use",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
       "nGpuLayers": -1,
       "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "davidau/qwen3.6-27b-neo-code": {
+    "path": "/Volumes/NVME External/lmstudio_models/DavidAU/Qwen3.6-27B-NEO-CODE-Di-IMatrix-MAX-GGUF/Qwen3.6-27B-NEO-CODE-2T-OT-IQ2_M.gguf",
+    "fileSizeGb": 9.8,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "gestaltlabs/ornstein-3.6-27b": {
+    "path": "/Volumes/NVME External/lmstudio_models/GestaltLabs/Ornstein-3.6-27B-GGUF/Ornstein-3.6-27B-IQ3_M.gguf",
+    "fileSizeGb": 12.0,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "mradermacher/qwen3.6-35b-a3b-opus": {
+    "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Qwen3.6-35B-A3B-Opus-Reasoning-i1-GGUF/Qwen3.6-35B-A3B-Opus-Reasoning.i1-IQ2_M.gguf",
+    "fileSizeGb": 11.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "nExpertsUsed": 8
+    }
+  },
+  "mudler/gemma-4-26b-a4b-heretic-apex": {
+    "path": "/Volumes/NVME External/lmstudio_models/mudler/gemma-4-26B-A4B-it-heretic-APEX-GGUF/gemma-4-26B-A4B-heretic-APEX-I-Mini.gguf",
+    "fileSizeGb": 12.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "nExpertsUsed": 10
+    }
+  },
+  "misc/qwen3.5-35b-a3b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled.i1-IQ2_M.gguf",
+    "fileSizeGb": 11.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "nExpertsUsed": 8
+    }
+  },
+  "misc/qwen3.5-9b-glm5.1-distill": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.5-9B-GLM5.1-Distill-v1-Q8_0.gguf",
+    "fileSizeGb": 8.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "misc/qwen3.6-27b-claude-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-Q2_K.gguf",
+    "fileSizeGb": 10.0,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "misc/qwopus-glm-daretie": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/Qwopus-GLM-DareTies-Q8_0.gguf",
+    "fileSizeGb": 8.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "misc/qwopus3.5-27b-v3": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/Qwopus3.5-27B-v3-IQ2_XS.gguf",
+    "fileSizeGb": 11.0,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    }
+  },
+  "misc/gpt-oss-20b-claude-sonnet-bf16": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/gpt-oss-20b-claude-4.5-sonnet-high-reasoning-distill-bf16.gguf",
+    "fileSizeGb": 13.0,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8

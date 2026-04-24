@@ -338,7 +338,7 @@ function buildLlamaFlags(entry) {
     "--min-p", String(sampler.minP),
     "--top-k", String(sampler.topK),
     "--temp", String(sampler.temp),
-    "--defrag-thold", "0.1",
+
     "--prio", "2",
     "--cache-ram", "0", //well this would have been nice to know, we're saving all the prompts in ram hence the swap growth
   ];
@@ -407,6 +407,20 @@ async function launchLlamaServer(modelId) {
     console.log(`  Context: ${entry.launch.ctxSize.toLocaleString()} / ${meta.nCtxTrain?.toLocaleString() ?? "?"} trained`);
   }
   console.log();
+
+  if (meta) {
+    const META_FIELDS = ["nLayer", "nCtxTrain", "modelType", "modelParams", "quantType", "bpw"];
+    let wrote = false;
+    for (const f of META_FIELDS) {
+      if (meta[f] == null) continue;
+      if (entry[f] != null && entry[f] !== meta[f]) {
+        console.warn(`  [registry] ${modelId}.${f}: registry=${entry[f]} log=${meta[f]} — log wins`);
+      }
+      entry[f] = meta[f];
+      wrote = true;
+    }
+    if (wrote) fs.writeFileSync(LLAMA_REGISTRY_PATH, JSON.stringify(registry, null, 2) + "\n");
+  }
 
   return { proc, modelLoadMs, logFile, entry, isEarlyExit: () => earlyExit };
 }
