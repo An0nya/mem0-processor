@@ -74,6 +74,10 @@ import {
   registerSignalHandlers, getModelInfo, launchLlamaServer, parseModelMeta, shutdownLlamaServer,
 } from "./lib/llama.mjs";
 import {
+  summaryPath, stripFrontmatter, loadCachedSummary, buildFrontmatter, saveCachedSummary,
+  SUMMARIZATION_PROMPT, summarizeSession, uploadToMem0, openRunLog,
+} from "./lib/summary.mjs";
+import {
   findSessions, parseSession, extractSessionSlug, extractSessionStartTime,
   extractContentBlocks, TRANSCRIPT_LEGEND, buildTranscript,
   extractAndCacheCompactionSummaries, buildSegments,
@@ -205,55 +209,6 @@ async function selectModel() {
   console.error("✗ No model loaded in LM Studio and no --model flag given. Load a model or pass --model <id>.");
   process.exit(1);
 }
-
-// ─── STATE TRACKING (per-model) ──────────────────────────────────
-
-// ─── SUMMARY CACHE ───────────────────────────────────────────────
-function summaryPath(sessionId, sessionSlug, modelId) {
-  fs.mkdirSync(SUMMARIES_DIR, { recursive: true });
-  const modelSlug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-  const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
-  return path.join(SUMMARIES_DIR, `${prefix}--${modelSlug}.txt`);
-}
-
-function stripFrontmatter(raw) {
-  if (!raw.startsWith("---\n")) return raw;
-  const end = raw.indexOf("\n---\n", 4);
-  if (end === -1) return raw;
-  return raw.slice(end + 5);
-}
-
-function loadCachedSummary(sessionId, sessionSlug, modelId) {
-  const p = summaryPath(sessionId, sessionSlug, modelId);
-  if (fs.existsSync(p)) return stripFrontmatter(fs.readFileSync(p, "utf8"));
-  return null;
-}
-
-function buildFrontmatter(meta) {
-  if (!meta || Object.keys(meta).length === 0) return "";
-  const lines = ["---"];
-  for (const [k, v] of Object.entries(meta)) {
-    if (v === undefined) continue;
-    const val = v === null ? "null" : typeof v === "string" ? JSON.stringify(v) : String(v);
-    lines.push(`${k}: ${val}`);
-  }
-  lines.push("---", "");
-  return lines.join("\n");
-}
-
-function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = false, meta = null) {
-  const p = summaryPath(sessionId, sessionSlug, modelId);
-  if (archive && fs.existsSync(p)) {
-    const modelSlug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-    const archiveDir = path.join(ARCHIVE_DIR, modelSlug);
-    fs.mkdirSync(archiveDir, { recursive: true });
-    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
-    fs.renameSync(p, path.join(archiveDir, `${prefix}--${ts}.txt`));
-  }
-  fs.writeFileSync(p, buildFrontmatter(meta) + summary);
-}
-
 
 // ─── MAIN ────────────────────────────────────────────────────────
 async function main() {
@@ -573,7 +528,7 @@ async function main() {
         let startTime = performance.now();
 
         try {
-          ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
+          ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry, { endpoint: LMSTUDIO_ENDPOINT, modelId: LLAMA_MODEL_ID, stream: STREAM }));
         } catch (fetchErr) {
           const isServerCrash = fetchErr.message.includes("llama-server fetch failed") || /llama-server 5\d\d/.test(fetchErr.message);
           if (isServerCrash && serverRestartAttempts < MAX_SERVER_RESTARTS) {
@@ -590,7 +545,7 @@ async function main() {
             preSessionIdleGb = gpuAllocGb();
             startTime = performance.now();
             sampler = startRamSampler();
-            ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
+            ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry, { endpoint: LMSTUDIO_ENDPOINT, modelId: LLAMA_MODEL_ID, stream: STREAM }));
           } else {
             throw fetchErr;
           }
@@ -673,7 +628,7 @@ ______________________________________________\n`);
         saveState(state, model.id);
       }
 
-      await uploadToMem0(summary, stateKey, primaryProjectDir, model);
+      await uploadToMem0(summary, stateKey, primaryProjectDir, model, { apiKey: CONFIG.mem0.apiKey, userId: CONFIG.mem0.userId, infer: CONFIG.infer, dryRun: DRY_RUN, noUpload: NO_UPLOAD });
 
       if (!DRY_RUN && !NO_UPLOAD) {
         state[stateKey].uploaded   = true;
