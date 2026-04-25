@@ -49,9 +49,13 @@
 //     actual running model instead of silently defaulting to gemma.
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { exec, execSync, spawn } from "child_process";
 import { setGlobalDispatcher, Agent } from 'undici';
+import {
+  MEM0_DIR, PROJECTS_DIR, SUMMARIES_DIR, ARCHIVE_DIR, LOGS_DIR,
+  TRANSCRIPTS_DIR, PERF_STORE_PATH, COMPACTION_SUMMARIES_DIR,
+  LLAMA_RESPONSES_DIR, LLAMA_REGISTRY_PATH,
+} from "./lib/paths.mjs";
 
 
 // ─── MODEL REGISTRY ──────────────────────────────────────────────
@@ -99,22 +103,12 @@ const CONFIG = {
   maxTranscriptChars: 224000,
 };
 
-const PROJECTS_DIR    = path.join(os.homedir(), ".claude", "projects");
-const MEM0_DIR        = path.join(os.homedir(), ".claude", "mem0");
-const SUMMARIES_DIR   = path.join(MEM0_DIR, "summaries");
-const ARCHIVE_DIR     = path.join(SUMMARIES_DIR, "archive");
-const LOGS_DIR        = path.join(MEM0_DIR, "logs");
-const TRANSCRIPTS_DIR = path.join(MEM0_DIR, "transcripts");
-const PERF_STORE_PATH           = path.join(MEM0_DIR, "perf.json");
-const COMPACTION_SUMMARIES_DIR  = path.join(MEM0_DIR, "compaction-summaries");
-const LLAMA_RESPONSES_DIR       = path.join(MEM0_DIR, "llama-responses"); // step 7: disable once timings wired
 
 const DRY_RUN        = process.argv.includes("--dry-run");
 const NO_TOKEN_CAP = process.argv.includes("--no-token-cap");
 const STREAM         = process.argv.includes("--stream");
 const NO_UPLOAD      = process.argv.includes("--no-upload");
 
-const LLAMA_REGISTRY_PATH = new URL("config/models-registry.json", import.meta.url).pathname;
 const LLAMA_PORT = 8080;
 const LLAMA_DEFAULT_MODEL = "qwen3.5-0.8b-unsloth-q8";
 const LLAMA_FLAG_IDX = process.argv.indexOf("--llama");
