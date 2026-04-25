@@ -60,6 +60,10 @@ import {
   gpuBudgetGb, gpuAllocGb, swapUsedGb, memPressureLevel,
   startRamSampler, printSummary,
 } from "./lib/sampler.mjs";
+import {
+  stateFilePath, loadState, saveState,
+  transcriptCachePath, loadCachedTranscript, saveCachedTranscript,
+} from "./lib/state.mjs";
 
 
 // ─── MODEL REGISTRY ──────────────────────────────────────────────
@@ -213,22 +217,6 @@ async function selectModel() {
 }
 
 // ─── STATE TRACKING (per-model) ──────────────────────────────────
-function stateFilePath(modelId) {
-  const slug = modelId.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").toLowerCase();
-  return path.join(MEM0_DIR, "state", `${slug}.json`);
-}
-
-function loadState(modelId) {
-  const p = stateFilePath(modelId);
-  if (!fs.existsSync(p)) return {};
-  return JSON.parse(fs.readFileSync(p, "utf8"));
-}
-
-function saveState(state, modelId) {
-  const p = stateFilePath(modelId);
-  fs.mkdirSync(path.dirname(p), { recursive: true });
-  fs.writeFileSync(p, JSON.stringify(state, null, 2));
-}
 
 // ─── SUMMARY CACHE ───────────────────────────────────────────────
 function summaryPath(sessionId, sessionSlug, modelId) {
@@ -276,22 +264,6 @@ function saveCachedSummary(sessionId, sessionSlug, modelId, summary, archive = f
   fs.writeFileSync(p, buildFrontmatter(meta) + summary);
 }
 
-// ─── TRANSCRIPT CACHE ────────────────────────────────────────────
-function transcriptCachePath(sessionId, sessionSlug) {
-  fs.mkdirSync(TRANSCRIPTS_DIR, { recursive: true });
-  const prefix = sessionSlug ? `${sessionSlug}--${sessionId.slice(0, 8)}` : sessionId;
-  return path.join(TRANSCRIPTS_DIR, `${prefix}.txt`);
-}
-
-function loadCachedTranscript(sessionId, sessionSlug) {
-  const p = transcriptCachePath(sessionId, sessionSlug);
-  if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
-  return null;
-}
-
-function saveCachedTranscript(sessionId, sessionSlug, transcript) {
-  fs.writeFileSync(transcriptCachePath(sessionId, sessionSlug), transcript);
-}
 
 // ─── LM STUDIO v0 API ────────────────────────────────────────────
 async function getModelInfo(modelId) {
