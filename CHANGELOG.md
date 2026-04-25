@@ -991,12 +991,10 @@ branch. Decide at v11 planning time.
 
 ---
 
-## Refactor (floating)
+## Refactor (in progress)
 
-The script is growing (~1500 lines). Refactor is not pinned to a version — trigger is
-whichever comes first: (a) pre-benchmarking/prod split (v11), or (b) the file becomes
-unworkable. Does not belong inside a feature version; splitting the code mid-feature
-would leave both halves incomplete.
+**Status**: module extraction underway. 5 of 8 planned modules shipped (see below).
+Uploader down from ~1869 lines to ~1580. Each module is a separate commit on main.
 
 **Preferred order**: extract stable functions into shared modules first (registry loading,
 llama launch, perf recording, etc.), *then* split prod/benchmark wrappers that import
@@ -1004,6 +1002,41 @@ from them. Extraction is mechanical and low-risk; the split requires deciding th
 interface between wrappers and the core. Extraction first means the split becomes trivial.
 The "split is the refactor" approach — prod wrapper + benchmark wrapper both spawning a
 lean core — is the v11 end state.
+
+### Modules shipped
+
+| Module | Exports | Notes |
+|---|---|---|
+| `lib/paths.mjs` | `MEM0_DIR`, `PROJECTS_DIR`, `SUMMARIES_DIR`, `ARCHIVE_DIR`, `LOGS_DIR`, `TRANSCRIPTS_DIR`, `PERF_STORE_PATH`, `COMPACTION_SUMMARIES_DIR`, `LLAMA_RESPONSES_DIR`, `LLAMA_REGISTRY_PATH` | Pure constants, no deps. Unblocks everything else. |
+| `lib/sampler.mjs` | `gpuBudgetGb`, `gpuAllocGb`, `swapUsedGb`, `memPressureLevel`, `startRamSampler`, `printSummary` | macOS-specific syscall wrappers + run-end stats printer |
+| `lib/state.mjs` | `stateFilePath`, `loadState`, `saveState`, `transcriptCachePath`, `loadCachedTranscript`, `saveCachedTranscript` | Per-model state files + transcript cache I/O |
+| `lib/registry.mjs` | `LLAMA_PORT`, `loadLlamaRegistry`, `resolveLaunch`, `buildLlamaFlags` | Registry read + llama-server flag construction |
+| `lib/perf.mjs` | `loadPerfStore`, `savePerfStore`, `appendPerfEntry`, `classifyCacheHit`, `buildPerfEntry` | Perf store I/O + `buildPerfEntry()` factory (new — collapses the two ~40-field inline objects in success/error paths of main) |
+
+### Modules pending
+
+| Module | Planned exports | Notes |
+|---|---|---|
+| `lib/llama.mjs` | `launchLlamaServer`, `shutdownLlamaServer`, `parseModelMeta`, `getModelInfo` | Needs `_llamaProc` + signal handlers moved in alongside launch logic |
+| `lib/transcript.mjs` | `findSessions`, `parseSession`, `extractSessionSlug`, `extractSessionStartTime`, `extractContentBlocks`, `buildTranscript`, `extractAndCacheCompactionSummaries`, `buildSegments`, `buildProcessUnits`; constants `TRANSCRIPT_LEGEND`, `MERGE_CHAR_THRESHOLD`, `MERGE_GAP_MS` | Largest extraction; self-contained |
+| `lib/summary.mjs` | `summarizeSession`, `uploadToMem0`, `buildFrontmatter`, `stripFrontmatter`, `loadCachedSummary`, `saveCachedSummary`, `openRunLog`; constant `SUMMARIZATION_PROMPT` | Contains bulk of LLM API call logic |
+
+### Stays in uploader.mjs
+
+`selectModel`, `main`, `logInferenceStats` (new local helper — consolidates per-session console.log calls in Phase 3), `MODELS`, `CONFIG`, `LMSTUDIO_ENDPOINT`, `LLAMA_MODE`, `LLAMA_FLAG_IDX`, `LLAMA_MODEL_ID`, `RUN_TAG`, `NO_TOKEN_CAP`, `DRY_RUN`, `NO_UPLOAD`, `STREAM`.
+
+### Deferred / out of scope for this pass
+
+- Variable naming normalization (mix of camelCase styles from different dev eras)
+- ES6+ syntax consistency pass
+- Phase 1 transcript collection wrapped as `collectTranscriptRecords()` — too much parameter threading to be worth it yet
+- sweep.mjs and backfill scripts — untouched intentionally; sweep spawns the monolith as subprocess
+
+### Post-extraction ideas (collected during this pass)
+
+- **ctags index**: after extraction, `ctags -R --languages=JavaScript lib/ *.mjs` gives a machine-readable symbol map; useful for agentic navigation and IDE jump-to-definition across modules
+- **JSDoc on extracted functions**: all extracted functions have JSDoc at the export site; uploader.mjs local functions (`selectModel`, `logInferenceStats`) could use the same treatment in a separate pass
+- **`logInferenceStats()` local helper**: the scattered per-session console.log calls in Phase 3 of main() can be consolidated into one local function call — improves readability without moving anything out of file
 
 ---
 
