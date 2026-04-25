@@ -1,4 +1,4 @@
-// claude-code-mem0-uploader.mjs (v7.3)
+// claude-code-mem0-uploader.mjs
 //
 // Summarizes Claude Code session logs via a local or cloud LLM,
 // then uploads to Mem0 under a flat user_id namespace.
@@ -24,9 +24,6 @@
 //   - Intersected with model's loaded_context_length * 3.5. Lower value wins.
 //   - Transcripts exceeding the cap are skipped (not truncated).
 //   - --no-token-cap bypasses the script ceiling only; model context is still the limit.
-//   - v8 will replace the hard ceiling with a per-model regression fit derived
-//     from perf store data (see TODO near CONTEXT_CAP definition).
-//
 // PERF STORE:
 //   - ~/.claude/mem0/perf.json. One entry per session summarization, append-only.
 //   - Fields: idleGb, preSessionIdleGb, peakGb, avgGb, tps, prefillTps, ttft,
@@ -40,21 +37,11 @@
 //     async timer). Mitigated: process.exit(0) appended to main() call.
 //     Root cause not yet identified — if this script is ever run in a test
 //     harness or daemonized, audit which client is leaving handles open.
-//   - BUG: model default was hardcoded MODELS[0] (gemma) even when a
-//     different model was loaded in LM Studio. listLoadedModels() existed
-//     in v5 but was never called from selectModel(). Fixed: --model-less
-//     runs now query /api/v0/models?state=loaded and use the first result,
-//     matched against MODELS for provider info (defaults to lmstudio if
-//     unknown). State file and summary cache will now be named after the
-//     actual running model instead of silently defaulting to gemma.
 import fs from "fs";
 import path from "path";
-import { exec, execSync, spawn } from "child_process";
 import { setGlobalDispatcher, Agent } from 'undici';
 import {
-  MEM0_DIR, PROJECTS_DIR, SUMMARIES_DIR, ARCHIVE_DIR, LOGS_DIR,
-  TRANSCRIPTS_DIR, PERF_STORE_PATH, COMPACTION_SUMMARIES_DIR,
-  LLAMA_RESPONSES_DIR, LLAMA_REGISTRY_PATH,
+  COMPACTION_SUMMARIES_DIR, LLAMA_REGISTRY_PATH,
 } from "./lib/paths.mjs";
 import {
   gpuBudgetGb, gpuAllocGb, swapUsedGb, memPressureLevel,
@@ -64,24 +51,20 @@ import {
   stateFilePath, loadState, saveState,
   transcriptCachePath, loadCachedTranscript, saveCachedTranscript,
 } from "./lib/state.mjs";
+import { resolveLaunch } from "./lib/registry.mjs";
 import {
-  LLAMA_PORT, loadLlamaRegistry, resolveLaunch, buildLlamaFlags,
-} from "./lib/registry.mjs";
-import {
-  loadPerfStore, savePerfStore, appendPerfEntry, classifyCacheHit, buildPerfEntry,
+  loadPerfStore, appendPerfEntry, classifyCacheHit, buildPerfEntry,
 } from "./lib/perf.mjs";
 import {
-  registerSignalHandlers, getModelInfo, launchLlamaServer, parseModelMeta, shutdownLlamaServer,
+  registerSignalHandlers, getModelInfo, launchLlamaServer, shutdownLlamaServer,
 } from "./lib/llama.mjs";
 import {
-  summaryPath, stripFrontmatter, loadCachedSummary, buildFrontmatter, saveCachedSummary,
-  SUMMARIZATION_PROMPT, summarizeSession, uploadToMem0, openRunLog,
+  loadCachedSummary, saveCachedSummary, summarizeSession, uploadToMem0, openRunLog,
 } from "./lib/summary.mjs";
 import {
   findSessions, parseSession, extractSessionSlug, extractSessionStartTime,
-  extractContentBlocks, TRANSCRIPT_LEGEND, buildTranscript,
-  extractAndCacheCompactionSummaries, buildSegments,
-  MERGE_CHAR_THRESHOLD, MERGE_GAP_MS, buildProcessUnits,
+  extractContentBlocks, buildTranscript,
+  extractAndCacheCompactionSummaries, buildSegments, buildProcessUnits,
 } from "./lib/transcript.mjs";
 
 
@@ -102,7 +85,6 @@ const MODELS = [
 // ─── CONFIG ──────────────────────────────────────────────────────
 const LMSTUDIO_ENDPOINT = "http://localhost:1234";
 
-//This may be a fix for the fetch failed timeout error
 setGlobalDispatcher(new Agent({
   headersTimeout: 30 * 60 * 1000,
   bodyTimeout:    30 * 60 * 1000,
@@ -116,7 +98,6 @@ const CONFIG = {
     apiKey: process.env.MEM0_API_KEY,
     userId: "summary-sessions",
   },
-  //sorry, changed this without mentioning, infer true was useless. I did think we had discussed this already by maybe not
   infer: "false",
   toolResultMaxChars: 1000,
   maxTranscriptChars: 224000,
@@ -164,11 +145,6 @@ const REPROCESS_ID   = (() => {
   return (!next || next.startsWith("--")) ? "all" : next;
 })();
 
-// ─── PERF STORE ──────────────────────────────────────────────────
-// TODO v8: replace CONTEXT_CAP hard ceiling with per-model regression fit
-// (largest transcriptChars where peakPressure + swap stay under threshold).
-// getModelMaxPeak / getModelFailCap removed — superseded by this plan.
-
 // ─── MODEL SELECTION ─────────────────────────────────────────────
 async function selectModel() {
   const flag = process.argv.indexOf("--model");
@@ -184,7 +160,6 @@ async function selectModel() {
     return match;
   }
 
-  // FIX (v6): actually call the loaded-models endpoint instead of hardcoding MODELS[0].
   try {
     const res = await fetch(`${LMSTUDIO_ENDPOINT}/api/v0/models?state=loaded`);
     if (res.ok) {
@@ -226,7 +201,6 @@ async function main() {
   // MODELS entries take precedence (provider overrides etc.); this just fills gaps.
   for (const id of Object.keys(perfStore)) {
     if (!MODELS.find((m) => m.id === id)) {
-      //are we just pushing new models to... a runtime variable?
       MODELS.push({ id, provider: "lmstudio" });
     }
   }
@@ -303,17 +277,9 @@ async function main() {
   console.log(`  Idle Memory Pressure: ${idleMemPressure}%\n`);
 
 
-  // Context ceiling: use LM Studio's reported loaded_context_length (chars = tokens * 3.5).
-  // todo: we will calculate kvcache memory pressure vs context length and restrict max tokens via a regression curve
-  // Previously the perfstore was used to look up past fetch failed errors to the api call, but we
-  // discovered that it was failing due to timeout, not out of memory issues. thus, i extended the 
-  // timeout period and we shouldn't use past errors to restrict token length.
-  // That said, too many tokens on a model with a context limit set above 64k tkns,
-  // can still cause a fail, but that fail will be either the model spontaneously crashing
-  // and lmstudio recording it as unloaded (doesn't distinguish between why it unloaded)
-  // or via a kernel panic system crash in which case nothing is recorded as the script crashes too.
-  // maybe we could set some kind of state where if the script doesn't update it to reflect success, we assume it failed? deadmanswitch style? probably not relevant
-
+  // Context ceiling: intersect model's loaded context with hard 64k-token cap.
+  // Past fetch failures were timeouts not OOM — don't use error history to restrict length.
+  // TODO: replace hard cap with per-model regression fit (perf store has the data).
   const CONTEXT_CAP = 64_000 * 3.5; // ~64k tokens
   const effectiveMaxChars = (() => {
     const fromContext = modelInfo?.loaded_context_length
@@ -516,7 +482,6 @@ async function main() {
     let sampler = startRamSampler();
     let runtime;
     try {
-      //does the ignore cache logic have to be so hard to read?
       const cached = isReprocessUnit ? null : loadCachedSummary(primarySessionId, segSlug, model.id);
       if (cached) {
         summary = cached;
