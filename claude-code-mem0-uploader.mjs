@@ -67,6 +67,9 @@ import {
 import {
   LLAMA_PORT, loadLlamaRegistry, resolveLaunch, buildLlamaFlags,
 } from "./lib/registry.mjs";
+import {
+  loadPerfStore, savePerfStore, appendPerfEntry, classifyCacheHit, buildPerfEntry,
+} from "./lib/perf.mjs";
 
 
 // ─── MODEL REGISTRY ──────────────────────────────────────────────
@@ -157,22 +160,6 @@ const REPROCESS_ID   = (() => {
 })();
 
 // ─── PERF STORE ──────────────────────────────────────────────────
-function loadPerfStore() {
-  if (!fs.existsSync(PERF_STORE_PATH)) return {};
-  return JSON.parse(fs.readFileSync(PERF_STORE_PATH, "utf8"));
-}
-
-function savePerfStore(store) {
-  fs.mkdirSync(path.dirname(PERF_STORE_PATH), { recursive: true });
-  fs.writeFileSync(PERF_STORE_PATH, JSON.stringify(store, null, 2));
-}
-
-function appendPerfEntry(store, modelId, entry) {
-  if (!store[modelId]) store[modelId] = { runs: [] };
-  store[modelId].runs.push(entry);
-  savePerfStore(store);
-}
-
 // TODO v8: replace CONTEXT_CAP hard ceiling with per-model regression fit
 // (largest transcriptChars where peakPressure + swap stay under threshold).
 // getModelMaxPeak / getModelFailCap removed — superseded by this plan.
@@ -966,26 +953,6 @@ function openRunLog(model) {
 
 /// ─── CACHE HIT CLASSIFIER ──────────────────────────────────────────────────
 
-function classifyCacheHit(perfStore, modelId, { promptTokens, ttft }) {
-  if (!promptTokens || !ttft) return 'unknown';
-  const prefillTps = promptTokens / ttft;
-  
-  const recentRuns = (perfStore[modelId]?.runs ?? [])
-    .filter(r => !r.failed && r.promptTokens && r.ts)
-    .slice(-20);
-  
-  const WINDOW_MS = 30 * 60 * 1000;
-  const matchingRun = recentRuns.find(r =>
-    r.promptTokens === promptTokens &&
-    (Date.now() - new Date(r.ts)) < WINDOW_MS
-  );
-
-  if (prefillTps > 2000 && matchingRun) return 'definite';
-  if (prefillTps > 1500 && matchingRun) return 'likely';
-  if (prefillTps > 2000) return 'likely';   // fast but no token count match found
-  if (prefillTps > 800 && matchingRun) return 'possible';
-  return 'none';
-}
 
 
 // ─── COMPACTION EXTRACTION ───────────────────────────────────────
@@ -1527,53 +1494,17 @@ ______________________________________________\n`);
       }
 
       if (!DRY_RUN && peakUsedGb != null) {
-        appendPerfEntry(perfStore, model.id, {
-          ts:             new Date().toISOString(),
-          session:        stateKey,
-          runTag:         RUN_TAG,
-          idleGb,
-          preSessionIdleGb: preSessionIdleGb ?? null,
-          postSessionIdleGb: postSessionIdleGb ?? null,
-          idleSwap:       idleSwap,
-          postSessionSwap: postSessionSwap ?? null,
-          idleMemPressure: idleMemPressure,
-          noModelGb,
-          noModelSwap,
-          noModelPressure,
-          peakGb:         peakUsedGb,
-          avgGb:          avgUsedGb,
-          ttft:           ttft,
-          genTime:        genTime,
-          promptTokens:   promptTokens,
-          loadedContextChars:  effectiveMaxChars,
-          startingSwap:   startingSwap,
-          maxSwap:        maxSwap,
-          avgSwap:        avgSwap ?? null,
-          peakPressure:   peakPressure,
-          pressureAvg:    pressureAvg,
-          tps:            tps ?? null,
-          prefillTps:     prefillTps ?? null,
-          ctxSize:        modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch?.ctxSize ?? null,
-          completionTokens: completionTokens ?? null,
-          reasoningTokens: reasoningTokens ?? null,
-          transcriptChars: finalTranscript.length,
-          cacheHit:       cacheHit,
-          runIndexInBatch: batchIndex,
-          timeSinceLastRunMin: timeSinceLastRunMin,
-          modelLoadMs,
-          launchParams:   llamaRegistryEntry?.launch ?? null,
-          arch:           llamaRegistryEntry?.arch ?? null,
-          fileSizeGb:     llamaRegistryEntry?.fileSizeGb ?? null,
-          kvBytesPerToken: llamaRegistryEntry?.kvBytesPerToken ?? null,
-          kvQuantK:       resolved?.kvQuantK ?? null,
-          kvQuantV:       resolved?.kvQuantV ?? null,
-          minP:           resolved?.sampler.minP ?? null,
-          temp:           resolved?.sampler.temp ?? null,
-          topK:           resolved?.sampler.topK ?? null,
-          maxOutputTokens: resolved?.maxOutputTokens ?? null,
-          nExpertsUsed:   llamaRegistryEntry?.launch.nExpertsUsed ?? null,
-          nGpuLayers:     llamaRegistryEntry?.launch.nGpuLayers ?? null,
-        });
+        appendPerfEntry(perfStore, model.id, buildPerfEntry({
+          stateKey, runTag: RUN_TAG,
+          idleGb, preSessionIdleGb, postSessionIdleGb, idleSwap, postSessionSwap, idleMemPressure,
+          noModelGb, noModelSwap, noModelPressure,
+          peakUsedGb, avgUsedGb, startingSwap, maxSwap, avgSwap, peakPressure, pressureAvg,
+          ttft, genTime, tps, prefillTps,
+          promptTokens, completionTokens, reasoningTokens,
+          transcriptChars: finalTranscript.length, effectiveMaxChars, cacheHit,
+          batchIndex, timeSinceLastRunMin, modelLoadMs,
+          modelInfo, llamaRegistryEntry, resolved,
+        }));
       }
 
       const inputChars = finalTranscript.length;
@@ -1593,55 +1524,20 @@ ______________________________________________\n`);
         lastRun = perfStore[model.id]?.runs?.filter(r => !r.failed).at(-1);
         timeSinceLastRunMin = lastRun ? (Date.now() - new Date(lastRun.ts)) / 60000 : null;
         console.log(`  🧠 Pre Session RAM ${preSessionIdleGb}GB | RAM peak ${partial.peakUsedGb} GB | avg ${partial.avgUsedGb} GB`);
-        appendPerfEntry(perfStore, model.id, {
-          ts:               new Date().toISOString(),
-          session:          stateKey,
-          runTag:           RUN_TAG,
-          idleGb,
-          preSessionIdleGb: preSessionIdleGb ?? null,
-          postSessionIdleGb: postSessionIdleGb ?? null,
-          idleSwap:         idleSwap,
-          postSessionSwap:  postSessionSwap ?? null,
-          idleMemPressure:  idleMemPressure,
-          peakGb:           partial.peakUsedGb,
-          avgGb:            partial.avgUsedGb,
-          tps:              null,
-          prefillTps:       null,
-          ctxSize:          modelInfo?.loaded_context_length ?? llamaRegistryEntry?.launch?.ctxSize ?? null,
-          ttft:             ttft ?? null,
-          promptTokens:     promptTokens ?? null,
-          completionTokens: null,
-          reasoningTokens:  null,
-          startingSwap:     partial.startingSwap ?? null,
-          maxSwap:          partial.maxSwap ?? null,
-          avgSwap:          partial.avgSwap ?? null,
-          peakPressure:     partial.peakPressure ?? null,
-          pressureAvg:      partial.pressureAvg ?? null,
-          runtime:          runtime,
-          loadedContextChars:    effectiveMaxChars,
-          transcriptChars:  finalTranscript.length,
-          cacheHit:         cacheHit,
-          runIndexInBatch:  batchIndex,
-          timeSinceLastRunMin: timeSinceLastRunMin,
-          noModelGb,
-          noModelSwap,
-          noModelPressure,
-          modelLoadMs,
-          launchParams:     llamaRegistryEntry?.launch ?? null,
-          arch:             llamaRegistryEntry?.arch ?? null,
-          fileSizeGb:       llamaRegistryEntry?.fileSizeGb ?? null,
-          kvBytesPerToken:  llamaRegistryEntry?.kvBytesPerToken ?? null,
-          kvQuantK:         resolved?.kvQuantK ?? null,
-          kvQuantV:         resolved?.kvQuantV ?? null,
-          minP:             resolved?.sampler.minP ?? null,
-          temp:             resolved?.sampler.temp ?? null,
-          topK:             resolved?.sampler.topK ?? null,
-          maxOutputTokens:  resolved?.maxOutputTokens ?? null,
-          nExpertsUsed:     llamaRegistryEntry?.launch.nExpertsUsed ?? null,
-          nGpuLayers:       llamaRegistryEntry?.launch.nGpuLayers ?? null,
-          failed:           true,
-          failReason:       err.message,
-        });
+        appendPerfEntry(perfStore, model.id, buildPerfEntry({
+          stateKey, runTag: RUN_TAG,
+          idleGb, preSessionIdleGb, postSessionIdleGb, idleSwap, postSessionSwap, idleMemPressure,
+          noModelGb, noModelSwap, noModelPressure,
+          peakUsedGb: partial.peakUsedGb, avgUsedGb: partial.avgUsedGb,
+          startingSwap: partial.startingSwap, maxSwap: partial.maxSwap,
+          avgSwap: partial.avgSwap, peakPressure: partial.peakPressure, pressureAvg: partial.pressureAvg,
+          ttft, genTime: null, tps: null, prefillTps: null,
+          promptTokens, completionTokens: null, reasoningTokens: null,
+          transcriptChars: finalTranscript.length, effectiveMaxChars, cacheHit,
+          batchIndex, timeSinceLastRunMin, modelLoadMs,
+          modelInfo, llamaRegistryEntry, resolved,
+          failed: true, failReason: err.message, runtime,
+        }));
       }
     } // end try/catch
 
