@@ -904,6 +904,34 @@ Ran against all 56 entries; all tagged.
 
 ---
 
+## v9.3 — Sampler param sweep (planned, deferred)
+
+Extend `sweep.mjs` to iterate over named param variants in addition to (or instead of)
+models — primarily for quality testing across sampler settings.
+
+**Design:**
+- Variants defined in a JSON file: `[{name, sampler: {temp, minP, topK, ...}, launch?: {...}}]`
+- Full grid: models × variants, or variants-only if sweeping params against a fixed model
+- Run tags encode both dimensions: `<tag>-<model-n>-<variant-name>`
+- Uploader gets `--sampler-override <json>` flag merged into the API request params
+- Launch-param variants (kv-cache quant, expert count) follow the same interface but
+  require server restart between variants; stopgap is synthetic registry entries
+
+**Evaluation:** sweep output is raw summaries for human spot-check or batch review in
+Claude. No automated scoring planned.
+
+**Blockers:**
+1. Uploader has no sampler param override path — params are fixed per registry entry;
+   needs a new CLI flag threaded to the API request
+2. Function extraction should come first — threading a new flag through the monolith is
+   fragile; after extraction the API call module is the only thing that needs to change
+3. Launch-param variants additionally require server lifecycle restructuring (per-model →
+   per-variant); lower priority than sampler-only sweep
+
+Difficulty: Medium (sampler-only). Deferred until function extraction (Refactor) lands.
+
+---
+
 ## v10 — Cross-session context injection (planned)
 
 When a session follows a recent one (same CWD, gap < threshold), prepend the previous
@@ -979,9 +1007,6 @@ lean core — is the v11 end state.
 
 - Quality scoring formalization (1–5 per session, stored in perf store alongside runtime
   metrics)
-- Retry-on-fetch-fail with KV cache reuse: resend the same request on fetch failure to
-  match the model's in-progress prefill cache. Lower priority now that timeout is 30 min.
-  Open question: how long to wait before retry.
 - Log file enrichment: match console output density (current log files are sparse vs
   the pretty console output)
 - RAM warning tiers at model load (absorbed from old v8 plan, deprioritized):
@@ -991,23 +1016,17 @@ lean core — is the v11 end state.
   selection). Deferred until CLI flag soup actually hurts usability.
 - Unified log function for console + JSONL (currently rejected — formats differ too much,
   but worth revisiting if log enrichment lands)
-- `getModelFailCap()` final removal once v8 regression cap ships
-- **Inference settings per run**: log temperature, top_p, repeat_penalty, min_p, etc.
-  to the perf store alongside runtime telemetry. Not viable until v9 programmatic launch
-  — sampler params aren't returned in API responses and manual injection per model would
-  be fragile. Defer to v9.
-- **Empirical chars/token ratio**: replace flat 3.5 estimate with a per-model ratio
-  derived from perf store (`transcriptChars / promptTokens` per run). Transcripts with
-  heavy code or tool call JSON tokenize more efficiently than prose, so 3.5 can
-  underestimate token count. Conservative percentile from observed runs would be more
-  accurate than a hardcoded constant. Low priority until prod summarizer splits off.
+- **`getModelFailCap()` cleanup**: the function has been partially superseded by the
+  per-model RAM calculation but isn't fully replaced yet. No longer blocked on v8 — enough
+  perf data exists to close it; just needs design thought on the replacement formula.
+  Floating until someone needs to touch that code path.
 - **Summaries folder organization**: currently all summary `.txt` files are flat in
   `~/.claude/mem0/summaries/`. Would be cleaner to nest by model or by session. Tricky
   for benchmarking (multiple models per session = competing folder schemes). Defer until
   v11 prod/benchmark split clarifies the right layout.
-- **`--reprocess` targeted session still iterates all sessions**: Phase 1 disables the
-  fast-skip for non-target sessions when `REPROCESS_ID` is set (to preserve merge group
-  reconstruction). Phase 3 then iterates all units, skipping non-targets one by one.
-  For large session pools this is wasteful. Fix: filter `processUnits` to reprocess-target
-  only (+ merge partners) before Phase 3 starts; stub non-target records in Phase 2 to
-  avoid transcript-build overhead.
+- **`--reprocess` residual bugs**: main iteration fix shipped (Phase 3 now filters to
+  target only before iterating). Two residuals remain:
+  - Merged sessions are still reprocessed on every targeted `--reprocess` run (known,
+    not a priority)
+  - Console reports "uploading cached summaries" even when no cached summaries exist —
+    likely a log statement firing too eagerly; worth investigating but not a blocker
