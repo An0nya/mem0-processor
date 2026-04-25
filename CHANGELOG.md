@@ -993,8 +993,9 @@ branch. Decide at v11 planning time.
 
 ## Refactor (in progress)
 
-**Status**: module extraction underway. 5 of 8 planned modules shipped (see below).
-Uploader down from ~1869 lines to ~1580. Each module is a separate commit on main.
+**Status**: module extraction complete. All 8 modules shipped. Uploader down from ~1869
+lines to 660. Dead imports and stale comments cleaned up in a follow-on pass.
+Next phase: uploader internals cleanup (see below).
 
 **Preferred order**: extract stable functions into shared modules first (registry loading,
 llama launch, perf recording, etc.), *then* split prod/benchmark wrappers that import
@@ -1011,32 +1012,36 @@ lean core — is the v11 end state.
 | `lib/sampler.mjs` | `gpuBudgetGb`, `gpuAllocGb`, `swapUsedGb`, `memPressureLevel`, `startRamSampler`, `printSummary` | macOS-specific syscall wrappers + run-end stats printer |
 | `lib/state.mjs` | `stateFilePath`, `loadState`, `saveState`, `transcriptCachePath`, `loadCachedTranscript`, `saveCachedTranscript` | Per-model state files + transcript cache I/O |
 | `lib/registry.mjs` | `LLAMA_PORT`, `loadLlamaRegistry`, `resolveLaunch`, `buildLlamaFlags` | Registry read + llama-server flag construction |
-| `lib/perf.mjs` | `loadPerfStore`, `savePerfStore`, `appendPerfEntry`, `classifyCacheHit`, `buildPerfEntry` | Perf store I/O + `buildPerfEntry()` factory (new — collapses the two ~40-field inline objects in success/error paths of main) |
-
-### Modules pending
-
-| Module | Planned exports | Notes |
-|---|---|---|
-| `lib/llama.mjs` | `launchLlamaServer`, `shutdownLlamaServer`, `parseModelMeta`, `getModelInfo` | Needs `_llamaProc` + signal handlers moved in alongside launch logic |
+| `lib/perf.mjs` | `loadPerfStore`, `savePerfStore`, `appendPerfEntry`, `classifyCacheHit`, `buildPerfEntry` | Perf store I/O + `buildPerfEntry()` factory (collapses success/error inline objects) |
+| `lib/llama.mjs` | `registerSignalHandlers`, `launchLlamaServer`, `shutdownLlamaServer`, `parseModelMeta`, `getModelInfo` | `_llamaProc` + signal handlers live here; `getModelInfo` takes endpoint as param |
 | `lib/transcript.mjs` | `findSessions`, `parseSession`, `extractSessionSlug`, `extractSessionStartTime`, `extractContentBlocks`, `buildTranscript`, `extractAndCacheCompactionSummaries`, `buildSegments`, `buildProcessUnits`; constants `TRANSCRIPT_LEGEND`, `MERGE_CHAR_THRESHOLD`, `MERGE_GAP_MS` | Largest extraction; self-contained |
-| `lib/summary.mjs` | `summarizeSession`, `uploadToMem0`, `buildFrontmatter`, `stripFrontmatter`, `loadCachedSummary`, `saveCachedSummary`, `openRunLog`; constant `SUMMARIZATION_PROMPT` | Contains bulk of LLM API call logic |
+| `lib/summary.mjs` | `summarizeSession`, `uploadToMem0`, `buildFrontmatter`, `stripFrontmatter`, `loadCachedSummary`, `saveCachedSummary`, `openRunLog`; constant `SUMMARIZATION_PROMPT` | `summarizeSession` takes `opts` for endpoint/modelId/stream; `uploadToMem0` takes `opts` for apiKey/userId/infer/dryRun/noUpload |
 
-### Stays in uploader.mjs
+### Uploader internals cleanup (next)
 
-`selectModel`, `main`, `logInferenceStats` (new local helper — consolidates per-session console.log calls in Phase 3), `MODELS`, `CONFIG`, `LMSTUDIO_ENDPOINT`, `LLAMA_MODE`, `LLAMA_FLAG_IDX`, `LLAMA_MODEL_ID`, `RUN_TAG`, `NO_TOKEN_CAP`, `DRY_RUN`, `NO_UPLOAD`, `STREAM`.
+Remaining work in `claude-code-mem0-uploader.mjs` itself:
+
+- **`MODELS` array + `--model` flag**: `MODELS` is vestigial. The only active code paths
+  are auto-detect (no flags) and `--llama`. The `--model` flag and `selectModel()`'s
+  fuzzy-match branch are unused in practice. `provider` is always `"lmstudio"` for
+  non-llama models — the field adds nothing. Removal needs to verify sweep.mjs isn't
+  affected (it uses `--models` for its own registry, not this array — probably safe).
+  Defer until confirmed.
+- **`logInferenceStats()` local helper**: the scattered per-session console.log calls
+  in Phase 3 of main() can be consolidated into one local function — improves readability
+  without moving anything out of file.
+- **Phase 1 transcript collection**: could be wrapped as `collectTranscriptRecords()`,
+  but requires significant parameter threading. Defer.
+- Variable naming normalization, ES6+ syntax consistency — low priority.
 
 ### Deferred / out of scope for this pass
 
-- Variable naming normalization (mix of camelCase styles from different dev eras)
-- ES6+ syntax consistency pass
-- Phase 1 transcript collection wrapped as `collectTranscriptRecords()` — too much parameter threading to be worth it yet
 - sweep.mjs and backfill scripts — untouched intentionally; sweep spawns the monolith as subprocess
 
-### Post-extraction ideas (collected during this pass)
+### Post-extraction ideas
 
-- **ctags index**: after extraction, `ctags -R --languages=JavaScript lib/ *.mjs` gives a machine-readable symbol map; useful for agentic navigation and IDE jump-to-definition across modules
-- **JSDoc on extracted functions**: all extracted functions have JSDoc at the export site; uploader.mjs local functions (`selectModel`, `logInferenceStats`) could use the same treatment in a separate pass
-- **`logInferenceStats()` local helper**: the scattered per-session console.log calls in Phase 3 of main() can be consolidated into one local function call — improves readability without moving anything out of file
+- **ctags index**: `ctags -R --languages=JavaScript lib/ *.mjs` gives a machine-readable symbol map; useful for agentic navigation and IDE jump-to-definition across modules
+- **JSDoc on uploader locals**: `selectModel` could use JSDoc treatment in a separate pass
 
 ---
 
