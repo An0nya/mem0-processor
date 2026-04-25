@@ -607,8 +607,12 @@ Lower priority; don't start until 7b + 7c are stable.
 - Preflight check (done): warn if `sysctl iogpu.wired_limit_mb` ≠ 14336; also compares
   `fileSizeGb` from registry against available GPU headroom (budget − noModelGb) and warns
   if the model may not fit. KV cache overhead not included — refine when batch sweep data exists.
-- Log suppression/redirect: pipe llama-server stderr to a file once stable
-- Cooldown monitoring: flag when `preSessionIdleGb` − `idleGb` gap exceeds threshold
+- Log suppression/redirect: N/A — llama-server logs go to their own files and are the
+  metadata source for `backfill-registry-meta.mjs`; suppression would break that pipeline.
+  Log lifecycle management (keep N most recent, delete older) is a minor maintenance task,
+  not a feature; deferred indefinitely.
+- Cooldown monitoring: dropped — no longer relevant. Prompt caching is off; RAM is
+  consistent across runs without a cooldown gap.
 - Restart on crash + retry: detect `earlyExit`, respawn server, retry failed session
   (max-retries TBD; needs backoff to avoid respawn loops)
 - Streaming (SSE): `stream: true` + SSE parser + timings from final chunk. Worth adding
