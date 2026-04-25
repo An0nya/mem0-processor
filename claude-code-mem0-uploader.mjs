@@ -1437,6 +1437,8 @@ async function main() {
   });
   const runStats = [];
   let batchIndex = 0;
+  let serverRestartAttempts = 0;
+  const MAX_SERVER_RESTARTS = 2;
 
   console.log(`  Found ${sessions.length} session(s), model: ${model.id}`);
   console.log(`  infer: ${CONFIG.infer}  │  max transcript: ${effectiveMaxChars} chars\n`);
@@ -1627,7 +1629,29 @@ async function main() {
         preSessionIdleGb = gpuAllocGb();
         let startTime = performance.now();
 
-        ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
+        try {
+          ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
+        } catch (fetchErr) {
+          const isServerCrash = fetchErr.message.includes("llama-server fetch failed") || /llama-server 5\d\d/.test(fetchErr.message);
+          if (isServerCrash && serverRestartAttempts < MAX_SERVER_RESTARTS) {
+            serverRestartAttempts++;
+            console.error(`\n  ✗ llama-server crashed mid-inference. Restart attempt ${serverRestartAttempts}/${MAX_SERVER_RESTARTS}…`);
+            sampler.stop();
+            shutdownLlamaServer(llamaProc);
+            llamaProc = null;
+            await new Promise(r => setTimeout(r, 5000));
+            const relaunched = await launchLlamaServer(LLAMA_MODEL_ID);
+            llamaProc = relaunched.proc;
+            isLlamaEarlyExit = relaunched.isEarlyExit;
+            llamaRegistryEntry = relaunched.entry;
+            preSessionIdleGb = gpuAllocGb();
+            startTime = performance.now();
+            sampler = startRamSampler();
+            ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry));
+          } else {
+            throw fetchErr;
+          }
+        }
         ({ peakUsedGb, avgUsedGb, startingSwap, maxSwap, avgSwap, peakPressure, pressureAvg} = sampler.stop());
 
         runtime = Math.floor(.001 * (performance.now() - startTime));
