@@ -259,7 +259,6 @@ async function main() {
       console.warn(`⚠ Could not fetch model info from LM Studio v0 API — proceeding anyway`);
     }
   }
-  //
   console.log(`
   
       ─────────────────────────────────────────────────────────────────────────────
