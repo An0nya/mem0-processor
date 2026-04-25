@@ -789,6 +789,32 @@ drops dead code paths that inflate the script without contributing.
   populated). Slot reserved for the v8 calibration formula without requiring another
   perf-entry schema change later.
 
+### Sweep harness (sweep.mjs)
+
+**`sweep.mjs`** (new standalone script): orchestrates reprocessing a single session
+through multiple models sequentially, recording perf data for each without uploading to
+mem0. Spawns `claude-code-mem0-uploader.mjs` as a subprocess per model — no shared
+imports, no contamination of main script logic.
+
+```
+node sweep.mjs --session <id> --models <a,b,...> [--tag <name>] [--upload]
+```
+
+- `--session` — session ID or slug; passed as `--reprocess` to the uploader
+- `--models` — comma-separated registry keys
+- `--tag` — run tag prefix; each run gets `<tag>-N` (default: `sweep-<timestamp>`)
+- `--upload` — opt-in to mem0 upload; suppressed by default to avoid polluting the store
+- Validates all models against registry before starting; fails fast on unknown keys
+- Runs sequentially (can't have two llama-server instances), continues on individual
+  failure, prints pass/fail summary with elapsed time per model
+
+Designed around `--reprocess` rather than synthetic prompts — benchmarks against a real
+session to keep results representative. Multi-part sessions reprocess as a unit (minor
+known limitation).
+
+Param grid sweeps (ctxSize × kvQuant × sampler combinations) are a natural v2 of the
+config schema — deferred.
+
 ### Registry backfill + rescan + auto-populate (shipped with v9.1)
 
 **`backfill-registry-meta.mjs`** (new standalone script): imports model metadata from
@@ -814,6 +840,67 @@ no effect anyway.
 
 **`maxOutputTokens: 8192`** override added to three models that hit the 4k output wall:
 `jackrong/qwopus-glm-18b`, `xpressai/qwen3.5-9b-rys`, `qwen/qwen3.6-35b-a3b-iq2`.
+
+---
+
+## v9.2 — Sweep tooling + registry enrichment (shipped)
+
+### `sweep.mjs` — multi-model sweep runner
+
+- New script: reprocesses one session through multiple models sequentially, no
+  upload by default. CLI: `--session <id> --models <selectors> [--tag <name>] [--upload]`.
+- Run tag per model: `<tag>-N`; pass/fail summary at end.
+
+### Model resolver
+
+Replaces exact-key-only model selection with a flexible resolver:
+
+- `@<tag>` — all models carrying that tag (e.g. `@nvme`, `@qwen35`, `@small`)
+- `all` — every model in the registry
+- `nvme` / `wd-elements` — source shortcuts
+- exact registry key — as before
+- substring — resolves if unambiguous; errors and lists all matches if not
+- Multiple selectors union and deduplicate in order
+
+Unknown tag: error with full available tag list. Unknown substring: error. Ambiguous
+substring: error with all matching keys listed.
+
+### `backfill-registry-meta.mjs` — expanded field extraction
+
+Rewrote `parseLogMeta` to extract the full set of ~33 fields from llama-server logs,
+matching the live `parseModelMeta()` in the uploader. Was 6 fields; now covers:
+
+- Architecture: `architecture`, `expertCount`, `expertUsedCount`
+- Attention: `attentionHeads`, `kvHeads`, `gqaRatio`, `hasSSM`
+- Identification: `modelName`, `baseModel`, `sizeLabel`
+- KV cache: `kvCacheSizeMiB`, `kvLayers`, `kvQuantK`, `kvQuantV`
+- Memory: `projectedMemoryMiB`
+- Quantization: `hasImatrix`, `imatrixEntries`, `quantBreakdown`, `highPrecisionRatio`,
+  `ultraLowRatio`, `quantStrategy`
+- Training: `datasets`
+- Positional encoding: `ropeFreqBase`, `specialAttention`
+
+Fill-missing semantics unchanged (never overwrites existing values). Ran against
+existing logs: 23 entries backfilled; 5 UNMATCHED (paths shifted, fill on next live run).
+
+### `backfill-registry-tags.mjs` — auto-derived tag population
+
+New script derives `tags[]` from existing registry fields. Fill-missing: only adds tags
+not already present; never removes (preserves manual tags). Re-runnable as rules change.
+
+Auto-derived tags:
+
+| Source field | Tags produced |
+|---|---|
+| `arch` | `dense` / `moe` |
+| `source` | `nvme` / `wd-elements` |
+| `modelParams` parsed to B | `tiny` (<5B) / `small` (5–15B) / `medium` (15–30B) / `large` (30–50B) / `xlarge` |
+| `quantType` normalized | `q8_0`, `q4_k_m`, `iq4_xs`, `bf16`, `mxfp4`, etc. |
+| key name pattern | `unsloth`, `ud` (unsloth-dynamic), `apex` |
+| `hasImatrix: true` | `imatrix` |
+| `architecture` field | `qwen35`, `gemma4`, `qwen35moe`, `mistral3`, etc. |
+
+Ran against all 56 entries; all tagged.
 
 ---
 
@@ -874,10 +961,17 @@ branch. Decide at v11 planning time.
 
 ## Refactor (floating)
 
-The script is growing. Refactor is not pinned to a version — trigger is whichever comes
-first: (a) pre-benchmarking/prod split (v11), or (b) the file becomes unworkable. Does
-not belong inside a feature version; splitting the code mid-feature would leave both
-halves incomplete.
+The script is growing (~1500 lines). Refactor is not pinned to a version — trigger is
+whichever comes first: (a) pre-benchmarking/prod split (v11), or (b) the file becomes
+unworkable. Does not belong inside a feature version; splitting the code mid-feature
+would leave both halves incomplete.
+
+**Preferred order**: extract stable functions into shared modules first (registry loading,
+llama launch, perf recording, etc.), *then* split prod/benchmark wrappers that import
+from them. Extraction is mechanical and low-risk; the split requires deciding the
+interface between wrappers and the core. Extraction first means the split becomes trivial.
+The "split is the refactor" approach — prod wrapper + benchmark wrapper both spawning a
+lean core — is the v11 end state.
 
 ---
 

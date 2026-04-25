@@ -18,7 +18,96 @@
     "modelType": "0.8B",
     "modelParams": "752.39 M",
     "quantType": "Q8_0",
-    "bpw": "8.52"
+    "bpw": "8.52",
+    "memoryOverhead": {
+      "min": 1.02,
+      "avg": 1.43,
+      "max": 2.59,
+      "ratio": 1.79,
+      "runs": 29
+    },
+    "performance": {
+      "tps": {
+        "min": 39.01,
+        "avg": 57.99,
+        "max": 70.74
+      },
+      "ttft": {
+        "min": 1.77,
+        "avg": 3.02,
+        "max": 20.63
+      },
+      "prefillTps": 1743.15,
+      "runs": 29
+    },
+    "loadOverheads": [
+      1.5,
+      1.49,
+      1.4800000000000002,
+      1.4600000000000002,
+      1.4600000000000002,
+      1.45,
+      1.4100000000000001,
+      1.3900000000000001,
+      1.61,
+      1.8299999999999998,
+      2.5700000000000003,
+      1.59,
+      1.8100000000000003,
+      1.43,
+      1.51,
+      1.5200000000000002,
+      1.1199999999999997,
+      1.1199999999999997,
+      1.1199999999999997,
+      1.1199999999999997,
+      1.1199999999999997,
+      1.1199999999999997,
+      1.13,
+      1.13,
+      1.04,
+      1.1400000000000001,
+      1.1100000000000003,
+      1.06,
+      1.08
+    ],
+    "minRamGb": "1.45",
+    "recommendedRamGb": 2,
+    "offloadedLayers": 24,
+    "totalLayers": 25,
+    "kvLayers": 6,
+    "modelName": "Qwen3.5-0.8B",
+    "baseModel": "Qwen3.5 0.8B",
+    "sizeLabel": "0.8B",
+    "architecture": "qwen35",
+    "attentionHeads": 8,
+    "kvHeads": 2,
+    "gqaRatio": 4,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 199.22,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 1020,
+    "hasImatrix": true,
+    "imatrixEntries": 186,
+    "quantBreakdown": {
+      "f32": 133,
+      "q8_0": 187,
+      "total": 320
+    },
+    "highPrecisionRatio": 1,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "nvme",
+      "q8_0",
+      "qwen35",
+      "tiny",
+      "unsloth"
+    ]
   },
   "gemma-4-26b-a4b-it-claude-opus-distill-apex": {
     "path": "/Volumes/NVMe External/lmstudio_models/mudler/gemma-4-26B-A4B-it-Claude-Opus-Distill-APEX-GGUF/gemma-4-26B-A4B-Claude-Distill-APEX-I-Mini.gguf",
@@ -45,7 +134,118 @@
     "modelType": "?B",
     "modelParams": "25.23 B",
     "quantType": "Q3_K - Medium",
-    "bpw": "4.11"
+    "bpw": "4.11",
+    "memoryOverhead": {
+      "min": 14.08,
+      "avg": 14.1,
+      "max": 14.17,
+      "ratio": 1.18,
+      "runs": 23
+    },
+    "performance": {
+      "tps": {
+        "min": 16.51,
+        "avg": 22.98,
+        "max": 26.05
+      },
+      "ttft": {
+        "min": 12.64,
+        "avg": 64.47,
+        "max": 225.71
+      },
+      "prefillTps": 140.6,
+      "runs": 23
+    },
+    "loadOverheads": [
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.08,
+      14.020000000000001,
+      14.120000000000001
+    ],
+    "minRamGb": "14.78",
+    "recommendedRamGb": 17,
+    "offloadedLayers": 30,
+    "totalLayers": 31,
+    "modelName": "Safetensors",
+    "baseModel": "Gemma 4 26B A4B It",
+    "sizeLabel": "128x2.6B",
+    "architecture": "gemma4",
+    "expertCount": 128,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 175.78,
+    "kvLayers": 5,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 14023,
+    "hasImatrix": true,
+    "imatrixEntries": 295,
+    "quantBreakdown": {
+      "f32": 392,
+      "q5_0": 48,
+      "q5_1": 2,
+      "q3_K": 138,
+      "q4_K": 65,
+      "q5_K": 2,
+      "q6_K": 1,
+      "iq4_nl": 10,
+      "total": 658
+    },
+    "highPrecisionRatio": 0.5957446808510638,
+    "ultraLowRatio": 0,
+    "quantStrategy": "highly_mixed",
+    "datasets": [
+      {
+        "name": "Claude Opus 4.6 Reasoning 887x",
+        "organization": "TeichAI"
+      },
+      {
+        "name": "Claude Sonnet 4.6 Reasoning 1100x",
+        "organization": "TeichAI"
+      },
+      {
+        "name": "Claude 4.5 Opus High Reasoning 250x",
+        "organization": "TeichAI"
+      },
+      {
+        "name": "Claude Opus 4.6 Reasoning 500x",
+        "organization": "TeichAI"
+      },
+      {
+        "name": "Opus 4.6 Reasoning 2100x Formatted",
+        "organization": "Crownelius"
+      }
+    ],
+    "ropeFreqBase": "1000000.000000",
+    "tags": [
+      "apex",
+      "gemma4",
+      "imatrix",
+      "medium",
+      "moe",
+      "nvme",
+      "q3_k_m"
+    ]
   },
   "xpressai/qwen3.5-9b-rys-ud-q4_k_xl-gguf/qwen3.5-9b-rys_22-25-ud-q4_k_xl.gguf": {
     "path": "/Volumes/NVMe External/lmstudio_models/XpressAI/Qwen3.5-9B-RYS-UD-Q4_K_XL-GGUF/Qwen3.5-9B-rys_22-25-UD-Q4_K_XL.gguf",
@@ -67,7 +267,90 @@
     "modelType": "?B",
     "modelParams": "9.82 B",
     "quantType": "Q4_K - Medium",
-    "bpw": "5.31"
+    "bpw": "5.31",
+    "memoryOverhead": {
+      "min": 6.78,
+      "avg": 7.14,
+      "max": 7.55,
+      "ratio": 1.17,
+      "runs": 18
+    },
+    "performance": {
+      "tps": {
+        "min": 11.09,
+        "avg": 12.06,
+        "max": 12.94
+      },
+      "ttft": {
+        "min": 68.14,
+        "avg": 135.42,
+        "max": 221.11
+      },
+      "prefillTps": 144.46,
+      "runs": 18
+    },
+    "loadOverheads": [
+      6.760000000000001,
+      6.760000000000001,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.66,
+      6.75,
+      6.75,
+      6.75
+    ],
+    "minRamGb": "7.02",
+    "recommendedRamGb": 9,
+    "offloadedLayers": 37,
+    "totalLayers": 37,
+    "kvLayers": 9,
+    "modelName": "Qwen3.5-9B",
+    "baseModel": "Qwen3.5 9B",
+    "sizeLabel": "9B",
+    "architecture": "qwen35",
+    "attentionHeads": 16,
+    "kvHeads": 4,
+    "gqaRatio": 4,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 597.66,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 6383,
+    "hasImatrix": true,
+    "imatrixEntries": 248,
+    "quantBreakdown": {
+      "f32": 199,
+      "f16": 54,
+      "q8_0": 27,
+      "q4_K": 90,
+      "q5_K": 73,
+      "q6_K": 27,
+      "iq4_xs": 10,
+      "total": 480
+    },
+    "highPrecisionRatio": 0.5833333333333334,
+    "ultraLowRatio": 0,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "nvme",
+      "q4_k_m",
+      "qwen35",
+      "small",
+      "ud"
+    ]
   },
   "qwen_qwen3.6-35b-a3b-iq2": {
     "path": "/Volumes/NVMe External/lmstudio_models/bartowski/Qwen_Qwen3.6-35B-A3B-GGUF/Qwen_Qwen3.6-35B-A3B-IQ2_M.gguf",
@@ -90,7 +373,47 @@
     "modelType": "35B.A3B",
     "modelParams": "34.66 B",
     "quantType": "IQ2_M - 2.7 bpw",
-    "bpw": "2.78"
+    "bpw": "2.78",
+    "offloadedLayers": 40,
+    "totalLayers": 41,
+    "modelName": "Qwen3.6 35B A3B",
+    "sizeLabel": "35B-A3B",
+    "architecture": "qwen35moe",
+    "expertCount": 256,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 2,
+    "gqaRatio": 8,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 175.78,
+    "kvLayers": 10,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11340,
+    "hasImatrix": true,
+    "imatrixEntries": 510,
+    "quantBreakdown": {
+      "f32": 361,
+      "q8_0": 60,
+      "q4_K": 115,
+      "q5_K": 11,
+      "q6_K": 19,
+      "iq3_s": 10,
+      "iq2_s": 157,
+      "total": 733
+    },
+    "highPrecisionRatio": 0.5743519781718963,
+    "ultraLowRatio": 0.21418826739427013,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "imatrix",
+      "iq2_m",
+      "large",
+      "moe",
+      "nvme",
+      "qwen35moe"
+    ]
   },
   "jackrong/qwopus-glm-18b": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwopus-GLM-18B-Merged-GGUF/Qwopus-GLM-18B-Healed-Q4_K_M.gguf",
@@ -112,7 +435,13 @@
     "modelType": "27B",
     "modelParams": "15.87 B",
     "quantType": "Q4_K - Medium",
-    "bpw": "4.95"
+    "bpw": "4.95",
+    "tags": [
+      "dense",
+      "medium",
+      "q4_k_m",
+      "wd-elements"
+    ]
   },
   "bartowski/nemotron-nano-9b-v2": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/nvidia_NVIDIA-Nemotron-Nano-9B-v2-GGUF/nvidia_NVIDIA-Nemotron-Nano-9B-v2-Q4_K_L.gguf",
@@ -133,7 +462,13 @@
     "modelType": "9B",
     "modelParams": "8.89 B",
     "quantType": "Q4_K - Medium",
-    "bpw": "6.06"
+    "bpw": "6.06",
+    "tags": [
+      "dense",
+      "q4_k_m",
+      "small",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwen3.5-27b-heretic-rys-xl": {
     "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Qwen3.5-27B-heretic-RYS-XL-i1-GGUF/Qwen3.5-27B-heretic-RYS-XL.i1-IQ3_XXS.gguf",
@@ -154,7 +489,82 @@
     "modelType": "?B",
     "modelParams": "29.94 B",
     "quantType": "IQ3_XXS - 3.0625 bpw",
-    "bpw": "3.31"
+    "bpw": "3.31",
+    "memoryOverhead": {
+      "min": 14.19,
+      "avg": 14.28,
+      "max": 14.52,
+      "ratio": 1.23,
+      "runs": 12
+    },
+    "performance": {
+      "tps": {
+        "min": 4.74,
+        "avg": 5.5,
+        "max": 5.81
+      },
+      "ttft": {
+        "min": 37.78,
+        "avg": 154.17,
+        "max": 485.37
+      },
+      "prefillTps": 48.74,
+      "runs": 12
+    },
+    "loadOverheads": [
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.260000000000002,
+      14.27,
+      14.27
+    ],
+    "minRamGb": "14.97",
+    "recommendedRamGb": 18,
+    "offloadedLayers": 73,
+    "totalLayers": 73,
+    "modelName": "Qwen3.5 27B Heretic RYS XL",
+    "baseModel": "Qwen3.5 27B Heretic",
+    "sizeLabel": "27B",
+    "architecture": "qwen35",
+    "attentionHeads": 24,
+    "kvHeads": 4,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 632.81,
+    "kvLayers": 18,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12163,
+    "hasImatrix": true,
+    "imatrixEntries": 558,
+    "quantBreakdown": {
+      "f32": 397,
+      "q4_K": 72,
+      "q5_K": 1,
+      "iq3_xxs": 432,
+      "iq3_s": 19,
+      "iq2_s": 36,
+      "total": 957
+    },
+    "highPrecisionRatio": 0.4148380355276907,
+    "ultraLowRatio": 0.03761755485893417,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "iq3_xxs",
+      "medium",
+      "nvme",
+      "qwen35"
+    ]
   },
   "mradermacher/gemma-4-31b": {
     "path": "/Volumes/NVME External/lmstudio_models/mradermacher/gemma-4-31B-i1-GGUF/gemma-4-31B.i1-IQ3_XXS.gguf",
@@ -169,7 +579,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "nvme"
+    ]
   },
   "rico03/qwen3.6-35b-a3b-opus": {
     "path": "/Volumes/NVME External/lmstudio_models/rico03/Qwen3.6-35B-Opus-Reasoning-GGUF/Qwen3.6-35B-A3B-Opus-IQ2_M.gguf",
@@ -191,7 +605,178 @@
     "modelType": "35B.A3B",
     "modelParams": "34.66 B",
     "quantType": "IQ2_M - 2.7 bpw",
-    "bpw": "2.69"
+    "bpw": "2.69",
+    "memoryOverhead": {
+      "min": 11.73,
+      "avg": 11.89,
+      "max": 12.41,
+      "ratio": 1.09,
+      "runs": 97
+    },
+    "performance": {
+      "tps": {
+        "min": 18.77,
+        "avg": 24.59,
+        "max": 29.76
+      },
+      "ttft": {
+        "min": 11.18,
+        "avg": 92.62,
+        "max": 252.86
+      },
+      "prefillTps": 145.15,
+      "runs": 97
+    },
+    "loadOverheads": [
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      12.32,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75,
+      11.75
+    ],
+    "minRamGb": "12.46",
+    "recommendedRamGb": 15,
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "modelName": "Qwen36 Merged",
+    "baseModel": "Qwen3.6 35B A3B",
+    "sizeLabel": "256x2.6B",
+    "architecture": "qwen35moe",
+    "expertCount": 256,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 2,
+    "gqaRatio": 8,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 175.78,
+    "kvLayers": 10,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11199,
+    "hasImatrix": true,
+    "imatrixEntries": 510,
+    "quantBreakdown": {
+      "f32": 301,
+      "q4_K": 40,
+      "q5_K": 1,
+      "iq3_s": 16,
+      "iq2_s": 375,
+      "total": 733
+    },
+    "highPrecisionRatio": 0.4106412005457026,
+    "ultraLowRatio": 0.5115961800818554,
+    "quantStrategy": "aggressive",
+    "datasets": [
+      {
+        "name": "Opus 4.6 Reasoning 3300x",
+        "organization": "Crownelius"
+      },
+      {
+        "name": "Claude Opus 4.6 Reasoning 887x",
+        "organization": "TeichAI"
+      }
+    ],
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "imatrix",
+      "iq2_m",
+      "large",
+      "moe",
+      "nvme",
+      "qwen35moe"
+    ]
   },
   "squ11z1/gpt-oss-9b": {
     "path": "/Volumes/WD-elements/llm-offload/squ11z1/gpt-oss-nano/gpt-oss-9b-q4_k_m.gguf",
@@ -206,7 +791,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "tvall43/qwen3.5-14b-a3b-claude-opus": {
     "path": "/Volumes/NVME External/lmstudio_models/tvall43/Qwen3.5-14B-A3B-Claude-4.6-Opus-Reasoning-Distilled-reap-gguf/Qwen3.5-14B-A3B-Claude-Opus-Reasoning-Distilled-4.6-MXFP4_MOE.gguf",
@@ -228,7 +817,86 @@
     "modelType": "35B.A3B",
     "modelParams": "14.14 B",
     "quantType": "MXFP4 MoE",
-    "bpw": "5.00"
+    "bpw": "5.00",
+    "memoryOverhead": {
+      "min": 8.02,
+      "avg": 8.71,
+      "max": 9.34,
+      "ratio": 1.06,
+      "runs": 20
+    },
+    "performance": {
+      "tps": {
+        "min": 16.67,
+        "avg": 21.11,
+        "max": 23.3
+      },
+      "ttft": {
+        "min": 8.36,
+        "avg": 46.39,
+        "max": 173.7
+      },
+      "prefillTps": 204.01,
+      "runs": 20
+    },
+    "loadOverheads": [
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.17,
+      9.2,
+      9.2
+    ],
+    "minRamGb": "9.63",
+    "recommendedRamGb": 11,
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 10,
+    "modelName": "Qwen3.5 35B A3B Claude 4.6 Opus Reaso...",
+    "sizeLabel": "A3B",
+    "architecture": "qwen35moe",
+    "expertCount": 93,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 2,
+    "gqaRatio": 8,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 175.78,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 8205,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 301,
+      "q8_0": 312,
+      "mxfp4": 120,
+      "total": 733
+    },
+    "highPrecisionRatio": 0.8362892223738063,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "moe",
+      "mxfp4",
+      "nvme",
+      "qwen35moe",
+      "small"
+    ]
   },
   "unsloth/glm-4.7-flash": {
     "path": "/Volumes/WD-elements/llm-offload/unsloth/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-UD-IQ3_XXS.gguf",
@@ -243,7 +911,12 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "unsloth",
+      "wd-elements"
+    ]
   },
   "unsloth/ministral-3-14b-instruct": {
     "path": "/Volumes/WD-elements/llm-offload/unsloth/Ministral-3-14B-Instruct-2512-GGUF/Ministral-3-14B-Instruct-2512-IQ4_XS.gguf",
@@ -264,7 +937,14 @@
     "modelType": "14B",
     "modelParams": "13.51 B",
     "quantType": "IQ4_XS - 4.25 bpw",
-    "bpw": "4.40"
+    "bpw": "4.40",
+    "tags": [
+      "dense",
+      "iq4_xs",
+      "small",
+      "unsloth",
+      "wd-elements"
+    ]
   },
   "biomanticus/rys-qwen3.5-27b": {
     "path": "/Volumes/WD-elements/llm-offload/Biomanticus/RYS-Qwen3.5-27B-gguf/RYS-Qwen3.5-27B-Q2_K.gguf",
@@ -285,7 +965,87 @@
     "modelType": "?B",
     "modelParams": "29.94 B",
     "quantType": "Q2_K - Medium",
-    "bpw": "2.99"
+    "bpw": "2.99",
+    "memoryOverhead": {
+      "min": 13.17,
+      "avg": 14.38,
+      "max": 17.59,
+      "ratio": 1.38,
+      "runs": 20
+    },
+    "performance": {
+      "tps": {
+        "min": 4.69,
+        "avg": 5.63,
+        "max": 6.17
+      },
+      "ttft": {
+        "min": 39.34,
+        "avg": 247.43,
+        "max": 712.9
+      },
+      "prefillTps": 46.13,
+      "runs": 20
+    },
+    "loadOverheads": [
+      13.31,
+      13.31,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.2,
+      13.420000000000002,
+      13.420000000000002,
+      13.420000000000002,
+      13.2,
+      13.2,
+      13.2
+    ],
+    "minRamGb": "13.90",
+    "recommendedRamGb": 17,
+    "offloadedLayers": 73,
+    "totalLayers": 73,
+    "modelName": "RYS Qwen3.5 27B FP8 XL",
+    "baseModel": "Qwen3.5 27B",
+    "sizeLabel": "27B",
+    "architecture": "qwen35",
+    "attentionHeads": 24,
+    "kvHeads": 4,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 632.81,
+    "kvLayers": 18,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11140,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 397,
+      "q2_K": 451,
+      "q3_K": 90,
+      "q4_K": 18,
+      "q6_K": 1,
+      "total": 957
+    },
+    "highPrecisionRatio": 0.4148380355276907,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "dense",
+      "medium",
+      "q2_k_m",
+      "qwen35",
+      "wd-elements"
+    ]
   },
   "jackrong/qwen3.5-27b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-27B.Q2_K.gguf",
@@ -300,7 +1060,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "jackrong/qwen3.5-4b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-4B.Q8_0.gguf",
@@ -321,7 +1085,32 @@
     "modelType": "4B",
     "modelParams": "4.21 B",
     "quantType": "Q8_0",
-    "bpw": "8.51"
+    "bpw": "8.51",
+    "modelName": "Unsloth_Gguf_W7Fzh74Z",
+    "sizeLabel": "4.2B",
+    "architecture": "qwen35",
+    "attentionHeads": 16,
+    "kvHeads": 4,
+    "gqaRatio": 4,
+    "hasSSM": true,
+    "projectedMemoryMiB": 4907,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 177,
+      "q8_0": 249,
+      "total": 426
+    },
+    "highPrecisionRatio": 1,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "dense",
+      "q8_0",
+      "qwen35",
+      "tiny",
+      "wd-elements"
+    ]
   },
   "jackrong/qwen3.5-9b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf",
@@ -336,7 +1125,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "quietimpostor/nemotron-21b-a3b-reap": {
     "path": "/Volumes/WD-elements/llm-offload/QuietImpostor/Nemotron-3-Nano-REAP-21B-A3B-MXFP4-GGUF/Nemotron-3-Nano-REAP-21B-A3B-MXFP4.gguf",
@@ -357,7 +1150,39 @@
     "modelType": "31B.A3.5B",
     "modelParams": "20.56 B",
     "quantType": "MXFP4 MoE",
-    "bpw": "4.71"
+    "bpw": "4.71",
+    "offloadedLayers": 53,
+    "totalLayers": 53,
+    "modelName": "NemotronPrune",
+    "sizeLabel": "80x2.4B",
+    "architecture": "nemotron_h_moe",
+    "expertCount": 80,
+    "expertUsedCount": 6,
+    "attentionHeads": 32,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 52.73,
+    "kvLayers": 6,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11324,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 237,
+      "q8_0": 118,
+      "mxfp4": 46,
+      "total": 401
+    },
+    "highPrecisionRatio": 0.885286783042394,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000.000000",
+    "tags": [
+      "medium",
+      "moe",
+      "mxfp4",
+      "nemotron_h_moe",
+      "wd-elements"
+    ]
   },
   "teichai/glm-4.7-flash-claude": {
     "path": "/Volumes/WD-elements/llm-offload/TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF/glm-4.7-flash-claude-4.5-opus.iq3_xs.gguf",
@@ -378,7 +1203,47 @@
     "modelType": "30B.A3B",
     "modelParams": "29.94 B",
     "quantType": "IQ3_XS - 3.3 bpw",
-    "bpw": "3.30"
+    "bpw": "3.30",
+    "modelName": "GLM 4.7 Flash Claude Opus 4.5 High Re...",
+    "baseModel": "GLM 4.7 Flash",
+    "sizeLabel": "64x2.6B",
+    "architecture": "deepseek2",
+    "expertCount": 64,
+    "expertUsedCount": 4,
+    "attentionHeads": 20,
+    "kvHeads": 1,
+    "gqaRatio": 20,
+    "hasSSM": false,
+    "projectedMemoryMiB": 12156,
+    "hasImatrix": true,
+    "imatrixEntries": 607,
+    "quantBreakdown": {
+      "f32": 281,
+      "q6_K": 1,
+      "iq3_xxs": 144,
+      "iq4_nl": 47,
+      "iq3_s": 371,
+      "total": 844
+    },
+    "highPrecisionRatio": 0.33293838862559244,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "datasets": [
+      {
+        "name": "Claude 4.5 Opus High Reasoning 250x",
+        "organization": "TeichAI"
+      }
+    ],
+    "ropeFreqBase": "1000000.000000",
+    "specialAttention": "MLA",
+    "tags": [
+      "deepseek2",
+      "imatrix",
+      "iq3_xs",
+      "medium",
+      "moe",
+      "wd-elements"
+    ]
   },
   "teichai/nemotron-cascade-14b": {
     "path": "/Volumes/WD-elements/llm-offload/TeichAI/Nemotron-Cascade-14B-Thinking-Claude-4.5-Opus-High-Reasoning-Distill-GGUF/Nemotron-Cascade-14B-Thinking-Claude-4.5-Opus-Distill.iq4_xs.gguf",
@@ -399,7 +1264,49 @@
     "modelType": "14B",
     "modelParams": "14.77 B",
     "quantType": "IQ4_XS - 4.25 bpw",
-    "bpw": "4.39"
+    "bpw": "4.39",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "modelName": "Nemotron Cascade 14B Thinking Claude ...",
+    "baseModel": "Nemotron Cascade 14B Thinking",
+    "sizeLabel": "14B",
+    "architecture": "qwen3",
+    "attentionHeads": 40,
+    "kvHeads": 8,
+    "gqaRatio": 5,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2656.25,
+    "kvLayers": 40,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 10029,
+    "hasImatrix": true,
+    "imatrixEntries": 280,
+    "quantBreakdown": {
+      "f32": 161,
+      "q5_K": 40,
+      "q6_K": 1,
+      "iq4_xs": 241,
+      "total": 443
+    },
+    "highPrecisionRatio": 0.36343115124153497,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "datasets": [
+      {
+        "name": "Claude 4.5 Opus High Reasoning 250x",
+        "organization": "TeichAI"
+      }
+    ],
+    "ropeFreqBase": "1000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "iq4_xs",
+      "qwen3",
+      "small",
+      "wd-elements"
+    ]
   },
   "arsovskidev/gemma-4-e4b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/arsovskidev/Gemma-4-E4B-Claude-4.6-Opus-Reasoning-Distilled/gemma-4-E4B-it.Q8_0.gguf",
@@ -420,7 +1327,39 @@
     "modelType": "E4B",
     "modelParams": "7.52 B",
     "quantType": "Q8_0",
-    "bpw": "8.53"
+    "bpw": "8.53",
+    "offloadedLayers": 43,
+    "totalLayers": 43,
+    "modelName": "Unsloth_Gguf_9F5Vphym",
+    "sizeLabel": "7.5B",
+    "architecture": "gemma4",
+    "attentionHeads": 8,
+    "kvHeads": 2,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 265.62,
+    "kvLayers": 4,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 7990,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 339,
+      "q8_0": 380,
+      "bf16": 1,
+      "total": 720
+    },
+    "highPrecisionRatio": 0.9986111111111111,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "1000000.000000",
+    "tags": [
+      "dense",
+      "gemma4",
+      "q8_0",
+      "small",
+      "wd-elements"
+    ]
   },
   "bartowski/olmo-3.1-32b-think": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/allenai_Olmo-3.1-32B-Think-GGUF/allenai_Olmo-3.1-32B-Think-IQ3_XXS.gguf",
@@ -441,7 +1380,51 @@
     "modelType": "32B",
     "modelParams": "32.23 B",
     "quantType": "IQ3_XXS - 3.0625 bpw",
-    "bpw": "3.11"
+    "bpw": "3.11",
+    "offloadedLayers": 65,
+    "totalLayers": 65,
+    "modelName": "Olmo 3.1 32B Think",
+    "baseModel": "Olmo 3 32B Think DPO",
+    "sizeLabel": "32B",
+    "architecture": "olmo2",
+    "attentionHeads": 40,
+    "kvHeads": 8,
+    "gqaRatio": 5,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 562.5,
+    "kvLayers": 16,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12576,
+    "hasImatrix": true,
+    "imatrixEntries": 448,
+    "quantBreakdown": {
+      "f32": 257,
+      "q4_K": 64,
+      "q5_K": 1,
+      "iq3_xxs": 192,
+      "iq3_s": 65,
+      "iq2_s": 128,
+      "total": 707
+    },
+    "highPrecisionRatio": 0.3635077793493635,
+    "ultraLowRatio": 0.18104667609618105,
+    "quantStrategy": "highly_mixed",
+    "datasets": [
+      {
+        "name": "Dolci Think RL",
+        "organization": "Allenai"
+      }
+    ],
+    "ropeFreqBase": "500000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "iq3_xxs",
+      "large",
+      "olmo2",
+      "wd-elements"
+    ]
   },
   "bartowski/gemma-4-31b-it": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/google_gemma-4-31B-it-GGUF/google_gemma-4-31B-it-IQ2_XS.gguf",
@@ -462,7 +1445,42 @@
     "modelType": "?B",
     "modelParams": "30.70 B",
     "quantType": "IQ2_XS - 2.3125 bpw",
-    "bpw": "2.99"
+    "bpw": "2.99",
+    "offloadedLayers": 61,
+    "totalLayers": 61,
+    "modelName": "Gemma 4 31B It",
+    "sizeLabel": "31B",
+    "architecture": "gemma4",
+    "attentionHeads": 32,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 703.12,
+    "kvLayers": 10,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12023,
+    "hasImatrix": true,
+    "imatrixEntries": 410,
+    "quantBreakdown": {
+      "f32": 422,
+      "q2_K": 12,
+      "q4_K": 151,
+      "q5_K": 1,
+      "q6_K": 28,
+      "iq2_xs": 219,
+      "total": 833
+    },
+    "highPrecisionRatio": 0.5066026410564226,
+    "ultraLowRatio": 0.26290516206482595,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "1000000.000000",
+    "tags": [
+      "dense",
+      "gemma4",
+      "imatrix",
+      "iq2_xs",
+      "large",
+      "wd-elements"
+    ]
   },
   "bartowski/granite-4.0-h-small": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/ibm-granite_granite-4.0-h-small-GGUF/ibm-granite_granite-4.0-h-small-IQ2_M.gguf",
@@ -483,7 +1501,45 @@
     "modelType": "32B",
     "modelParams": "32.21 B",
     "quantType": "IQ2_M - 2.7 bpw",
-    "bpw": "2.60"
+    "bpw": "2.60",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "modelName": "Granite 4.0 H Small",
+    "sizeLabel": "small",
+    "architecture": "granitehybrid",
+    "expertCount": 72,
+    "expertUsedCount": 10,
+    "attentionHeads": 32,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 140.62,
+    "kvLayers": 4,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 10299,
+    "hasImatrix": true,
+    "imatrixEntries": 368,
+    "quantBreakdown": {
+      "f32": 337,
+      "q4_K": 8,
+      "q5_K": 5,
+      "q6_K": 60,
+      "iq2_xs": 93,
+      "iq3_xxs": 27,
+      "iq2_s": 136,
+      "total": 666
+    },
+    "highPrecisionRatio": 0.506006006006006,
+    "ultraLowRatio": 0.34384384384384387,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000.000000",
+    "tags": [
+      "dense",
+      "granitehybrid",
+      "imatrix",
+      "iq2_m",
+      "large",
+      "wd-elements"
+    ]
   },
   "bartowski/nemotron-super-49b": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/nvidia_Llama-3_3-Nemotron-Super-49B-v1-GGUF/nvidia_Llama-3_3-Nemotron-Super-49B-v1-IQ2_XXS.gguf",
@@ -498,7 +1554,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "lmstudio-community/ministral-14b-reasoning": {
     "path": "/Volumes/WD-elements/llm-offload/lmstudio-community/Ministral-3-14B-Reasoning-2512-GGUF/Ministral-3-14B-Reasoning-2512-Q4_K_M.gguf",
@@ -513,7 +1573,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "mradermacher/hermes-4.3-36b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Hermes-4.3-36B-heretic-i1-GGUF/Hermes-4.3-36B-heretic.i1-IQ2_M.gguf",
@@ -528,7 +1592,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "mradermacher/kimi-linear-35b-a3b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Kimi-Linear-REAP-35B-A3B-Instruct-GGUF/Kimi-Linear-REAP-35B-A3B-Instruct.Q2_K.gguf",
@@ -549,7 +1617,42 @@
     "modelType": "48B.A3B",
     "modelParams": "35.13 B",
     "quantType": "Q2_K - Medium",
-    "bpw": "2.95"
+    "bpw": "2.95",
+    "offloadedLayers": 28,
+    "totalLayers": 28,
+    "modelName": "cerebras/Kimi-Linear-REAP-35B-A3B-Ins...",
+    "baseModel": "Kimi Linear 48B A3B Instruct",
+    "sizeLabel": "35B-A3B",
+    "architecture": "kimi-linear",
+    "expertCount": 180,
+    "expertUsedCount": 8,
+    "attentionHeads": 32,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 69.21,
+    "kvLayers": 7,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12422,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 234,
+      "q2_K": 228,
+      "q3_K": 100,
+      "q6_K": 1,
+      "iq4_nl": 47,
+      "total": 610
+    },
+    "highPrecisionRatio": 0.3836065573770492,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000.000000",
+    "tags": [
+      "kimi-linear",
+      "large",
+      "moe",
+      "q2_k_m",
+      "wd-elements"
+    ]
   },
   "mradermacher/ministral-14b-instruct-bf16": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Ministral-3-14B-Instruct-2512-BF16-i1-GGUF/Ministral-3-14B-Instruct-2512-BF16.i1-IQ4_XS.gguf",
@@ -570,7 +1673,37 @@
     "modelType": "14B",
     "modelParams": "13.51 B",
     "quantType": "IQ4_XS - 4.25 bpw",
-    "bpw": "4.39"
+    "bpw": "4.39",
+    "modelName": "Ministral 3 14B Instruct 2512 BF16",
+    "baseModel": "Ministral 3 14B Base 2512",
+    "sizeLabel": "14B",
+    "architecture": "mistral3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "projectedMemoryMiB": 9409,
+    "hasImatrix": true,
+    "imatrixEntries": 280,
+    "quantBreakdown": {
+      "f32": 81,
+      "q5_K": 40,
+      "q6_K": 1,
+      "iq4_xs": 241,
+      "total": 363
+    },
+    "highPrecisionRatio": 0.2231404958677686,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "iq4_xs",
+      "mistral3",
+      "small",
+      "wd-elements"
+    ]
   },
   "mradermacher/ministral-14b-reasoning": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Ministral-3-14B-Reasoning-2512-i1-GGUF/Ministral-3-14B-Reasoning-2512.i1-IQ4_XS.gguf",
@@ -591,7 +1724,43 @@
     "modelType": "14B",
     "modelParams": "13.51 B",
     "quantType": "IQ4_XS - 4.25 bpw",
-    "bpw": "4.39"
+    "bpw": "4.39",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "modelName": "Ministral 3 14B Reasoning 2512",
+    "baseModel": "Ministral 3 14B Base 2512",
+    "sizeLabel": "14B",
+    "architecture": "mistral3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2656.25,
+    "kvLayers": 40,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 9409,
+    "hasImatrix": true,
+    "imatrixEntries": 280,
+    "quantBreakdown": {
+      "f32": 81,
+      "q5_K": 40,
+      "q6_K": 1,
+      "iq4_xs": 241,
+      "total": 363
+    },
+    "highPrecisionRatio": 0.2231404958677686,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "iq4_xs",
+      "mistral3",
+      "small",
+      "wd-elements"
+    ]
   },
   "mradermacher/mistral-nemo-12b-thinking": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC-GGUF/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC.Q4_K_M.gguf",
@@ -606,7 +1775,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "mradermacher/mistral-small-24b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Small-3.2-24B-Instruct-2506-Text-Only-Heretic-v1.2-i1-GGUF/Mistral-Small-3.2-24B-Instruct-2506-Text-Only-Heretic-v1.2.i1-IQ3_M.gguf",
@@ -621,7 +1794,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "mradermacher/mixtral-8x7b-limerp": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mixtral-8x7B-Instruct-v0.1-LimaRP-ZLoss-i1-GGUF/Mixtral-8x7B-Instruct-v0.1-LimaRP-ZLoss.i1-IQ2_XXS.gguf",
@@ -637,7 +1814,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwen3-coder-40b-a3b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3-Coder-Next-REAP-40B-A3B-i1-GGUF/Qwen3-Coder-Next-REAP-40B-A3B.i1-IQ2_XS.gguf",
@@ -653,7 +1834,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwen3.5-21b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-21B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking-i1-GGUF/Qwen3.5-21B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking.i1-Q4_K_S.gguf",
@@ -674,7 +1859,53 @@
     "modelType": "?B",
     "modelParams": "20.81 B",
     "quantType": "Q4_K - Small",
-    "bpw": "4.66"
+    "bpw": "4.66",
+    "offloadedLayers": 49,
+    "totalLayers": 49,
+    "modelName": "Qwen3.5 21B Claude 4.6 Opus Deckard H...",
+    "baseModel": "Qwen3.5 27B Deckard PKD Heretic Uncen...",
+    "sizeLabel": "21B",
+    "architecture": "qwen35",
+    "attentionHeads": 24,
+    "kvHeads": 4,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 421.88,
+    "kvLayers": 12,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11479,
+    "hasImatrix": true,
+    "imatrixEntries": 372,
+    "quantBreakdown": {
+      "f32": 265,
+      "q4_K": 363,
+      "q5_K": 10,
+      "q6_K": 1,
+      "total": 639
+    },
+    "highPrecisionRatio": 0.41471048513302033,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "datasets": [
+      {
+        "name": "Claude 4.5 Opus High Reasoning 250x",
+        "organization": "TeichAI"
+      },
+      {
+        "name": "PkDick Deckard 5 Datasets",
+        "organization": "DavidAU"
+      }
+    ],
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "dense",
+      "imatrix",
+      "medium",
+      "q4_k_s",
+      "qwen35",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwen3.5-27b-claude-opus-heretic-v2": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-heretic-v2-i1-GGUF/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-heretic-v2.i1-IQ3_M.gguf",
@@ -689,7 +1920,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwen3.5-40b-claude-opus-deckard": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-40B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking-i1-GGUF/Qwen3.5-40B-Claude-4.6-Opus-Deckard-Heretic-Uncensored-Thinking.i1-IQ2_S.gguf",
@@ -704,7 +1939,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwopus-moe-35b-a3b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwopus-MoE-35B-A3B-i1-GGUF/Qwopus-MoE-35B-A3B.i1-IQ2_M.gguf",
@@ -726,7 +1965,106 @@
     "modelType": "35B.A3B",
     "modelParams": "34.66 B",
     "quantType": "IQ2_M - 2.7 bpw",
-    "bpw": "2.69"
+    "bpw": "2.69",
+    "memoryOverhead": {
+      "min": 11.24,
+      "avg": 12.42,
+      "max": 12.84,
+      "ratio": 1.14,
+      "runs": 21
+    },
+    "performance": {
+      "tps": {
+        "min": 19.41,
+        "avg": 26.21,
+        "max": 29.43
+      },
+      "ttft": {
+        "min": 11.14,
+        "avg": 61.79,
+        "max": 237.37
+      },
+      "prefillTps": 148.14,
+      "runs": 21
+    },
+    "loadOverheads": [
+      11.110000000000001,
+      11.110000000000001,
+      11.110000000000001,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999,
+      12.469999999999999
+    ],
+    "minRamGb": "12.89",
+    "recommendedRamGb": 16,
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "modelName": "Qwopus MoE 35B A3B",
+    "baseModel": "Qwen3.5 35B A3B",
+    "sizeLabel": "35B-A3B",
+    "architecture": "qwen35moe",
+    "expertCount": 256,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 2,
+    "gqaRatio": 8,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 175.78,
+    "kvLayers": 10,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11199,
+    "hasImatrix": true,
+    "imatrixEntries": 510,
+    "quantBreakdown": {
+      "f32": 301,
+      "q4_K": 40,
+      "q5_K": 1,
+      "iq3_s": 16,
+      "iq2_s": 375,
+      "total": 733
+    },
+    "highPrecisionRatio": 0.4106412005457026,
+    "ultraLowRatio": 0.5115961800818554,
+    "quantStrategy": "aggressive",
+    "datasets": [
+      {
+        "name": "Opus 4.6 Reasoning 3000x Filtered",
+        "organization": "Nohurry"
+      },
+      {
+        "name": "Qwen3.5 Reasoning 700x",
+        "organization": "Jackrong"
+      },
+      {
+        "name": "Claude Opus 4.6 10000x",
+        "organization": "Roman1111111"
+      }
+    ],
+    "ropeFreqBase": "10000000.000000",
+    "tags": [
+      "imatrix",
+      "iq2_m",
+      "large",
+      "moe",
+      "qwen35moe",
+      "wd-elements"
+    ]
   },
   "mradermacher/qwopus3.5-9b-v3": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwopus3.5-9B-v3-GGUF/Qwopus3.5-9B-v3.Q4_K_M.gguf",
@@ -741,7 +2079,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "mradermacher/gemma-4-19b-a4b-reap": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-19b-a4b-it-REAP-i1-GGUF/gemma-4-19b-a4b-it-REAP.i1-IQ4_XS.gguf",
@@ -763,7 +2105,43 @@
     "modelType": "?B",
     "modelParams": "18.45 B",
     "quantType": "IQ4_XS - 4.25 bpw",
-    "bpw": "4.43"
+    "bpw": "4.43",
+    "offloadedLayers": 31,
+    "totalLayers": 31,
+    "modelName": "Gemma 4 19b A4B It REAP",
+    "baseModel": "Gemma 4 26b A4B It",
+    "sizeLabel": "19B-a4B",
+    "architecture": "gemma4",
+    "expertCount": 90,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 175.78,
+    "kvLayers": 5,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 10055,
+    "hasImatrix": true,
+    "imatrixEntries": 295,
+    "quantBreakdown": {
+      "f32": 392,
+      "q6_K": 1,
+      "iq4_nl": 60,
+      "iq4_xs": 205,
+      "total": 658
+    },
+    "highPrecisionRatio": 0.5957446808510638,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "1000000.000000",
+    "tags": [
+      "gemma4",
+      "imatrix",
+      "iq4_xs",
+      "medium",
+      "moe",
+      "wd-elements"
+    ]
   },
   "mradermacher/gpt-oss-20b-heretic": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/gpt-oss-20b-heretic-heretic-GGUF/gpt-oss-20b-heretic-heretic.IQ4_XS.gguf",
@@ -784,7 +2162,43 @@
     "modelType": "20B",
     "modelParams": "20.91 B",
     "quantType": "IQ4_XS - 4.25 bpw",
-    "bpw": "4.68"
+    "bpw": "4.68",
+    "offloadedLayers": 25,
+    "totalLayers": 25,
+    "modelName": "Gpt Oss 20b Heretic Heretic",
+    "sizeLabel": "20B",
+    "architecture": "gpt-oss",
+    "expertCount": 32,
+    "expertUsedCount": 4,
+    "attentionHeads": 64,
+    "kvHeads": 8,
+    "gqaRatio": 8,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 210.94,
+    "kvLayers": 12,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11617,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 289,
+      "q5_1": 27,
+      "q8_0": 1,
+      "iq4_nl": 118,
+      "iq4_xs": 24,
+      "total": 459
+    },
+    "highPrecisionRatio": 0.6318082788671024,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "150000.000000",
+    "tags": [
+      "gpt-oss",
+      "iq4_xs",
+      "medium",
+      "moe",
+      "wd-elements"
+    ]
   },
   "mudler/glm-4.7-flash-apex": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/GLM-4.7-Flash-APEX-GGUF/GLM-4.7-Flash-APEX-I-Mini.gguf",
@@ -805,7 +2219,83 @@
     "modelType": "30B.A3B",
     "modelParams": "29.94 B",
     "quantType": "Q3_K - Medium",
-    "bpw": "3.19"
+    "bpw": "3.19",
+    "memoryOverhead": {
+      "min": 12.81,
+      "avg": 12.86,
+      "max": 12.9,
+      "ratio": 1.16,
+      "runs": 7
+    },
+    "performance": {
+      "tps": {
+        "min": 4.9,
+        "avg": 10.77,
+        "max": 17.41
+      },
+      "ttft": {
+        "min": 15.86,
+        "avg": 119.32,
+        "max": 386.93
+      },
+      "prefillTps": 89.32,
+      "runs": 7
+    },
+    "loadOverheads": [
+      12.75,
+      12.75,
+      12.75,
+      12.75,
+      12.8,
+      12.8,
+      12.8
+    ],
+    "minRamGb": "13.41",
+    "recommendedRamGb": 16,
+    "offloadedLayers": 48,
+    "totalLayers": 48,
+    "modelName": "Glm-4.7-Flash",
+    "baseModel": "GLM 4.7 Flash",
+    "sizeLabel": "64x2.6B",
+    "architecture": "deepseek2",
+    "expertCount": 64,
+    "expertUsedCount": 4,
+    "attentionHeads": 20,
+    "kvHeads": 1,
+    "gqaRatio": 20,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 464.72,
+    "kvLayers": 47,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11763,
+    "hasImatrix": true,
+    "imatrixEntries": 607,
+    "quantBreakdown": {
+      "f32": 281,
+      "q4_0": 41,
+      "q5_0": 6,
+      "q3_K": 205,
+      "q4_K": 200,
+      "q5_K": 29,
+      "q6_K": 1,
+      "iq2_s": 81,
+      "total": 844
+    },
+    "highPrecisionRatio": 0.33293838862559244,
+    "ultraLowRatio": 0.09597156398104266,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "1000000.000000",
+    "specialAttention": "MLA",
+    "tags": [
+      "apex",
+      "deepseek2",
+      "imatrix",
+      "medium",
+      "moe",
+      "q3_k_m",
+      "wd-elements"
+    ]
   },
   "mudler/gemopus-4-26b-a4b": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/Gemopus-4-26B-A4B-it-Preview-APEX-GGUF/gemopus-4-26B-A4B-APEX-I-Mini.gguf",
@@ -827,7 +2317,47 @@
     "modelType": "?B",
     "modelParams": "25.23 B",
     "quantType": "Q3_K - Medium",
-    "bpw": "4.11"
+    "bpw": "4.11",
+    "offloadedLayers": 31,
+    "totalLayers": 31,
+    "modelName": "Safetensors",
+    "baseModel": "Gemma 4 26B A4B It",
+    "sizeLabel": "128x2.6B",
+    "architecture": "gemma4",
+    "expertCount": 128,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 175.78,
+    "kvLayers": 5,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12680,
+    "hasImatrix": true,
+    "imatrixEntries": 295,
+    "quantBreakdown": {
+      "f32": 392,
+      "q5_0": 48,
+      "q5_1": 2,
+      "q3_K": 138,
+      "q4_K": 65,
+      "q5_K": 2,
+      "q6_K": 1,
+      "iq4_nl": 10,
+      "total": 658
+    },
+    "highPrecisionRatio": 0.5957446808510638,
+    "ultraLowRatio": 0,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "1000000.000000",
+    "tags": [
+      "gemma4",
+      "imatrix",
+      "medium",
+      "moe",
+      "q3_k_m",
+      "wd-elements"
+    ]
   },
   "mudler/qwen3-coder-30b-apex": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/Qwen3-Coder-30B-APEX-GGUF/Qwen3-Coder-30B-APEX-Mini.gguf",
@@ -842,7 +2372,12 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "apex",
+      "moe",
+      "wd-elements"
+    ]
   },
   "nvidia/nemotron-nano-4b": {
     "path": "/Volumes/WD-elements/llm-offload/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
@@ -857,7 +2392,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "sandeshrajx/qwen3.5-24b-a3b-reap": {
     "path": "/Volumes/WD-elements/llm-offload/sandeshrajx/Qwen3.5-24B-A3B-REAP-0.32-GGUF/Qwen3.5-18B-REAP-A3B-Coding-IQ4_K_M.gguf",
@@ -865,7 +2404,7 @@
     "format": "gguf",
     "arch": "moe",
     "source": "wd-elements",
-    "notes": "folder says 24B-A3B but filename says 18B \u2014 verify before use",
+    "notes": "folder says 24B-A3B but filename says 18B — verify before use",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
@@ -874,7 +2413,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "davidau/qwen3.6-27b-neo-code": {
     "path": "/Volumes/NVME External/lmstudio_models/DavidAU/Qwen3.6-27B-NEO-CODE-Di-IMatrix-MAX-GGUF/Qwen3.6-27B-NEO-CODE-2T-OT-IQ2_M.gguf",
@@ -889,11 +2432,15 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "nvme"
+    ]
   },
   "gestaltlabs/ornstein-3.6-27b": {
     "path": "/Volumes/NVME External/lmstudio_models/GestaltLabs/Ornstein-3.6-27B-GGUF/Ornstein-3.6-27B-IQ3_M.gguf",
-    "fileSizeGb": 12.0,
+    "fileSizeGb": 12,
     "format": "gguf",
     "arch": "dense",
     "source": "nvme",
@@ -904,11 +2451,15 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "nvme"
+    ]
   },
   "mradermacher/qwen3.6-35b-a3b-opus": {
     "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Qwen3.6-35B-A3B-Opus-Reasoning-i1-GGUF/Qwen3.6-35B-A3B-Opus-Reasoning.i1-IQ2_M.gguf",
-    "fileSizeGb": 11.0,
+    "fileSizeGb": 11,
     "format": "gguf",
     "arch": "moe",
     "source": "nvme",
@@ -920,11 +2471,15 @@
       "flashAttn": true,
       "threads": 8,
       "nExpertsUsed": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "nvme"
+    ]
   },
   "mudler/gemma-4-26b-a4b-heretic-apex": {
     "path": "/Volumes/NVME External/lmstudio_models/mudler/gemma-4-26B-A4B-it-heretic-APEX-GGUF/gemma-4-26B-A4B-heretic-APEX-I-Mini.gguf",
-    "fileSizeGb": 12.0,
+    "fileSizeGb": 12,
     "format": "gguf",
     "arch": "moe",
     "source": "nvme",
@@ -936,11 +2491,16 @@
       "flashAttn": true,
       "threads": 8,
       "nExpertsUsed": 10
-    }
+    },
+    "tags": [
+      "apex",
+      "moe",
+      "nvme"
+    ]
   },
   "misc/qwen3.5-35b-a3b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled.i1-IQ2_M.gguf",
-    "fileSizeGb": 11.0,
+    "fileSizeGb": 11,
     "format": "gguf",
     "arch": "moe",
     "source": "wd-elements",
@@ -952,7 +2512,11 @@
       "flashAttn": true,
       "threads": 8,
       "nExpertsUsed": 8
-    }
+    },
+    "tags": [
+      "moe",
+      "wd-elements"
+    ]
   },
   "misc/qwen3.5-9b-glm5.1-distill": {
     "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.5-9B-GLM5.1-Distill-v1-Q8_0.gguf",
@@ -967,11 +2531,15 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "misc/qwen3.6-27b-claude-opus": {
     "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-Q2_K.gguf",
-    "fileSizeGb": 10.0,
+    "fileSizeGb": 10,
     "format": "gguf",
     "arch": "dense",
     "source": "wd-elements",
@@ -982,7 +2550,11 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "misc/qwopus-glm-daretie": {
     "path": "/Volumes/WD-elements/llm-offload/misc/Qwopus-GLM-DareTies-Q8_0.gguf",
@@ -997,11 +2569,15 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "misc/qwopus3.5-27b-v3": {
     "path": "/Volumes/WD-elements/llm-offload/misc/Qwopus3.5-27B-v3-IQ2_XS.gguf",
-    "fileSizeGb": 11.0,
+    "fileSizeGb": 11,
     "format": "gguf",
     "arch": "dense",
     "source": "wd-elements",
@@ -1012,11 +2588,15 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "tags": [
+      "dense",
+      "wd-elements"
+    ]
   },
   "misc/gpt-oss-20b-claude-sonnet-bf16": {
     "path": "/Volumes/WD-elements/llm-offload/misc/gpt-oss-20b-claude-4.5-sonnet-high-reasoning-distill-bf16.gguf",
-    "fileSizeGb": 13.0,
+    "fileSizeGb": 13,
     "format": "gguf",
     "arch": "moe",
     "source": "wd-elements",
@@ -1027,6 +2607,41 @@
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8
-    }
+    },
+    "nLayer": 24,
+    "nCtxTrain": 131072,
+    "modelType": "20B",
+    "modelParams": "20.91 B",
+    "quantType": "BF16",
+    "bpw": "5.27",
+    "modelName": "Gpt Oss 20b Claude 4.5 Sonnet High Re...",
+    "baseModel": "Gpt Oss 20b Unsloth Bnb 4bit",
+    "sizeLabel": "20B",
+    "architecture": "gpt-oss",
+    "expertCount": 32,
+    "expertUsedCount": 4,
+    "attentionHeads": 64,
+    "kvHeads": 8,
+    "gqaRatio": 8,
+    "hasSSM": false,
+    "projectedMemoryMiB": 12299,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 289,
+      "bf16": 98,
+      "mxfp4": 72,
+      "total": 459
+    },
+    "highPrecisionRatio": 0.6296296296296297,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "150000.000000",
+    "tags": [
+      "bf16",
+      "gpt-oss",
+      "medium",
+      "moe",
+      "wd-elements"
+    ]
   }
 }

@@ -409,7 +409,36 @@ async function launchLlamaServer(modelId) {
   console.log();
 
   if (meta) {
-    const META_FIELDS = ["nLayer", "nCtxTrain", "modelType", "modelParams", "quantType", "bpw"];
+    const META_FIELDS = [
+      // Existing fields (backward compatible)
+      "nLayer", "nCtxTrain", "modelType", "modelParams", "quantType", "bpw",
+      "offloadedLayers", "totalLayers", "kvLayers",
+      
+      // Identification
+      "modelName", "baseModel", "sizeLabel",
+      
+      // Architecture
+      "architecture", "expertCount", "expertUsedCount",
+      
+      // Attention
+      "attentionHeads", "kvHeads", "gqaRatio", "hasSSM",
+      
+      // KV Cache
+      "kvCacheSizeMiB", "kvQuantK", "kvQuantV",
+      
+      // Memory
+      "projectedMemoryMiB",
+      
+      // Quantization
+      "hasImatrix", "imatrixEntries", "quantBreakdown", 
+      "highPrecisionRatio", "ultraLowRatio", "quantStrategy",
+      
+      // Datasets
+      "datasets",
+      
+      // Other
+      "ropeFreqBase", "specialAttention"
+    ];
     let wrote = false;
     for (const f of META_FIELDS) {
       if (meta[f] == null) continue;
@@ -428,28 +457,183 @@ async function launchLlamaServer(modelId) {
 function parseModelMeta(logFile) {
   let text;
   try { text = fs.readFileSync(logFile, "utf8"); } catch { return null; }
+  
   const find = (re) => text.match(re)?.[1]?.trim() ?? null;
-  const nLayer     = find(/^print_info: n_layer\s+=\s+(\d+)/m);
-  const nCtxTrain  = find(/^print_info: n_ctx_train\s+=\s+(\d+)/m);
+  const findInt = (re) => { const m = find(re); return m ? parseInt(m) : null; };
+  
+  // ─── EXISTING FIELDS ────────────────────────────────────────────────
+  const nLayer     = findInt(/^print_info: n_layer\s+=\s+(\d+)/m);
+  const nCtxTrain  = findInt(/^print_info: n_ctx_train\s+=\s+(\d+)/m);
   const modelType  = find(/^print_info: model type\s+=\s+(.+)/m);
   const modelParams = find(/^print_info: model params\s+=\s+(.+)/m);
   const quantType  = find(/^print_info: file type\s+=\s+(.+)/m);
   const bpw        = find(/^print_info: file size\s+=.+\((.+) BPW\)/m);
+  
   const offloadMatch = text.match(/^load_tensors: offloaded (\d+)\/(\d+) layers to GPU/m);
-  const kvMatch    = text.match(/^llama_kv_cache: size =\s+([\d.]+) MiB \(.*?(\d+) layers.*K \((\w+)\).*V \((\w+)\)/m);
+  const kvMatch = text.match(/^llama_kv_cache: size =\s+([\d.]+) MiB \(.*?(\d+) layers.*K \((\w+)\).*V \((\w+)\)/m);
+  
+  // ─── IDENTIFICATION ─────────────────────────────────────────────────
+  const modelName  = find(/general\.name str\s+=\s+(.+)/m);
+  const baseModel  = find(/general\.base_model\.0\.name str\s+=\s+(.+)/m);
+  const sizeLabel  = find(/general\.size_label str\s+=\s+(.+)/m);
+  
+  // ─── ARCHITECTURE ───────────────────────────────────────────────────
+  const architecture = find(/general\.architecture str\s+=\s+(\S+)/m);
+  
+  const expertMatch = text.match(/(\w+)\.expert_count u32\s+=\s+(\d+)/m);
+  const expertUsedMatch = text.match(/(\w+)\.expert_used_count u32\s+=\s+(\d+)/m);
+  const expertCount = expertMatch ? parseInt(expertMatch[2]) : null;
+  const expertUsedCount = expertUsedMatch ? parseInt(expertUsedMatch[2]) : null;
+  
+  // ─── ATTENTION MECHANICS ────────────────────────────────────────────
+  const attentionHeads = findInt(/attention\.head_count u32\s+=\s+(\d+)/m);
+  const kvHeads = findInt(/attention\.head_count_kv u32\s+=\s+(\d+)/m);
+  const gqaRatio = (attentionHeads && kvHeads) ? attentionHeads / kvHeads : null;
+  
+  // SSM detection (for hybrid models like Qwen MoE)
+  const hasSSM = text.includes('ssm.conv_kernel');
+  
+  // ─── KV CACHE ───────────────────────────────────────────────────────
+  const kvCacheSizeMiB = kvMatch ? parseFloat(kvMatch[1]) : null;
+  const kvQuantK = kvMatch?.[3] ?? null;
+  const kvQuantV = kvMatch?.[4] ?? null;
+  
+  // ─── MEMORY PROJECTION ──────────────────────────────────────────────
+  const projectedMatch = text.match(/projected to use (\d+) MiB of device memory/m);
+  const projectedMemoryMiB = projectedMatch ? parseInt(projectedMatch[1]) : null;
+  
+  // ─── QUANTIZATION DETAILS ───────────────────────────────────────────
+  const hasImatrix = text.includes('quantize.imatrix.file');
+  const imatrixEntries = hasImatrix ? findInt(/quantize\.imatrix\.entries_count u32\s+=\s+(\d+)/m) : null;
+  
+  // Parse tensor type breakdown
+  const tensorLines = text.match(/llama_model_loader: - type\s+(\w+):\s+(\d+) tensors/g);
+  let quantBreakdown = null;
+  let highPrecisionRatio = null;
+  let ultraLowRatio = null;
+  let quantStrategy = null;
+  
+  if (tensorLines) {
+    const breakdown = {};
+    let total = 0;
+    
+    for (const line of tensorLines) {
+      const match = line.match(/type\s+(\w+):\s+(\d+)/);
+      if (match) {
+        const [, type, count] = match;
+        breakdown[type] = parseInt(count);
+        total += parseInt(count);
+      }
+    }
+    
+    if (total > 0) {
+      quantBreakdown = { ...breakdown, total };
+      
+      // Calculate quality metrics
+      const highPrec = (breakdown.f32 || 0) + (breakdown.f16 || 0) + (breakdown.q8_0 || 0);
+      const ultraLow = Object.keys(breakdown)
+        .filter(k => k.startsWith('iq2'))
+        .reduce((sum, k) => sum + breakdown[k], 0);
+      
+      highPrecisionRatio = highPrec / total;
+      ultraLowRatio = ultraLow / total;
+      
+      // Classify strategy
+      const numTypes = Object.keys(breakdown).length;
+      if (numTypes === 1) {
+        quantStrategy = "uniform";
+      } else if (numTypes >= 6) {
+        quantStrategy = "highly_mixed";
+      } else if (highPrecisionRatio > 0.5) {
+        quantStrategy = "conservative";
+      } else {
+        quantStrategy = "aggressive";
+      }
+    }
+  }
+  
+  // ─── TRAINING DATASETS ──────────────────────────────────────────────
+  const datasetCountMatch = text.match(/general\.dataset\.count u32\s+=\s+(\d+)/);
+  let datasets = null;
+  
+  if (datasetCountMatch) {
+    const count = parseInt(datasetCountMatch[1]);
+    datasets = [];
+    
+    for (let i = 0; i < count; i++) {
+      const nameRe = new RegExp(`general\\.dataset\\.${i}\\.name str\\s+=\\s+(.+)`, 'm');
+      const orgRe = new RegExp(`general\\.dataset\\.${i}\\.organization str\\s+=\\s+(.+)`, 'm');
+      
+      const name = text.match(nameRe)?.[1]?.trim() || null;
+      const org = text.match(orgRe)?.[1]?.trim() || null;
+      
+      if (name) {
+        datasets.push({ name, organization: org });
+      }
+    }
+    
+    if (datasets.length === 0) datasets = null;
+  }
+  
+  // ─── POSITIONAL ENCODING ────────────────────────────────────────────
+  const ropeFreqBase = find(/rope\.freq_base f32\s+=\s+([\d.e+-]+)/m);
+  
+  // ─── SPECIAL ATTENTION ──────────────────────────────────────────────
+  const specialAttention = architecture === "deepseek2" ? "MLA" : null;
+  
+  // ─── RETURN ALL FIELDS ──────────────────────────────────────────────
   return {
-    nLayer:          nLayer ? +nLayer : null,
-    nCtxTrain:       nCtxTrain ? +nCtxTrain : null,
+    // Existing fields (backward compatible)
+    nLayer,
+    nCtxTrain,
     modelType,
     modelParams,
     quantType,
     bpw,
-    offloadedLayers: offloadMatch ? +offloadMatch[1] : null,
-    totalLayers:     offloadMatch ? +offloadMatch[2] : null,
-    kvMib:           kvMatch ? +kvMatch[1] : null,
-    kvLayers:        kvMatch ? +kvMatch[2] : null,
-    kvQuantK:        kvMatch?.[3] ?? null,
-    kvQuantV:        kvMatch?.[4] ?? null,
+    offloadedLayers: offloadMatch ? parseInt(offloadMatch[1]) : null,
+    totalLayers: offloadMatch ? parseInt(offloadMatch[2]) : null,
+    
+    // NEW: Identification
+    modelName,
+    baseModel,
+    sizeLabel,
+    
+    // NEW: Architecture
+    architecture,
+    expertCount,
+    expertUsedCount,
+    
+    // NEW: Attention
+    attentionHeads,
+    kvHeads,
+    gqaRatio,
+    hasSSM,
+    
+    // NEW: KV Cache (renamed from kvMib for clarity)
+    kvCacheSizeMiB,
+    kvLayers: kvMatch ? parseInt(kvMatch[2]) : null,
+    kvQuantK,
+    kvQuantV,
+    
+    // NEW: Memory
+    projectedMemoryMiB,
+    
+    // NEW: Quantization details
+    hasImatrix,
+    imatrixEntries,
+    quantBreakdown,
+    highPrecisionRatio,
+    ultraLowRatio,
+    quantStrategy,
+    
+    // NEW: Training datasets
+    datasets,
+    
+    // NEW: Positional encoding
+    ropeFreqBase,
+    
+    // NEW: Special attention mechanisms
+    specialAttention,
   };
 }
 
