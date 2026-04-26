@@ -307,17 +307,40 @@ def load_scores(conn, scorers):
     if not scorers:
         return 0
 
+    # Split into part-aware (SESSION_ID like "abc123-part0") and plain scorers.
+    # Part-aware scorers match on both session_id substring and a part tag in the filename.
+    _part_re = re.compile(r'^(.+)-(part\d+)$')
+    part_scorers  = {}   # (base_id, part_tag) -> fn
+    plain_scorers = {}   # session_id -> fn
+    for sid, fn in scorers.items():
+        m = _part_re.match(sid)
+        if m:
+            part_scorers[(m.group(1), m.group(2))] = fn
+        else:
+            plain_scorers[sid] = fn
+
     rows = conn.execute(
         "SELECT id, file_path, session_id, model_norm FROM summaries"
     ).fetchall()
 
     scored = 0
     for summary_id, file_path, session_id, model_norm in rows:
+        filename = Path(file_path).name
         scorer_fn = None
-        for sid, fn in scorers.items():
-            if sid in session_id:
+
+        for (base_id, part_tag), fn in part_scorers.items():
+            if base_id in session_id and f'-{part_tag}-' in filename:
                 scorer_fn = fn
                 break
+
+        if scorer_fn is None:
+            if '-part1-' in filename:
+                continue
+            for sid, fn in plain_scorers.items():
+                if sid in session_id:
+                    scorer_fn = fn
+                    break
+
         if not scorer_fn:
             continue
 

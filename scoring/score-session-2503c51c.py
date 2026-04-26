@@ -302,6 +302,8 @@ def discover_files():
     results = []
 
     for f in SUMMARIES_DIR.glob(f"*{SESSION_ID}*.txt"):
+        if '-part1-' in f.stem:
+            continue
         stem = f.stem
         match = re.search(rf'{SESSION_ID}--(.+)$', stem)
         label = match.group(1) if match else stem
@@ -309,6 +311,8 @@ def discover_files():
 
     if ARCHIVE_DIR.exists():
         for f in ARCHIVE_DIR.glob(f"*/*{SESSION_ID}*.txt"):
+            if '-part1-' in f.stem:
+                continue
             model = f.parent.name
             timestamp_match = re.search(rf'{SESSION_ID}--(.+)$', f.stem)
             timestamp = timestamp_match.group(1) if timestamp_match else ''

@@ -29,10 +29,10 @@ ARCHIVE_DIR = SUMMARIES_DIR / "archive"
 CHECKS_DEF = [
     ('pgrep_error',     r'(pgrep.*lm.studio|lm.studio.*pgrep|node process|user.*caught|user.*corrected|wrong.*process|electron)'),
     ('rss_inadequate',  r'(rss.*inadequate|ps.*rss.*insufficient|mmap|apple.silicon.*rss|rss.*undercount|unified.memory.*rss|rss.*wrong)'),
-    ('machine_crash',   r'(crash|oom|out.of.memory|machine.*died|devstral|kernel.panic)'),
-    ('user_ioreg',      r'(user.*ioreg|ioreg.*user|user.*identified|user.*found|user.*provided.*ioreg|\[user\].*ioreg)'),
+    ('machine_crash',   r'(devstral.{0,60}(crash|oom|restart|died)|ministral.{0,60}(crash|oom|restart|died)|(crash|oom|out.of.memory|machine.*died|kernel.panic).{0,60}(devstral|ministral|heavy.model|inference.test))'),
+    ('user_ioreg',      r'(AGXAccelerator|user.{0,40}(brought|provided|introduced).{0,60}ioreg|ioreg.{0,40}user.{0,30}(brought|provided|solution|independent))'),
     ('regex_bugs',      r'(regex.*bug|wrong.*field|field.*name|from iokit|spacing|" = "|=\d)'),
-    ('ioreg_validated', r'(8\.6|ioreg.*work|validated|activity.monitor.*match|peak.*gb|gpu.wired)'),
+    ('ioreg_validated', r'(8\.6[0-9]|activity.monitor.{0,30}(match|align|verified|correct)|ioreg.{0,30}(correct|working|success).{0,30}(gb|memory)|gpu.wired)'),
 ]
 
 CHECK_LABELS = [
