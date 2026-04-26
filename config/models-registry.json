@@ -127,7 +127,6 @@
       "nGpuLayers": 30,
       "nExpertsUsed": 10,
       "ubatchSize": 64,
-      "swaFull": true,
       "flashAttn": true,
       "threads": 8
     },
@@ -687,6 +686,7 @@
       "iq3_xxs",
       "medium",
       "nvme",
+      "quality-candidate",
       "qwen35"
     ]
   },
@@ -908,7 +908,6 @@
       "gpt-oss",
       "moe",
       "q4_k_m",
-      "quality-candidate",
       "small",
       "wd-elements"
     ],
@@ -3344,6 +3343,7 @@
       "iq2_m",
       "medium",
       "nvme",
+      "quality-candidate",
       "qwen35"
     ],
     "nLayer": 64,
@@ -3458,6 +3458,7 @@
       "large",
       "moe",
       "nvme",
+      "quality-candidate",
       "qwen35moe"
     ],
     "nLayer": 40,
