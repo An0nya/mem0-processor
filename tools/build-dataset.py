@@ -29,7 +29,7 @@ except ImportError:
 
 # ─── PATHS ───────────────────────────────────────────────────────────────────
 
-SCRIPT_DIR    = Path(__file__).parent
+SCRIPT_DIR    = Path(__file__).parent.parent
 MEM0_DIR      = Path.home() / ".claude/mem0"
 SUMMARIES_DIR = MEM0_DIR / "summaries"
 PERF_PATH     = MEM0_DIR / "perf.json"
