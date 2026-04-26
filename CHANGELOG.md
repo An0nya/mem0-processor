@@ -428,11 +428,12 @@ repeating bug. Raw data preserved as-is. Documented in NOTES.md.
 
 ---
 
-## v8 — Data-driven context cap (planned)
+## v8 — Data-driven context cap (unblocked, data collection phase)
 
 Replace the hardcoded 64k ceiling with a per-model computed max safe transcript size
 derived from perf store data. Benchmark regression on RAM/swap/pressure vs `transcriptChars`
-already exists in mem0 — bring it in-script.
+already exists in mem0 — bring it in-script. v9 clean baselines (`noModelGb`) now exist;
+blocker resolved. RAM warnings bundled here (was backlog item).
 
 - **Regression fit per model**: solve for largest `transcriptChars` where
   `peakPressure` and `swap growth` stay under threshold. Fall back to current 64k hard
@@ -614,7 +615,7 @@ Lower priority; don't start until 7b + 7c are stable.
 - Cooldown monitoring: dropped — no longer relevant. Prompt caching is off; RAM is
   consistent across runs without a cooldown gap.
 - Restart on crash + retry: detect `earlyExit`, respawn server, retry failed session
-  (max-retries TBD; needs backoff to avoid respawn loops)
+  (implemented; backoff behavior and edge cases may need more work — not fully validated)
 - Streaming (SSE): `stream: true` + SSE parser + timings from final chunk. Worth adding
   for three reasons: (1) prefill progress visible token-by-token (slots polling only shows
   prefilling/generating, not per-token count during prefill); (2) reasoning vs content token
@@ -908,35 +909,30 @@ Ran against all 56 entries; all tagged.
 
 ---
 
-## v9.3 — Sampler param sweep (planned, deferred)
+## v9.3 — Sampler param sweep (in progress)
 
-Extend `sweep.mjs` to iterate over named param variants in addition to (or instead of)
-models — primarily for quality testing across sampler settings.
+Extend `sweep.mjs` to iterate over named sampler param variants across sessions and models.
 
-**Design:**
-- Variants defined in a JSON file: `[{name, sampler: {temp, minP, topK, ...}, launch?: {...}}]`
-- Full grid: models × variants, or variants-only if sweeping params against a fixed model
-- Run tags encode both dimensions: `<tag>-<model-n>-<variant-name>`
-- Uploader gets `--sampler-override <json>` flag merged into the API request params
-- Launch-param variants (kv-cache quant, expert count) follow the same interface but
-  require server restart between variants; stopgap is synthetic registry entries
+**Shipped:**
+- `config/sampler-presets.json` — named preset definitions (`default`, `conservative`, `hot`, `greedy`)
+- `--sampler <preset>` flag in `sweep.mjs` and `claude-code-mem0-uploader.mjs` — loads a preset
+  and passes it as `samplerOverrides` into the API request body
+- Multi-session `--session <id>[,<id>,...]` in `sweep.mjs` — iterates sessions × models × presets
+- Run tag format updated to `<tag>-<si>.<mi>[.<pi>]` (session / model / preset indices)
 
-**Evaluation:** sweep output is raw summaries for human spot-check or batch review in
-Claude. No automated scoring planned.
+**Still open:**
+- Full grid sweep (models × variants, or variants-only against a fixed model) — partially
+  addressed by multi-session + preset flags, but no dedicated grid-runner yet
+- Launch-param variants (kv-cache quant, expert count) require server restart between variants;
+  stopgap is synthetic registry entries. Lower priority than sampler-only sweep.
+- Automated scoring integration — sweep output currently goes to human spot-check or `scoring/`
+  scripts; no pipeline connecting sweep runs → scorer yet
 
-**Blockers:**
-1. Uploader has no sampler param override path — params are fixed per registry entry;
-   needs a new CLI flag threaded to the API request
-2. Function extraction should come first — threading a new flag through the monolith is
-   fragile; after extraction the API call module is the only thing that needs to change
-3. Launch-param variants additionally require server lifecycle restructuring (per-model →
-   per-variant); lower priority than sampler-only sweep
-
-Difficulty: Medium (sampler-only). Deferred until function extraction (Refactor) lands.
+Difficulty: Medium (remaining grid/launch-param work).
 
 ---
 
-## v10 — Cross-session context injection (planned)
+## v10 — Cross-session context injection (planned, likely deferred post-v11)
 
 When a session follows a recent one (same CWD, gap < threshold), prepend the previous
 session's compaction summary or last assistant message as `[PREV SESSION CONTEXT]`.
@@ -952,6 +948,10 @@ empirical testing before committing to a design.
 
 More functional summary formats (progress-query vs. structural/behavioral analysis) should
 also be explored here; chunking design in v10.1 may depend on which format proves useful.
+
+**Status note**: likely deferred until after v11/Refactor. The prod/benchmark split may
+clarify whether context injection belongs in the prod summarizer or only the benchmark path,
+which would change the design significantly.
 
 Difficulty: Low (infra exists). Open question is the actual work.
 
@@ -983,11 +983,14 @@ code, minimal telemetry.
 
 - **Branch or fork**: split into `mem0-benchmark` (keeps all the telemetry + multi-model
   infrastructure) and `mem0-summarizer` (stripped prod version)
-- Prod summarizer migrates to AWS backend (DynamoDB + Lambda) replacing mem0
 - Benchmark tool stays local, single-user, keeps evolving
 
 Open question: branch in the current repo or new repo. Optics → new repo; simplicity →
 branch. Decide at v11 planning time.
+
+**Status note**: v11 is now explicitly tied to Refactor completion — the module extraction
+makes the split trivial; doing it before extraction is fragile. AWS migration (DynamoDB +
+Lambda backend replacing mem0) is now tracking as v12, not part of v11 scope.
 
 ---
 
@@ -1047,28 +1050,33 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
 
 ## Backlog / post-v11
 
-- Quality scoring formalization (1–5 per session, stored in perf store alongside runtime
-  metrics)
-- Log file enrichment: match console output density (current log files are sparse vs
-  the pretty console output)
-- RAM warning tiers at model load (absorbed from old v8 plan, deprioritized):
-  - Tier 1: "This model is large — close non-essential processes"
-  - Tier 2: "Run `sudo [vram command]` for more headroom" when peak approaches system limit
-- Interactive TUI for run configuration (session selection, model selection, flag
-  selection). Deferred until CLI flag soup actually hurts usability.
-- Unified log function for console + JSONL (currently rejected — formats differ too much,
-  but worth revisiting if log enrichment lands)
-- **`getModelFailCap()` cleanup**: the function has been partially superseded by the
-  per-model RAM calculation but isn't fully replaced yet. No longer blocked on v8 — enough
-  perf data exists to close it; just needs design thought on the replacement formula.
-  Floating until someone needs to touch that code path.
-- **Summaries folder organization**: currently all summary `.txt` files are flat in
-  `~/.claude/mem0/summaries/`. Would be cleaner to nest by model or by session. Tricky
-  for benchmarking (multiple models per session = competing folder schemes). Defer until
-  v11 prod/benchmark split clarifies the right layout.
-- **`--reprocess` residual bugs**: main iteration fix shipped (Phase 3 now filters to
-  target only before iterating). Two residuals remain:
-  - Merged sessions are still reprocessed on every targeted `--reprocess` run (known,
-    not a priority)
-  - Console reports "uploading cached summaries" even when no cached summaries exist —
-    likely a log statement firing too eagerly; worth investigating but not a blocker
+- **Quality scoring** (`scoring/`): experiment in programmatic qualitative analysis turned
+  out to be a useful if imprecise quality baseline. Eight session scoring scripts exist;
+  open work is data review, additional grading scripts, and possible integration with perf
+  store (score stored alongside runtime metrics). `build-dataset.py` is the downstream consumer.
+- **Log file enrichment**: recurring — logs are consistently sparser than console output.
+  Worth revisiting whenever console output changes. Unified log function still rejected
+  (formats differ too much), but targeted additions remain the approach.
+- **RAM warning tiers**: absorbed into v8 regression-based context cap. Will land there.
+- **Interactive TUI**: deferred. Only for the benchmarking branch post-v11 split. Not until
+  CLI flag complexity actually hurts daily usability.
+- **Unified log function**: still deferred — formats differ too much. Revisit if log
+  enrichment pass lands.
+- **`getModelFailCap()` cleanup**: partially superseded by per-model RAM calculation, not
+  fully replaced. Floating until someone needs to touch that code path.
+- **Summaries folder organization**: flat layout in `~/.claude/mem0/summaries/` is getting
+  unwieldy. Pre-Apr-23 summaries (no YAML frontmatter) are lower value now. Nesting by
+  model or session is tricky for benchmarking (multiple models per session). Defer until
+  v11 split and/or scoring pipeline clarifies the right layout.
+- **`--reprocess` residual bugs**:
+  - Merged sessions reprocessed on every targeted `--reprocess` run — may be fixed,
+    unverified
+  - Console reports "uploading cached summaries" when none exist — log statement firing
+    too eagerly; still live
+- **Compaction extractor deduplication bug**: when VSCode is reopened mid-session (even
+  with no new activity post-compaction), the session JSONL receives duplicate
+  `isCompactSummary=true` entries. The extractor and splitter need to deduplicate these
+  before processing. This is expected Claude Code behavior — logs are not a strict
+  chronological record and are not intended as such (confirmed; not an Anthropic bug to
+  report). Fix: deduplicate compaction entries by content hash or timestamp before
+  extraction.
