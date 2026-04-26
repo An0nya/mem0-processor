@@ -1,6 +1,6 @@
 *-v[0-9].mjs
 *-v[0-9][0-9].mjs
-*.py
+__pycache__/
 *.txt
 *.jsonl
 .DS_Store
