@@ -3,7 +3,7 @@
 __pycache__/
 *.txt
 *.jsonl
-.DS_Store
+**/.DS_Store
 node_modules/
 package-lock.json
 NOTES.md
