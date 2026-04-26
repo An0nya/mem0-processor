@@ -145,6 +145,27 @@ const REPROCESS_ID   = (() => {
   return (!next || next.startsWith("--")) ? "all" : next;
 })();
 
+const SAMPLER_OVERRIDES = (() => {
+  const i = process.argv.indexOf("--sampler");
+  if (i === -1) return null;
+  const name = process.argv[i + 1];
+  if (!name || name.startsWith("--")) {
+    console.error("--sampler requires a preset name");
+    process.exit(1);
+  }
+  const presetsPath = new URL("./config/sampler-presets.json", import.meta.url);
+  let presets;
+  try { presets = JSON.parse(fs.readFileSync(presetsPath, "utf8")); } catch {
+    console.error(`Could not load sampler-presets.json`);
+    process.exit(1);
+  }
+  if (!presets[name]) {
+    console.error(`Unknown sampler preset "${name}". Available: ${Object.keys(presets).join(", ")}`);
+    process.exit(1);
+  }
+  return presets[name];
+})();
+
 // ─── MODEL SELECTION ─────────────────────────────────────────────
 async function selectModel() {
   const flag = process.argv.indexOf("--model");
@@ -492,7 +513,7 @@ async function main() {
         let startTime = performance.now();
 
         try {
-          ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry, { endpoint: LMSTUDIO_ENDPOINT, modelId: LLAMA_MODEL_ID, stream: STREAM }));
+          ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry, { endpoint: LMSTUDIO_ENDPOINT, modelId: LLAMA_MODEL_ID, stream: STREAM, samplerOverrides: SAMPLER_OVERRIDES }));
         } catch (fetchErr) {
           const isServerCrash = fetchErr.message.includes("llama-server fetch failed") || /llama-server 5\d\d/.test(fetchErr.message);
           if (isServerCrash && serverRestartAttempts < MAX_SERVER_RESTARTS) {
@@ -509,7 +530,7 @@ async function main() {
             preSessionIdleGb = gpuAllocGb();
             startTime = performance.now();
             sampler = startRamSampler();
-            ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry, { endpoint: LMSTUDIO_ENDPOINT, modelId: LLAMA_MODEL_ID, stream: STREAM }));
+            ({ summary, tps, ttft, genTime, completionTokens, promptTokens, reasoningTokens } = await summarizeSession(finalTranscript, model, llamaRegistryEntry, { endpoint: LMSTUDIO_ENDPOINT, modelId: LLAMA_MODEL_ID, stream: STREAM, samplerOverrides: SAMPLER_OVERRIDES }));
           } else {
             throw fetchErr;
           }
@@ -560,9 +581,9 @@ async function main() {
           max_output_tokens: resolved?.maxOutputTokens ?? null,
           kv_quant_k: resolved?.kvQuantK ?? null,
           kv_quant_v: resolved?.kvQuantV ?? null,
-          temp: resolved?.sampler.temp ?? null,
-          min_p: resolved?.sampler.minP ?? null,
-          top_k: resolved?.sampler.topK ?? null,
+          temp: SAMPLER_OVERRIDES?.temperature ?? resolved?.sampler.temp ?? null,
+          min_p: SAMPLER_OVERRIDES?.min_p ?? resolved?.sampler.minP ?? null,
+          top_k: SAMPLER_OVERRIDES?.top_k ?? resolved?.sampler.topK ?? null,
           run_tag: RUN_TAG,
           cache_hit: cacheHit,
         };
