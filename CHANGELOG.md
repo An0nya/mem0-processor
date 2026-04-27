@@ -1073,10 +1073,19 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
     unverified
   - Console reports "uploading cached summaries" when none exist — log statement firing
     too eagerly; still live
-- **Compaction extractor deduplication bug**: when VSCode is reopened mid-session (even
-  with no new activity post-compaction), the session JSONL receives duplicate
-  `isCompactSummary=true` entries. The extractor and splitter need to deduplicate these
-  before processing. This is expected Claude Code behavior — logs are not a strict
-  chronological record and are not intended as such (confirmed; not an Anthropic bug to
-  report). Fix: deduplicate compaction entries by content hash or timestamp before
-  extraction.
+- **mem0 upload fails with "fetch failed" after high-memory-pressure inference**: after
+  large-model runs at ~97% memory pressure, the outbound HTTPS connection to
+  `api.mem0.ai` fails at the TCP/TLS level (Node.js `TypeError: fetch failed`) because
+  the OS cannot allocate network buffers. The summary is already cached by the time this
+  happens, so no inference work is lost — but the session is marked failed and not
+  uploaded. Root: `uploadToMem0` (summary.mjs) has no try/catch or retry around its
+  `fetch` call. Fix: (1) add a short post-inference pause (2–3s) before the upload to
+  let memory pressure recover; (2) add retry-with-backoff (2–3 attempts) to the mem0
+  fetch so transient resource exhaustion recovers automatically.
+- **Compaction extractor deduplication bug** *(fix implemented, pending test confirmation)*:
+  when VSCode is reopened mid-session (even with no new activity post-compaction), the
+  session JSONL receives duplicate entries (including `isCompactSummary=true` compaction
+  entries). This is expected Claude Code behavior — logs are not a strict chronological
+  record and are not intended as such (confirmed; not an Anthropic bug to report). Fix
+  applied in `lib/transcript.mjs` `parseSession`: entries are deduplicated by `uuid`
+  field on read, so downstream extractors and splitters never see duplicates.
