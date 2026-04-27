@@ -198,7 +198,7 @@
     "kvLayers": 5,
     "kvQuantK": "q4_0",
     "kvQuantV": "q4_0",
-    "projectedMemoryMiB": 14023,
+    "projectedMemoryMiB": 12403,
     "hasImatrix": true,
     "imatrixEntries": 295,
     "quantBreakdown": {
@@ -691,11 +691,11 @@
     ]
   },
   "rico03/qwen3.6-35b-a3b-opus": {
-    "path": "/Volumes/NVME External/lmstudio_models/rico03/Qwen3.6-35B-Opus-Reasoning-GGUF/Qwen3.6-35B-A3B-Opus-IQ2_M.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/rico03/Qwen3.6-35B-Opus-Reasoning-GGUF/Qwen3.6-35B-A3B-Opus-IQ2_M.gguf",
     "fileSizeGb": 10.9,
     "format": "gguf",
     "arch": "moe",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
@@ -885,9 +885,9 @@
       "iq2_m",
       "large",
       "moe",
-      "nvme",
       "quality-candidate",
-      "qwen35moe"
+      "qwen35moe",
+      "wd-elements"
     ]
   },
   "squ11z1/gpt-oss-9b": {
@@ -977,11 +977,11 @@
     "recommendedRamGb": 9
   },
   "tvall43/qwen3.5-14b-a3b-claude-opus": {
-    "path": "/Volumes/NVME External/lmstudio_models/tvall43/Qwen3.5-14B-A3B-Claude-4.6-Opus-Reasoning-Distilled-reap-gguf/Qwen3.5-14B-A3B-Claude-Opus-Reasoning-Distilled-4.6-MXFP4_MOE.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/tvall43/Qwen3.5-14B-A3B-Claude-4.6-Opus-Reasoning-Distilled-reap-gguf/Qwen3.5-14B-A3B-Claude-Opus-Reasoning-Distilled-4.6-MXFP4_MOE.gguf",
     "fileSizeGb": 8.2,
     "format": "gguf",
     "arch": "moe",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
@@ -1079,10 +1079,10 @@
     "tags": [
       "moe",
       "mxfp4",
-      "nvme",
       "quality-candidate",
       "qwen35moe",
-      "small"
+      "small",
+      "wd-elements"
     ]
   },
   "unsloth/glm-4.7-flash": {
@@ -1242,11 +1242,11 @@
     "ropeFreqBase": "1000000000.000000"
   },
   "biomanticus/rys-qwen3.5-27b": {
-    "path": "/Volumes/NVME External/lmstudio_models/Biomanticus/RYS-Qwen3.5-27B-gguf/RYS-Qwen3.5-27B-Q2_K.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/Biomanticus/RYS-Qwen3.5-27B-gguf/RYS-Qwen3.5-27B-Q2_K.gguf",
     "fileSizeGb": 10.4,
     "format": "gguf",
     "arch": "dense",
-    "source": "nvme",
+    "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
@@ -1929,7 +1929,6 @@
       "imatrix",
       "iq2_m",
       "large",
-      "moe",
       "wd-elements"
     ]
   },
@@ -3342,9 +3341,9 @@
       "imatrix",
       "iq2_m",
       "medium",
-      "nvme",
       "quality-candidate",
-      "qwen35"
+      "qwen35",
+      "wd-elements"
     ],
     "nLayer": 64,
     "nCtxTrain": 262144,
@@ -3400,9 +3399,9 @@
       "dense",
       "iq3_s",
       "medium",
-      "nvme",
       "quality-candidate",
-      "qwen35"
+      "qwen35",
+      "wd-elements"
     ],
     "nLayer": 64,
     "nCtxTrain": 262144,
@@ -3772,5 +3771,52 @@
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
     "ropeFreqBase": "10000000.000000"
+  },
+  "mudler/qwen3.6-35b-a3b-claude-4.7-opus-apex": {
+    "path": "/Volumes/NVME External/lmstudio_models/mudler/Qwen3.6-35B-A3B-Claude-4.7-Opus-Reasoning-Distilled-APEX-GGUF/Qwen3.6-35B-A3B-Claude-4.7-Opus-Reasoning-Distilled-APEX-I-Nano.gguf",
+    "source": "nvme",
+    "format": "gguf",
+    "tags": [
+      "apex",
+      "bare",
+      "nvme"
+    ]
+  },
+  "mudler/gemma-4-26b-a4b-heretic-apex": {
+    "path": "/Volumes/WD-elements/llm-offload/mudler/gemma-4-26B-A4B-it-heretic-APEX-GGUF/gemma-4-26B-A4B-heretic-APEX-I-Mini.gguf",
+    "source": "wd-elements",
+    "format": "gguf",
+    "tags": [
+      "apex",
+      "bare",
+      "wd-elements"
+    ]
+  },
+  "misc/ornstein-3.6-35b-a3b-rys": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/Ornstein-3.6-35B-A3B-RYS-F16_Q2_K.gguf",
+    "source": "wd-elements",
+    "format": "gguf",
+    "tags": [
+      "bare",
+      "wd-elements"
+    ]
+  },
+  "misc/gemma-4-26b-a4b-claude-opus-distill-v1": {
+    "path": "/Volumes/WD-elements/llm-offload/misc/gemma-4-26B-A4B-it-Claude-Opus-Distill.q3_k_m.gguf",
+    "source": "wd-elements",
+    "format": "gguf",
+    "tags": [
+      "bare",
+      "wd-elements"
+    ]
+  },
+  "mradermacher/gemma-4-26b-a4b-claude-opus-distill-v2": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-26B-A4B-it-Claude-Opus-Distill-v2-i1-GGUF/gemma-4-26B-A4B-it-Claude-Opus-Distill-v2.i1-IQ3_M.gguf",
+    "source": "wd-elements",
+    "format": "gguf",
+    "tags": [
+      "bare",
+      "wd-elements"
+    ]
   }
 }

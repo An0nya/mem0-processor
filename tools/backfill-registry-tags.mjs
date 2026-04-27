@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // backfill-registry-tags.mjs
 //
-// Derives and fills `tags[]` on each registry entry from existing fields.
-// Fill-missing: existing tags are never removed; only new derived tags are added.
+// Derives and syncs `tags[]` on each registry entry from existing fields.
+// Managed tags (defined below) are fully replaced on each run — stale ones
+// are removed and correct ones are added. Manual tags are never touched.
 //
 // Usage:
 //   node backfill-registry-tags.mjs           # dry-run
@@ -46,10 +47,33 @@ function normalizeQuantType(qt) {
   return null;
 }
 
+// Tags this script fully owns — stale values are removed, correct ones added.
+// Anything not in this set is treated as a manual tag and left alone.
+const MANAGED_TAGS = new Set([
+  "bare",
+  "dense", "moe",
+  "nvme", "wd-elements",
+  "tiny", "small", "medium", "large", "xlarge",
+  "apex", "imatrix", "ud", "unsloth",
+  "bf16", "f16", "mxfp4",
+  // IQ and Q quant families — matched by prefix below
+]);
+
+function isManagedTag(tag) {
+  if (MANAGED_TAGS.has(tag)) return true;
+  if (/^iq\d/i.test(tag)) return true;
+  if (/^q\d/i.test(tag))  return true;
+  return false;
+}
+
 // ─── TAG DERIVATION ──────────────────────────────────────────────────────────
 
 function deriveTags(key, entry) {
   const tags = new Set();
+
+  // bare: no arch and no modelParams means metadata hasn't been backfilled yet
+  const hasMetadata = entry.arch || entry.modelParams;
+  if (!hasMetadata) tags.add("bare");
 
   // arch: dense / moe
   if (entry.arch === "dense") tags.add("dense");
@@ -96,21 +120,26 @@ const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
 const updates = {};
 
 for (const [key, entry] of Object.entries(registry)) {
-  const derived = deriveTags(key, entry);
-  const existing = new Set(entry.tags ?? []);
-  const toAdd = derived.filter(t => !existing.has(t));
+  const derived = new Set(deriveTags(key, entry));
+  const existing = entry.tags ?? [];
 
-  if (toAdd.length > 0) updates[key] = toAdd;
+  const toAdd    = [...derived].filter(t => !existing.includes(t));
+  const toRemove = existing.filter(t => isManagedTag(t) && !derived.has(t));
+
+  if (toAdd.length > 0 || toRemove.length > 0) {
+    updates[key] = { toAdd, toRemove };
+  }
 }
 
 if (Object.keys(updates).length === 0) {
-  console.log("No new tags to add — registry is up to date.");
+  console.log("No tag changes — registry is up to date.");
   process.exit(0);
 }
 
-for (const [key, toAdd] of Object.entries(updates)) {
+for (const [key, { toAdd, toRemove }] of Object.entries(updates)) {
   console.log(`  ${key}`);
-  console.log(`    + ${toAdd.join(", ")}`);
+  if (toAdd.length)    console.log(`    + ${toAdd.join(", ")}`);
+  if (toRemove.length) console.log(`    - ${toRemove.join(", ")}`);
 }
 
 if (DRY_RUN) {
@@ -118,9 +147,10 @@ if (DRY_RUN) {
   process.exit(0);
 }
 
-for (const [key, toAdd] of Object.entries(updates)) {
+for (const [key, { toAdd, toRemove }] of Object.entries(updates)) {
   const existing = registry[key].tags ?? [];
-  registry[key].tags = [...existing, ...toAdd].sort();
+  const removeSet = new Set(toRemove);
+  registry[key].tags = [...existing.filter(t => !removeSet.has(t)), ...toAdd].sort();
 }
 
 fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2) + "\n");
