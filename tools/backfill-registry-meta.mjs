@@ -59,6 +59,9 @@ function parseLogMeta(text) {
   const expertUsedMatch = text.match(/(\w+)\.expert_used_count u32\s+=\s+(\d+)/m);
   const expertCount     = expertMatch     ? parseInt(expertMatch[2])     : null;
   const expertUsedCount = expertUsedMatch ? parseInt(expertUsedMatch[2]) : null;
+  // Derived from expert metadata; only set when architecture is known to avoid
+  // incorrectly tagging models whose logs lack expert fields entirely.
+  const arch = architecture != null ? (expertCount > 0 ? "moe" : "dense") : null;
 
   // ─── ATTENTION MECHANICS ──────────────────────────────────────────────────
   const attentionHeads = findInt(/attention\.head_count u32\s+=\s+(\d+)/m);
@@ -136,7 +139,7 @@ function parseLogMeta(text) {
     offloadedLayers: offloadMatch ? parseInt(offloadMatch[1]) : null,
     totalLayers:     offloadMatch ? parseInt(offloadMatch[2]) : null,
     modelName, baseModel, sizeLabel,
-    architecture, expertCount, expertUsedCount,
+    arch, architecture, expertCount, expertUsedCount,
     attentionHeads, kvHeads, gqaRatio, hasSSM,
     kvCacheSizeMiB, kvLayers, kvQuantK, kvQuantV,
     projectedMemoryMiB,
@@ -153,7 +156,7 @@ const META_FIELDS = [
   "nLayer", "nCtxTrain", "modelType", "modelParams", "quantType", "bpw",
   "offloadedLayers", "totalLayers",
   "modelName", "baseModel", "sizeLabel",
-  "architecture", "expertCount", "expertUsedCount",
+  "arch", "architecture", "expertCount", "expertUsedCount",
   "attentionHeads", "kvHeads", "gqaRatio", "hasSSM",
   "kvCacheSizeMiB", "kvLayers", "kvQuantK", "kvQuantV",
   "projectedMemoryMiB",
