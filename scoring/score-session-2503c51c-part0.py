@@ -61,7 +61,9 @@ import re
 import sys
 from pathlib import Path
 
-SESSION_ID = "2503c51c"
+SESSION_ID      = "2503c51c-part0"
+SESSION_ID_BARE = "2503c51c"
+PART            = "part0"
 SUMMARIES_DIR = Path.home() / ".claude/mem0/summaries"
 ARCHIVE_DIR = SUMMARIES_DIR / "archive"
 
@@ -300,24 +302,23 @@ def tier_label(tier):
 
 def discover_files():
     results = []
-
-    for f in SUMMARIES_DIR.glob(f"*{SESSION_ID}*.txt"):
-        if '-part1-' in f.stem:
-            continue
-        stem = f.stem
-        match = re.search(rf'{SESSION_ID}--(.+)$', stem)
-        label = match.group(1) if match else stem
-        results.append((f, label))
+    for pattern in [f"*{SESSION_ID_BARE}*{PART}*.txt", f"*{PART}*{SESSION_ID_BARE}*.txt"]:
+        for f in SUMMARIES_DIR.glob(pattern):
+            stem = f.stem
+            match = re.search(rf'{SESSION_ID_BARE}--(.+)$', stem)
+            label = match.group(1) if match else stem
+            if (f, label) not in results:
+                results.append((f, label))
 
     if ARCHIVE_DIR.exists():
-        for f in ARCHIVE_DIR.glob(f"*/*{SESSION_ID}*.txt"):
-            if '-part1-' in f.stem:
-                continue
-            model = f.parent.name
-            timestamp_match = re.search(rf'{SESSION_ID}--(.+)$', f.stem)
-            timestamp = timestamp_match.group(1) if timestamp_match else ''
-            label = f"{model}  [{timestamp}]" if timestamp else model
-            results.append((f, label))
+        for pattern in [f"*{SESSION_ID_BARE}*{PART}*.txt", f"*{PART}*{SESSION_ID_BARE}*.txt"]:
+            for f in ARCHIVE_DIR.glob(f"*/{pattern}"):
+                model = f.parent.name
+                timestamp_match = re.search(rf'{SESSION_ID_BARE}--(.+)$', f.stem)
+                timestamp = timestamp_match.group(1) if timestamp_match else ''
+                label = f"{model}  [{timestamp}]" if timestamp else model
+                if (f, label) not in results:
+                    results.append((f, label))
 
     return results
 
