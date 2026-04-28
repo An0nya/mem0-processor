@@ -3896,7 +3896,7 @@
     "recommendedRamGb": 15
   },
   "misc/qwen3.5-35b-a3b-claude-opus": {
-    "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled.i1-IQ2_M.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled-i1-GGUF/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled.i1-IQ2_M.gguf",
     "fileSizeGb": 11,
     "format": "gguf",
     "arch": "moe",
@@ -3998,7 +3998,7 @@
     "recommendedRamGb": 15
   },
   "misc/qwen3.5-9b-glm5.1-distill": {
-    "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.5-9B-GLM5.1-Distill-v1-Q8_0.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwen3.5-9B-GLM5.1-Distill-v1-GGUF/Qwen3.5-9B-GLM5.1-Distill-v1-Q8_0.gguf",
     "fileSizeGb": 8.9,
     "format": "gguf",
     "arch": "dense",
@@ -4051,7 +4051,7 @@
     "ropeFreqBase": "10000000.000000"
   },
   "misc/qwen3.6-27b-claude-opus": {
-    "path": "/Volumes/WD-elements/llm-offload/misc/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-Q2_K.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/rico03/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-GGUF/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-Q2_K.gguf",
     "fileSizeGb": 10,
     "format": "gguf",
     "arch": "dense",
@@ -4286,7 +4286,7 @@
     "ropeFreqBase": "1000000.000000"
   },
   "misc/gemma-4-26b-a4b-claude-opus-distill-v1": {
-    "path": "/Volumes/WD-elements/llm-offload/misc/gemma-4-26B-A4B-it-Claude-Opus-Distill.q3_k_m.gguf",
+    "path": "/Volumes/WD-elements/llm-offload/TeichAI/gemma-4-26B-A4B-it-Claude-Opus-Distill-GGUF/gemma-4-26B-A4B-it-Claude-Opus-Distill.q3_k_m.gguf",
     "source": "wd-elements",
     "format": "gguf",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
@@ -4789,6 +4789,214 @@
       "q8_0",
       "small",
       "wd-elements"
+    ]
+  },
+  "mradermacher/crow-9b-opus-distill-heretic": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5-i1-GGUF/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-IQ4_XS.gguf",
+    "fileSizeGb": 4.72,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small",
+      "qwen35",
+      "imatrix"
+    ]
+  },
+  "unsloth/devstral-small-2-24b": {
+    "path": "/Volumes/WD-elements/llm-offload/unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF/Devstral-Small-2-24B-Instruct-2512-IQ4_XS.gguf",
+    "fileSizeGb": 11.9,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "medium",
+      "mistral"
+    ]
+  },
+  "bartowski/darwin-36b-opus": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/FINAL-Bench_Darwin-36B-Opus-GGUF/FINAL-Bench_Darwin-36B-Opus-IQ2_M.gguf",
+    "fileSizeGb": 11.24,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "moe",
+      "wd-elements",
+      "iq2_m",
+      "large",
+      "qwen35",
+      "imatrix"
+    ]
+  },
+  "mradermacher/friday-35b": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Friday-35B-i1-GGUF/Friday-35B.i1-IQ2_M.gguf",
+    "fileSizeGb": 10.86,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 8,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "moe",
+      "wd-elements",
+      "iq2_m",
+      "large",
+      "qwen35",
+      "imatrix"
+    ]
+  },
+  "bartowski/magistral-small-2509": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/mistralai_Magistral-Small-2509-GGUF/mistralai_Magistral-Small-2509-IQ4_XS.gguf",
+    "fileSizeGb": 11.88,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "medium",
+      "mistral"
+    ]
+  },
+  "mradermacher/qwen35-9b-os-auto-thinking": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-9B-Claude-4.6-OS-Auto-Variable-THINKING-i1-GGUF/Qwen3.5-9B-Claude-4.6-OS-Auto-Variable-THINKING.i1-IQ4_XS.gguf",
+    "fileSizeGb": 4.72,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small",
+      "qwen35",
+      "imatrix"
+    ]
+  },
+  "mradermacher/qwen35-9b-yoyo-thinking": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-9B-YOYO-Thinking-i1-GGUF/Qwen3.5-9B-YOYO-Thinking.i1-IQ4_XS.gguf",
+    "fileSizeGb": 4.84,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small",
+      "qwen35",
+      "imatrix"
+    ]
+  },
+  "rico03/qwen3.6-27b-claude-opus-q3_k_s": {
+    "path": "/Volumes/WD-elements/llm-offload/rico03/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-GGUF/Qwen3.6-27B-Claude-Opus-Reasoning-Distill.q3_k_s.gguf",
+    "fileSizeGb": 11.24,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "medium",
+      "q3_k_s",
+      "qwen35",
+      "wd-elements",
+      "quality-candidate"
     ]
   }
 }
