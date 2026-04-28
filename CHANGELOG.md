@@ -628,6 +628,30 @@ Lower priority; don't start until 7b + 7c are stable.
   `<think>`, DeepSeek-R1). Gemma's `<|channel>thought` / `<channel|>` — needs llama.cpp
   support verification. Not the same as LM Studio's "reasoning effort" (OpenAI API feature
   for o1/o3-class models only). Add `reasoningBudget` to registry when support confirmed.
+- **Exploratory — `--reasoning [on|off|auto]`**: native thinking trigger; would replace
+  the `<|think|>` system-prompt injection workaround. `--reasoning-format FORMAT` extracts
+  thought tags into dedicated response fields, replacing the `startString/endString` registry
+  parsing. Lower priority once `--reasoning-budget` is wired, but cleaner long-term.
+- **Exploratory — `--cpu-moe` / `--n-cpu-moe N`**: keep all (or first N) expert layers on
+  CPU; only activated weights move to GPU. Could recover ~1–2 GB headroom for larger KV on
+  Gemma 26b, which currently hits the 16GB wired limit at 32k ctx. Worth a calibration run
+  once `--reasoning` changes are settled.
+- **Exploratory — speculative decoding** (`--spec-type ngram-simple`): predicts next tokens
+  from context n-gram patterns; no draft model required. Summary outputs are repetitive
+  enough that n-gram prediction may hit often. ngram-cache and ngram-map-k are variants.
+  Full draft-model spec decoding (`--model-draft` + `--draft N`) with 0.8b as draft for 26b
+  is higher ceiling but more setup. Try ngram-simple first.
+- **Exploratory — `--cache-reuse N`**: KV shifting for prompt reuse. The system prompt is
+  constant across all sessions in a sweep; pre-warming the KV cache for it could reduce
+  TTFT on repeated runs. Useful for benchmark sweeps more than prod.
+- **Exploratory — `--threads-batch N`**: separate thread count for prefill vs generation
+  (currently unified via `--threads`). Prefill is embarrassingly parallel; may allow tuning
+  prefill speed without affecting generation jitter.
+- **Exploratory — `--slot-save-path`**: persist KV cache to disk and reload. Could pre-warm
+  benchmark variants without re-running prefill. Low priority until sweep harness exists.
+- **Exploratory — `--dry-multiplier`**: DRY sampler for better repetition control than
+  repeat-penalty. Summary outputs sometimes develop repetitive phrasing; worth a quality
+  comparison against current min-p stack once baseline data exists.
 - **Deferred — Mirostat** (`--mirostat 1|2`): perplexity-targeting alternative to
   min-p/top-k. Mutually exclusive paradigm; skip until we have quality baselines to compare.
 - **Deferred — `--samplers` order**: controls pipeline order (`top_k;top_p;min_p;temp`).
@@ -1054,6 +1078,20 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
   out to be a useful if imprecise quality baseline. Eight session scoring scripts exist;
   open work is data review, additional grading scripts, and possible integration with perf
   store (score stored alongside runtime metrics). `build-dataset.py` is the downstream consumer.
+- **`build-dataset.py` — session_id dedupe with `--include-no-yaml`**: some sessions appear
+  twice in scores — once keyed to the full UUID and once to the part-qualified id (e.g.
+  `abc123` and `abc123-part0`). Pre-YAML summaries are the source because session splitting
+  wasn't consistent before the UUID dedup fix (commit `6938ecd`). Part numbering in summaries
+  from before that fix may not correspond to current segment boundaries. Affects per-session
+  aggregate stats; not worth fixing until the pre-YAML cohort is cleaned up.
+- **`build-dataset.py` — explicit part guards for session 70e8af6a part 4**: part 4 of
+  `70e8af6a` (zazzy-wishing-koala) has no scorer and its segment boundaries pre-date the
+  UUID dedup fix. The dataset builder should explicitly exclude part 4 scores. Currently
+  treated as valid data.
+- ~~**Compaction extractor deduplication bug**~~ *(closed, commit `6938ecd`)*: VSCode
+  session reopens caused duplicate `isCompactSummary=true` entries in JSONL. Fixed in
+  `lib/transcript.mjs` `parseSession` by deduplicating entries on `uuid` field before any
+  further processing.
 - **Log file enrichment**: recurring — logs are consistently sparser than console output.
   Worth revisiting whenever console output changes. Unified log function still rejected
   (formats differ too much), but targeted additions remain the approach.
@@ -1064,10 +1102,18 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
   enrichment pass lands.
 - **`getModelFailCap()` cleanup**: partially superseded by per-model RAM calculation, not
   fully replaced. Floating until someone needs to touch that code path.
-- **Summaries folder organization**: flat layout in `~/.claude/mem0/summaries/` is getting
-  unwieldy. Pre-Apr-23 summaries (no YAML frontmatter) are lower value now. Nesting by
-  model or session is tricky for benchmarking (multiple models per session). Defer until
-  v11 split and/or scoring pipeline clarifies the right layout.
+- **Summaries folder organization / archiving**: flat layout in `~/.claude/mem0/summaries/`
+  is getting unwieldy. Two existing archive tiers:
+  - `.claude/mem0/` level archive: old summaries from before the transcript format and
+    prompt were settled — lower signal, kept for reference
+  - `.claude/mem0/summaries/archive/`: reruns — multiple summaries from the same
+    model+session pair (e.g. after a prompt change or sampler change)
+  Plan: (1) move pre-settlement summaries out of the main tree so they don't pollute
+  scoring; (2) backport YAML frontmatter to archived summaries where feasible so they're
+  parseable by `build-dataset.py`; (3) extend `build-dataset.py` to read from both archive
+  tiers — reruns in `summaries/archive/` are directly useful for consistency testing
+  (same model, same session, no changes → should produce similar scores). Defer layout
+  restructure until v11 split clarifies the right shape.
 - **`--reprocess` residual bugs**:
   - Merged sessions reprocessed on every targeted `--reprocess` run — may be fixed,
     unverified
@@ -1082,10 +1128,17 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
   `fetch` call. Fix: (1) add a short post-inference pause (2–3s) before the upload to
   let memory pressure recover; (2) add retry-with-backoff (2–3 attempts) to the mem0
   fetch so transient resource exhaustion recovers automatically.
-- **Compaction extractor deduplication bug** *(fix implemented, pending test confirmation)*:
-  when VSCode is reopened mid-session (even with no new activity post-compaction), the
-  session JSONL receives duplicate entries (including `isCompactSummary=true` compaction
-  entries). This is expected Claude Code behavior — logs are not a strict chronological
-  record and are not intended as such (confirmed; not an Anthropic bug to report). Fix
-  applied in `lib/transcript.mjs` `parseSession`: entries are deduplicated by `uuid`
-  field on read, so downstream extractors and splitters never see duplicates.
+- **`--skip-summarized` flag for sweep.mjs**: before queuing a session/model pair, check
+  whether a summary already exists in the summaries dir and skip if so. Needed to run new
+  sessions against already-covered models (or new models against already-covered sessions)
+  without re-burning pairs that are already done. Uploader already caches to disk; this
+  makes sweep aware of that cache rather than requiring `--reprocess` to be explicitly
+  avoided.
+- **Decouple summary generation from the session loop**: currently the main loop in the
+  uploader iterates sessions and models in a fixed order tied to sweep's invocation.
+  Refactor goal: expose a `generateSummary(sessionId, modelKey, options)` function that
+  sweep (or any caller) can invoke on arbitrary session/model pairs in any order, with
+  `--skip-summarized` logic living inside that function. This is a prerequisite for more
+  flexible sweep targeting (e.g. "run these 4 models on only this one session") and
+  aligns with the v11 prod/benchmark split where the benchmark path needs to control
+  execution order independently.

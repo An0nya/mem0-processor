@@ -1,6 +1,6 @@
 # mem0-processor
 
-Summarizes Claude Code session transcripts via a local LLM, then uploads the summaries to [Mem0](https://mem0.ai) as searchable memory. Also benchmarks model performance (RAM, tps, token counts) across runs.
+A local-LLM evaluation pipeline built around Claude Code session transcripts. It runs sessions through local models (60+ tested via llama-server or LM Studio), scores summaries against hand-written ground-truth fact sets, and ranks models by z-score across sessions. Summaries are uploaded to [Mem0](https://mem0.ai) as searchable memory; benchmarking and quality scoring run separately and don't require the upload path.
 
 ## Prerequisites
 
@@ -151,4 +151,36 @@ Sessions exceeding the effective limit are skipped with a warning. Chunking for 
 
 ## Quality scoring (`scoring/`)
 
-Per-session Python scripts that score summary quality against hand-written ground-truth fact sets. Used to evaluate model and sampler combinations. Run individually or consumed by `tools/build-dataset.py`.
+Each session scorer (`scoring/score-session-<id>.py`) contains a hand-written set of ground-truth facts — specific decisions, errors caught, and corrections made during the session. Each fact is independently matched against the summary by regex, returning a `[0, 1]` score and a weighted aggregate.
+
+`tools/build-dataset.py` builds a SQLite dataset from all summaries, runs every scorer, and computes rankings:
+
+```bash
+python3 tools/build-dataset.py
+sqlite3 ~/.claude/mem0/dataset.db \
+  "SELECT model_norm, ROUND(AVG(z_score),3) as z_avg, COUNT(*) as n
+   FROM score_normed_quality
+   GROUP BY model_norm HAVING n >= 5
+   ORDER BY z_avg DESC"
+```
+
+Rankings use z-score normalization with a per-session baseline (quality models only, avg score ≥ 0.45) so a model's score reflects performance relative to the field on that session, not just the raw number. This accounts for sessions varying in difficulty and model coverage.
+
+The `score_normed_quality` view excludes canary and chronic-underperformer models from the baseline to prevent an artificially depressed session mean. `score_normed` includes everyone and is better for auditing session difficulty.
+
+## Summarization prompt
+
+The prompt is a process-level audit, not a content summary. It's designed to answer: where did trust break down, where did the assistant overstep, and where did context or time get wasted? The output has eight structured sections:
+
+- **Goal** — the real objective inferred from the full session, not the literal requests
+- **What Happened & Why** — narrative of what drove each major turn; where plans changed and why
+- **Competence & Clarifications** — what the user independently discovered vs. what they asked Claude to explain; both are signals about how the user is reasoning, not mistakes
+- **Mistakes & Overreach** — each item labeled `ERROR`, `MISCOMMUNICATION`, or `OVERREACH`, with explicit catch mechanism for errors ("the user happened to re-read their notes" is a valid answer and should be stated plainly)
+- **Friction Points** — rejected edits, interruptions, re-reads; classified as genuine catch, user caution, or Claude moving too fast
+- **Waste & Efficiency** — where tokens or time were burned unnecessarily (Claude reading unneeded files, re-doing work from skipping existing context, large tool output that didn't inform the next step)
+- **Decisions (attributed)** — each significant decision tagged `[USER]`, `[CLAUDE]`, `[USER-APPROVED]` (accepted without evaluating), `[USER-CLARIFIED]` (asked, got explanation, accepted), or `[CLAUDE-UNPROMPTED]` (Claude acted without being asked in a spot where asking first would have been appropriate)
+- **Open Threads** — unfinished work with concrete next actions; distinguishes deferred-by-decision from discussed-but-not-started from assumed-complete-but-unverified
+
+The output serves two purposes: a session-level work log (what was done and why), and a process audit (where things went wrong and who drove what). The work-log layer is readable cold; the process-audit layer is the signal used for model scoring and for improving how the user directs the assistant.
+
+Mem0's inference layer (`infer`) is disabled. During development it was hallucinating plausible memories from adjacent context — conclusions that weren't in the session. Summaries are stored as raw blobs and retrieved directly rather than letting Mem0 restructure them.
