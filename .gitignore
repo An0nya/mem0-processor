@@ -9,3 +9,4 @@ package-lock.json
 NOTES.md
 archive/NOTES-*.md
 archive/*.py
+tools/*.png

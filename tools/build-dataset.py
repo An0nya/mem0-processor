@@ -169,6 +169,51 @@ CREATE INDEX idx_perf_session      ON perf_runs(session_id);
 CREATE INDEX idx_perf_model        ON perf_runs(model_norm);
 CREATE INDEX idx_scores_session    ON scores(session_id);
 CREATE INDEX idx_scores_model      ON scores(model_norm);
+
+-- score_normed: z-score against ALL models that ran the session, including smoke-test
+-- models (0.8b, etc.). Use this when you want "how did this model perform relative to
+-- the full field it actually competed against," or when auditing session difficulty.
+CREATE VIEW score_normed AS
+WITH sess_stats AS (
+    SELECT session_id,
+           AVG(score_norm) AS sess_avg,
+           SQRT(AVG(score_norm * score_norm) - AVG(score_norm) * AVG(score_norm)) AS sess_sd
+    FROM scores
+    GROUP BY session_id
+)
+SELECT sc.*,
+       (sc.score_norm - st.sess_avg) / NULLIF(st.sess_sd, 0) AS z_score,
+       st.sess_avg,
+       st.sess_sd
+FROM scores sc
+JOIN sess_stats st USING (session_id);
+
+-- score_normed_quality: z-score against only models with overall avg >= 0.45 (the
+-- "serious candidates" pool). Excludes smoke-test and clearly underperforming models
+-- so the session baseline isn't artificially depressed. Use this for model selection
+-- and ranking. Threshold 0.45 chosen 2026-04-27; revisit if the model pool shifts.
+CREATE VIEW score_normed_quality AS
+WITH quality_models AS (
+    SELECT model_norm
+    FROM scores
+    GROUP BY model_norm
+    HAVING AVG(score_norm) >= 0.45
+),
+sess_stats AS (
+    SELECT session_id,
+           AVG(score_norm) AS sess_avg,
+           SQRT(AVG(score_norm * score_norm) - AVG(score_norm) * AVG(score_norm)) AS sess_sd
+    FROM scores
+    WHERE model_norm IN (SELECT model_norm FROM quality_models)
+    GROUP BY session_id
+)
+SELECT sc.*,
+       (sc.score_norm - st.sess_avg) / NULLIF(st.sess_sd, 0) AS z_score,
+       st.sess_avg,
+       st.sess_sd
+FROM scores sc
+JOIN sess_stats st USING (session_id)
+WHERE sc.model_norm IN (SELECT model_norm FROM quality_models);
 """
 
 # ─── LOADERS ─────────────────────────────────────────────────────────────────
@@ -196,37 +241,43 @@ def load_models(conn):
     return len(rows)
 
 
-def load_summaries(conn):
-    inserted = skipped_no_yaml = 0
-    archive_dir = SUMMARIES_DIR / "archive"
+def load_summaries(conn, include_no_yaml=False):
+    inserted = skipped_no_yaml = skipped_pre_slug = 0
 
     for f in sorted(SUMMARIES_DIR.glob("*.txt")):
         content = f.read_text(errors='replace')
         if 'TRANSCRIPT FORMAT' in content[:200] or len(content) < 500:
             continue
 
-        meta = parse_yaml_header(content)
-        if not meta:
-            skipped_no_yaml += 1
-            continue
-
-        started_str = str(meta.get('started_at') or meta.get('startedAt') or '')
-
         stem = f.stem
         parts = stem.split('--')
-        if len(parts) >= 3:
-            session_slug     = parts[0]
-            session_id_short = parts[1]
-        elif len(parts) == 2:
-            session_slug     = None
-            session_id_short = parts[0]
-        else:
-            session_slug     = None
-            session_id_short = stem
 
-        session_id = str(meta.get('session') or session_id_short)
-        model_raw  = str(meta.get('model') or '')
-        model_norm = normalize_id(model_raw) if model_raw else normalize_id(parts[-1] if parts else '')
+        # Pre-slug files (uuid--model or bare uuid) had a different prompt and
+        # transcript format — never comparable, always skip.
+        if len(parts) < 3:
+            skipped_pre_slug += 1
+            continue
+
+        session_slug     = parts[0]
+        session_id_short = parts[1]
+
+        meta = parse_yaml_header(content)
+        if not meta:
+            if not include_no_yaml:
+                skipped_no_yaml += 1
+                continue
+            # Slug-format file without YAML: derive what we can from filename;
+            # meta stays empty so remaining meta.get() calls return None.
+            meta        = {}
+            session_id  = session_id_short
+            model_raw   = parts[2] if len(parts) > 2 else ''
+            model_norm  = normalize_id(model_raw) if model_raw else ''
+            started_str = ''
+        else:
+            started_str = str(meta.get('started_at') or meta.get('startedAt') or '')
+            session_id  = str(meta.get('session') or session_id_short)
+            model_raw   = str(meta.get('model') or '')
+            model_norm  = normalize_id(model_raw) if model_raw else normalize_id(parts[-1] if parts else '')
 
         conn.execute(
             """INSERT OR IGNORE INTO summaries
@@ -261,7 +312,7 @@ def load_summaries(conn):
         )
         inserted += 1
 
-    return inserted, skipped_no_yaml
+    return inserted, skipped_no_yaml, skipped_pre_slug
 
 
 def load_perf(conn):
@@ -376,6 +427,7 @@ def main():
         i = sys.argv.index('--db')
         if i + 1 < len(sys.argv):
             db_path = Path(sys.argv[i + 1])
+    include_no_yaml = '--include-no-yaml' in sys.argv
 
     if db_path.exists():
         db_path.unlink()
@@ -389,8 +441,8 @@ def main():
     print(f"    {n} models")
 
     print("  Loading summaries...")
-    inserted, no_yaml = load_summaries(conn)
-    print(f"    {inserted} inserted  |  {no_yaml} skipped (no YAML or too short)")
+    inserted, no_yaml, pre_slug = load_summaries(conn, include_no_yaml=include_no_yaml)
+    print(f"    {inserted} inserted  |  {no_yaml} skipped (no YAML)  |  {pre_slug} skipped (pre-slug)")
 
     print("  Loading perf runs...")
     n = load_perf(conn)
