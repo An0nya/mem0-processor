@@ -1133,6 +1133,13 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
 - ~~**sweep.mjs — per-sweep log file + richer summary output**~~ *(closed, commit `f02ea44`)*: subprocess
   stdio piped with live passthrough; full output written to `~/.claude/mem0/logs/sweep-<tag>.log`;
   failed run output replayed in final summary under `FAILED RUN OUTPUT` block.
+- **`build-dataset.py` — content-only summary view**: some models produce summaries that are
+  mostly or entirely reasoning traces with little actual content. Add a flag or SQL view that
+  strips the reasoning trace and YAML frontmatter so per-model content length and yield can
+  be compared. Two formats in the wild: HTML comment blocks (`<!-- reasoning -->`) from v7.2,
+  and fenced code blocks from later sessions. Useful for identifying models that "thought"
+  extensively but delivered thin outputs, and for cleaner scoring (scoring against content
+  only, not reasoning noise).
 - **Decouple summary generation from the session loop**: currently the main loop in the
   uploader iterates sessions and models in a fixed order tied to sweep's invocation.
   Refactor goal: expose a `generateSummary(sessionId, modelKey, options)` function that
