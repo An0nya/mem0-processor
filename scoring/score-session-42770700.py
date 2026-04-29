@@ -36,10 +36,15 @@ CHECKS_DEF = [
      r'(no.{0,20}(prior|embedded|existing).{0,20}context'
      r'|cold.{0,10}open'
      r'|open[s]?.{0,20}(without|no).{0,20}context'
-     r'|context.{0,20}reconstruct'
+     r'|context.{0,20}(reconstruct|establish|infer).{0,20}(from|via|using)'
      r'|inferred.{0,20}from.{0,20}mem0'
      r'|had.to.{0,20}(reconstruct|infer|check).{0,20}(context|step|prior)'
-     r'|started.{0,20}with.{0,30}(search|mem0|handoff))'),
+     r'|started.{0,20}with.{0,30}(search|mem0|handoff)'
+     r'|read.{0,20}handoff.{0,20}(file|notes)'
+     r'|handoff.{0,30}(read|check|opened)'
+     r'|search.{0,20}mem0.{0,20}(before|to.{0,10}(find|establish|check|understand))'
+     r'|established.{0,20}context.{0,20}from'
+     r'|session.{0,20}(begin|start|open).{0,30}(handoff|mem0|file.read))'),
 
     # 2. Three approaches for step 3 RAM fix (all three must be present or implied)
     ('three_approaches',
@@ -61,10 +66,13 @@ CHECKS_DEF = [
     ('large_output_gap',
      r'(large.output.{0,30}(disk|persist)'
      r'|persisted.to.disk'
-     r'|file.read.{0,30}(gap|missing|incomplete|out.of.context)'
+     r'|file.read.{0,30}(gap|missing|incomplete|out.of.context|not.shown)'
      r'|non.contiguous.{0,20}(read|slice)'
      r'|chunk.{0,20}(not.in.context|missing|lost)'
-     r'|read.{0,20}(without|missing).{0,20}(content|chunk|section))'),
+     r'|read.{0,20}(without|missing).{0,20}(content|chunk|section)'
+     r'|implementation.{0,30}without.{0,30}(full|complete).{0,20}(file|context)'
+     r'|read.{0,20}returned.{0,20}(large|persisted)'
+     r'|context.{0,20}(gap|missing|incomplete).{0,30}(file|read|implement))'),
 
     # 5. Step 4 design: summarized + uploaded booleans + ?? true backward compat
     ('state_redesign',

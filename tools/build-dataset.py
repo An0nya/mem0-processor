@@ -402,6 +402,16 @@ def load_scores(conn, scorers):
             print(f"  Warning: scoring failed for {Path(file_path).name}: {e}")
             continue
 
+        # penalty-adjusted scorers omit score_norm; derive it from score_adjusted
+        if 'score_norm' in result:
+            score_norm = result['score_norm']
+        else:
+            score_norm = result['score_adjusted'] / result['score_max'] if result['score_max'] else 0.0
+
+        extra = result.get('extra', {})
+        if 'penalties' in result:
+            extra = dict(extra, penalties=result['penalties'], penalty_raw=result['penalty_raw'])
+
         conn.execute(
             """INSERT INTO scores
                (summary_id, session_id, model_norm, score_norm, score_raw, score_max,
@@ -409,9 +419,9 @@ def load_scores(conn, scorers):
                VALUES (?,?,?,?,?,?,?,?)""",
             (
                 summary_id, session_id, model_norm,
-                result['score_norm'], result['score_raw'], result['score_max'],
+                score_norm, result['score_raw'], result['score_max'],
                 json.dumps(result['checks']),
-                json.dumps(result.get('extra', {})),
+                json.dumps(extra),
             )
         )
         scored += 1

@@ -14,9 +14,13 @@ Ground truth facts:
 5. Commit message explained both what changed (prompt format) and why
    (standalone analytical vs atomic decomposition)
 
+Penalty facts (false claims that should subtract from score):
+P1. Claiming the commit failed or required recovery
+P2. Claiming no errors or issues occurred (whitewashes the omission + spacing concern)
+
 Usage:
-  python score-session-5024455a.py                  # auto-discover in summaries + archive
-  python score-session-5024455a.py file1.txt ...    # score specific files
+  python score-session-5024455a-part0.py                  # auto-discover in summaries + archive
+  python score-session-5024455a-part0.py file1.txt ...    # score specific files
 """
 
 import re
@@ -37,7 +41,8 @@ CHECKS_DEF = [
      r'|bullet.{0,20}(list|format)'
      r'|flat.{0,20}format'
      r'|never.{0,20}(swapped|replaced|updated).{0,20}prompt'
-     r'|prompt.{0,20}(not|never).{0,20}(updated|replaced|swapped))'),
+     r'|prompt.{0,20}(not|never).{0,20}(updated|replaced|swapped))'
+    ),
 
     # 2. User self-caught the omission — Claude confirmed, didn't discover
     ('user_self_caught',
@@ -45,15 +50,24 @@ CHECKS_DEF = [
      r'|classic.{0,20}(me|my).{0,20}error'
      r'|user.{0,30}(forgot|missed|omitted).{0,30}(prompt|swap|step)'
      r'|user.{0,20}noticed.{0,20}(own|their)'
-     r'|user.{0,30}(caught|identified).{0,30}miss)'),
+     r'|user.{0,30}(caught|identified).{0,30}miss'
+     r'|user.{0,30}(recognized|realised|realized).{0,30}(gap|miss|omission|oversight)'
+     r'|user.{0,30}(independently|themselves).{0,30}(identified|noticed|caught|found)'
+     r'|self.{0,10}(identified|caught|noticed|aware).{0,30}(gap|miss|omission|error))'
+    ),
 
     # 3. TOOL_DENIED on git bash — user paused to check spacing then resumed
     ('tool_denied_git',
-     r'(tool.denied|denied.{0,20}(git|bash|command)'
+     r'(tool.denied'
+     r'|denied.{0,20}(git|bash|command)'
      r'|user.{0,30}(denied|rejected|interrupted).{0,30}(git|bash|commit)'
-     r'|user.{0,30}(paused|interrupted).{0,30}(spacing|extra)'
+     r'|user.{0,30}(paused|interrupted).{0,30}(spacing|extra|format)'
      r'|spacing.{0,30}(check|concern|look)'
-     r'|interrupted.{0,20}git)'),
+     r'|interrupted.{0,20}git'
+     r'|user.{0,30}interrupt.{0,30}(format|spacing|check|tool)'
+     r'|paused.{0,20}(format|check|spacing|tool)'
+     r'|interrupt.{0,20}(to check|before|while).{0,20}(format|spacing|file))'
+    ),
 
     # 4. v7 prompt format described (sectioned narrative, specific headers)
     ('v7_prompt_format',
@@ -63,14 +77,39 @@ CHECKS_DEF = [
      r'|what.happened.{0,20}why'
      r'|competence.signal'
      r'|open.thread[s]?'
-     r'|v7.{0,20}(section|format|structure|narrative))'),
+     r'|v7.{0,20}(section|format|structure|narrative))'
+    ),
 
     # 5. Commit explained what and why
     ('commit_quality',
      r'(commit.{0,40}(explain|what|why|clear|good|detailed)'
      r'|commit.{0,30}(message|description).{0,30}(explain|includes)'
      r'|why.{0,20}(changed|swapped|replaced).{0,20}(commit|noted)'
-     r'|commit.{0,20}(rationale|reason|context))'),
+     r'|commit.{0,20}(rationale|reason|context))'
+    ),
+]
+
+# Penalty checks: if matched, subtract 1 from adjusted score.
+PENALTY_DEF = [
+    # P1. Claiming the commit failed or needed recovery
+    # (the TOOL_DENIED was on git diff, not the commit — commit succeeded first try)
+    ('commit_failed',
+     r'(commit.{0,30}(fail|error|denied|rejected|did not|couldn)'
+     r'|commit.{0,20}(attempt.{0,10}fail|was.{0,10}fail)'
+     r'|failed.{0,20}(to commit|commit)'
+     r'|commit.{0,20}recover'
+     r'|had to.{0,20}(retry|re.run|redo).{0,20}commit)'
+    ),
+
+    # P2. Claiming no errors or issues occurred in the session
+    # (the omission itself is an error; the spacing concern is a friction point)
+    ('no_errors_occurred',
+     r'(no errors?.{0,20}(occurred|were made|in this session|found)'
+     r'|no.{0,20}(mistake|issue|problem|error).{0,20}(occurred|found|present|identified)'
+     r'|interaction.{0,20}(was.{0,10}(clean|smooth|perfect|flawless|error.free)'
+     r'|perfectly.{0,10}executed'
+     r'|no.{0,20}overreach.{0,20}occurred))'
+    ),
 ]
 
 CHECK_LABELS = [
@@ -79,22 +118,48 @@ CHECK_LABELS = [
     'Col 5: Commit explained what & why',
 ]
 
+PENALTY_LABELS = [
+    'Pen 1: Claims commit failed (it succeeded first try)',
+    'Pen 2: Claims no errors occurred (whitewashes the omission)',
+]
+
 
 def score_summary(content):
+    """Score a summary on 5 key facts, with up to 2 penalty deductions.
+
+    Returns dict:
+      score_raw       int 0–5  (positive checks only)
+      penalty_raw     int 0–2  (penalty hits)
+      score_adjusted  int      max(0, score_raw - penalty_raw)
+      score_max       5
+      checks          {name: bool}
+      penalties       {name: bool}  True = penalty triggered
+    """
     checks = {}
-    score = 0
+    hits = 0
     for name, pattern in CHECKS_DEF:
         hit = bool(re.search(pattern, content, re.I))
         checks[name] = hit
         if hit:
-            score += 1
+            hits += 1
+
+    penalties = {}
+    pen_hits = 0
+    for name, pattern in PENALTY_DEF:
+        hit = bool(re.search(pattern, content, re.I))
+        penalties[name] = hit
+        if hit:
+            pen_hits += 1
+
+    adjusted = max(0, hits - pen_hits)
 
     return {
-        'score_norm': score / len(CHECKS_DEF),
-        'score_raw':  float(score),
-        'score_max':  float(len(CHECKS_DEF)),
-        'checks':     checks,
-        'extra':      {},
+        'score_raw':      float(hits),
+        'penalty_raw':    float(pen_hits),
+        'score_adjusted': float(adjusted),
+        'score_max':      float(len(CHECKS_DEF)),
+        'checks':         checks,
+        'penalties':      penalties,
     }
 
 
@@ -142,25 +207,41 @@ def main():
             continue
 
         result = score_summary(content)
-        scores.append((result['score_raw'], label, result['checks']))
+        scores.append((
+            result['score_adjusted'],
+            result['score_raw'],
+            result['penalty_raw'],
+            label,
+            result['checks'],
+            result['penalties'],
+        ))
 
     scores.sort(reverse=True)
 
     max_score = len(CHECKS_DEF)
     print("=== ACCURACY SCORES ===\n")
-    for score_raw, model, checks in scores:
-        check_str = ' '.join('✓' if v else '✗' for v in checks.values())
-        print(f"{int(score_raw)}/{max_score}  {check_str}  {model}")
+    print(f"{'ADJ':>3}  {'RAW':>3}  {'PEN':>3}  CHECKS (1-5)   PENALTIES (P1-P2)  MODEL")
+    print("-" * 90)
+    for adj, raw, pen, model, checks, penalties in scores:
+        check_str   = ' '.join('✓' if v else '✗' for v in checks.values())
+        penalty_str = ' '.join('!' if v else '·' for v in penalties.values())
+        pen_note = f"-{int(pen)}" if pen > 0 else "  "
+        print(f"{int(adj):>3}  {int(raw):>3}  {pen_note:>3}  {check_str}  {penalty_str}  {model}")
 
     print("\n=== LEGEND ===")
+    print("Checks: ✓ = fact present   ✗ = fact missing")
+    print("Penalties: ! = false claim triggered   · = clean")
     for line in CHECK_LABELS:
         print(line)
+    for line in PENALTY_LABELS:
+        print(line)
 
-    print(f"\n=== SUMMARY ({len(scores)} files) ===")
-    print(f"Perfect ({max_score}/{max_score}): {sum(1 for s, _, _ in scores if s == max_score)}")
-    print(f"Strong  ({max_score-1}/{max_score}): {sum(1 for s, _, _ in scores if s == max_score - 1)}")
-    print(f"Good    ({max_score-2}/{max_score}): {sum(1 for s, _, _ in scores if s == max_score - 2)}")
-    print(f"Poor   (≤{max_score-3}/{max_score}): {sum(1 for s, _, _ in scores if s <= max_score - 3)}")
+    print(f"\n=== SUMMARY ({len(scores)} files, max adjusted = {max_score}) ===")
+    print(f"Perfect ({max_score}/{max_score}): {sum(1 for a,*_ in scores if a == max_score)}")
+    print(f"Strong  ({max_score-1}/{max_score}): {sum(1 for a,*_ in scores if a == max_score - 1)}")
+    print(f"Good    ({max_score-2}/{max_score}): {sum(1 for a,*_ in scores if a == max_score - 2)}")
+    print(f"Poor   (≤{max_score-3}/{max_score}): {sum(1 for a,*_ in scores if a <= max_score - 3)}")
+    print(f"Any penalty triggered: {sum(1 for _,_,p,*_ in scores if p > 0)}")
 
 
 if __name__ == '__main__':

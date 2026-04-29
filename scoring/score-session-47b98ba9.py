@@ -10,6 +10,10 @@ Ground truth facts:
 5. Claude's memory was STALE vs CHANGELOG (v8/v9/v10 existed, items backlogged)
 6. Final placement: v7.1 for timestamps, post-v10 for session grouping
 
+Penalty facts (false claims that should subtract from score):
+P1. Claiming Claude's initial response was correct / no initial error occurred
+P2. Claiming the topic had never been discussed (i.e. missing that mem0 had it)
+
 Usage:
   python score-session-47b98ba9.py                  # auto-discover in summaries + archive
   python score-session-47b98ba9.py file1.txt ...    # score specific files
@@ -24,45 +28,140 @@ SUMMARIES_DIR = Path.home() / ".claude/mem0/summaries"
 ARCHIVE_DIR = SUMMARIES_DIR / "archive"
 
 CHECKS_DEF = [
-    ('initial_not_found',    r'(not in memory|fresh ground|no prior discussion)'),
-    ('user_correction',      r'(user.*check mem0|user.*directed|user.*pointed.*mem0|check mem0)'),
-    ('found_in_mem0',        r'(found.*mem0|mem0.*found|april 2|2:25)'),
-    ('guardrail_evolution',  r'(memory guardrail|context overhead)'),
-    ('stale_memory',         r'(stale|outdated|divergen)'),
-    ('v8_v9_v10_structure',  r'(v8|v9|v10)'),
+    # 1. Claude initially claimed the topic hadn't been discussed
+    ('initial_not_found',
+     r'(not in memory'
+     r'|fresh ground'
+     r'|no prior discussion'
+     r'|no record'                              # "finding no record"
+     r'|incorrectly.{0,30}(claimed|stated|said|dismissed|asserted)'
+     r'|failed.{0,20}(find|retrieve|check|search)'
+     r'|missed.{0,20}(mem0|prior|discussion|entry)'
+     r'|initially.{0,20}(wrong|incorrect|missed|claim)'
+     r'|dismissed.{0,20}(topic|question|as new)'
+     r'|wrong.{0,20}(claim|assertion)'
+     r'|did not.{0,20}(check|search).{0,20}mem0)'
+    ),
+
+    # 2. User had to push back and redirect Claude to check mem0
+    ('user_correction',
+     r'(user.{0,30}check.{0,10}mem0'
+     r'|user.{0,30}directed'
+     r'|user.{0,30}pointed.{0,20}mem0'
+     r'|check mem0'
+     r'|user.{0,30}push.{0,10}back'
+     r'|user.{0,30}challeng'
+     r'|user.{0,30}correct.{0,20}(claude|this|it)'
+     r'|user.{0,30}had to.{0,30}(tell|instruct|ask|direct|redirect)'
+     r'|user.{0,30}told.{0,20}(claude|me).{0,20}(check|look|search)'
+     r'|forced.{0,20}(search|check|look)'
+     r'|prompted.{0,20}(claude|me).{0,20}(check|search|look))'
+    ),
+
+    # 3. The prior discussion was found in mem0 once Claude looked
+    ('found_in_mem0',
+     r'(found.{0,20}mem0'
+     r'|mem0.{0,20}found'
+     r'|april 2'
+     r'|2:25'
+     r'|already.{0,20}(captured|existed|in mem0|documented|stored)'
+     r'|prior.{0,20}discussion.{0,20}(exist|was|had)'
+     r'|exist.{0,20}in.{0,10}mem0'
+     r'|was.{0,20}in.{0,10}mem0'
+     r'|had.{0,20}been.{0,20}(discussed|captured|recorded)'
+     r'|memory.{0,20}(entry|item).{0,20}(exist|confirm|found)'
+     r'|retrieved.{0,20}from.{0,10}mem0)'
+    ),
+
+    # 4. Memory guardrail evolved into context overhead calculation
+    ('guardrail_evolution',
+     r'(memory guardrail'
+     r'|context overhead)'
+    ),
+
+    # 5. Claude's local memory was stale relative to the changelog
+    ('stale_memory',
+     r'(stale'
+     r'|outdated'
+     r'|divergen'
+     r'|out.of.{0,5}(date|sync)'
+     r'|behind.{0,20}(changelog|reality|actual)'
+     r'|did not.{0,20}(match|reflect|align).{0,20}(changelog|actual|reality)'
+     r'|memory.{0,20}(behind|wrong|incorrect|mismatch))'
+    ),
+
+    # 6. v8/v9/v10 milestones existed in changelog but not Claude's memory
+    ('v8_v9_v10_structure',
+     r'(v8|v9|v10)'
+    ),
+]
+
+# Penalty checks: if matched, subtract 1 from adjusted score.
+# These catch confident false claims that a good summary should NOT make.
+PENALTY_DEF = [
+    # P1. Claiming Claude's initial response was fine / no error
+    ('no_initial_error',
+     r'(no.{0,20}(error|mistake|issue).{0,30}(initial|first|start)'
+     r'|initial.{0,20}(response|answer).{0,20}(was.{0,10}correct|correct|fine|appropriate)'
+     r'|claude.{0,20}correctly.{0,20}(identified|found|checked).{0,20}(mem0|prior|discussion)'
+     r'|no.{0,20}miscommunication)'
+    ),
+
+    # P2. Claiming the topic had genuinely never been discussed (missing the mem0 find)
+    ('topic_never_discussed',
+     r'(topic.{0,20}(was.{0,10}new|had.{0,10}not.{0,10}been|never.{0,10}been)'
+     r'|never.{0,20}(discussed|talked.about).{0,30}(before|previously|prior)'
+     r'|fresh.{0,10}(topic|idea|ground|concept).{0,30}(was.correct|correct|right|accurate))'
+    ),
 ]
 
 CHECK_LABELS = [
-    'Col 1: Initial error    Col 2: User correction',
-    'Col 3: Found in mem0    Col 4: Guardrail evolution',
-    'Col 5: Stale memory     Col 6: v8/v9/v10 structure',
+    'Col 1: Initial error    Col 2: User correction   Col 3: Found in mem0',
+    'Col 4: Guardrail evol.  Col 5: Stale memory      Col 6: v8/v9/v10 structure',
+]
+
+PENALTY_LABELS = [
+    'Pen 1: Claims no initial error',
+    'Pen 2: Claims topic was genuinely new (missed the mem0 find)',
 ]
 
 
 def score_summary(content):
-    """Score a summary on 6 key facts.
+    """Score a summary on 6 key facts, with up to 2 penalty deductions.
 
     Returns dict:
-      score_norm  float 0–1, higher=better
-      score_raw   int 0–6
-      score_max   6.0
-      checks      {name: bool} one entry per fact
-      extra       {} (unused for this session)
+      score_raw       int 0–6  (positive checks only)
+      penalty_raw     int 0–2  (penalty hits)
+      score_adjusted  int      max(0, score_raw - penalty_raw)
+      score_max       6
+      checks          {name: bool}
+      penalties       {name: bool}  True = penalty triggered
     """
     checks = {}
-    score = 0
+    hits = 0
     for name, pattern in CHECKS_DEF:
         hit = bool(re.search(pattern, content, re.I))
         checks[name] = hit
         if hit:
-            score += 1
+            hits += 1
+
+    penalties = {}
+    pen_hits = 0
+    for name, pattern in PENALTY_DEF:
+        hit = bool(re.search(pattern, content, re.I))
+        penalties[name] = hit
+        if hit:
+            pen_hits += 1
+
+    adjusted = max(0, hits - pen_hits)
 
     return {
-        'score_norm': score / 6.0,
-        'score_raw':  float(score),
-        'score_max':  6.0,
-        'checks':     checks,
-        'extra':      {},
+        'score_raw':      float(hits),
+        'penalty_raw':    float(pen_hits),
+        'score_adjusted': float(adjusted),
+        'score_max':      float(len(CHECKS_DEF)),
+        'checks':         checks,
+        'penalties':      penalties,
     }
 
 
@@ -110,24 +209,41 @@ def main():
             continue
 
         result = score_summary(content)
-        scores.append((result['score_raw'], label, result['checks']))
+        scores.append((
+            result['score_adjusted'],
+            result['score_raw'],
+            result['penalty_raw'],
+            label,
+            result['checks'],
+            result['penalties'],
+        ))
 
     scores.sort(reverse=True)
 
+    max_score = len(CHECKS_DEF)
     print("=== ACCURACY SCORES ===\n")
-    for score_raw, model, checks in scores:
-        check_str = ' '.join('✓' if v else '✗' for v in checks.values())
-        print(f"{int(score_raw)}/6  {check_str}  {model}")
+    print(f"{'ADJ':>3}  {'RAW':>3}  {'PEN':>3}  CHECKS (1-6)      PENALTIES (P1-P2)  MODEL")
+    print("-" * 90)
+    for adj, raw, pen, model, checks, penalties in scores:
+        check_str   = ' '.join('✓' if v else '✗' for v in checks.values())
+        penalty_str = ' '.join('!' if v else '·' for v in penalties.values())
+        pen_note = f"-{int(pen)}" if pen > 0 else "  "
+        print(f"{int(adj):>3}  {int(raw):>3}  {pen_note:>3}  {check_str}  {penalty_str}  {model}")
 
     print("\n=== LEGEND ===")
+    print("Checks: ✓ = fact present   ✗ = fact missing")
+    print("Penalties: ! = false claim triggered   · = clean")
     for line in CHECK_LABELS:
         print(line)
+    for line in PENALTY_LABELS:
+        print(line)
 
-    print(f"\n=== SUMMARY ({len(scores)} files) ===")
-    print(f"Perfect (6/6): {sum(1 for s, _, _ in scores if s == 6)}")
-    print(f"Strong  (5/6): {sum(1 for s, _, _ in scores if s == 5)}")
-    print(f"Good    (4/6): {sum(1 for s, _, _ in scores if s == 4)}")
-    print(f"Poor   (≤3/6): {sum(1 for s, _, _ in scores if s <= 3)}")
+    print(f"\n=== SUMMARY ({len(scores)} files, max adjusted = {max_score}) ===")
+    print(f"Perfect ({max_score}/{max_score}): {sum(1 for a,*_ in scores if a == max_score)}")
+    print(f"Strong  ({max_score-1}/{max_score}): {sum(1 for a,*_ in scores if a == max_score - 1)}")
+    print(f"Good    ({max_score-2}/{max_score}): {sum(1 for a,*_ in scores if a == max_score - 2)}")
+    print(f"Poor   (≤{max_score-3}/{max_score}): {sum(1 for a,*_ in scores if a <= max_score - 3)}")
+    print(f"Any penalty triggered: {sum(1 for _,_,p,*_ in scores if p > 0)}")
 
 
 if __name__ == '__main__':
