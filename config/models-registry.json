@@ -153,24 +153,24 @@
     "bpw": "4.11",
     "memoryOverhead": {
       "min": 13.78,
-      "avg": 14.12,
-      "max": 14.39,
+      "avg": 14.16,
+      "max": 15,
       "ratio": 1.18,
-      "runs": 84
+      "runs": 112
     },
     "performance": {
       "tps": {
-        "min": 14.61,
-        "avg": 19.75,
+        "min": 5.81,
+        "avg": 19.26,
         "max": 26.05
       },
       "ttft": {
         "min": 12.64,
-        "avg": 109.66,
+        "avg": 112.45,
         "max": 256.43
       },
-      "prefillTps": 132.4,
-      "runs": 84
+      "prefillTps": 130.66,
+      "runs": 112
     },
     "loadOverheads": [
       14.08,
@@ -256,7 +256,35 @@
       14.17,
       14.17,
       14.11,
-      14.11
+      14.11,
+      14.130000000000003,
+      14.130000000000003,
+      14.18,
+      14.18,
+      14,
+      14,
+      14,
+      14.060000000000002,
+      14.060000000000002,
+      14.18,
+      14.18,
+      14.02,
+      13.98,
+      14.07,
+      14.290000000000003,
+      14.13,
+      14.129999999999999,
+      14.129999999999999,
+      14.129999999999999,
+      14.129999999999999,
+      14.129999999999999,
+      14.129999999999999,
+      14.059999999999999,
+      14.059999999999999,
+      14.07,
+      14.07,
+      14.02,
+      14.02
     ],
     "minRamGb": "14.80",
     "recommendedRamGb": 17,
@@ -510,24 +538,24 @@
     ],
     "memoryOverhead": {
       "min": -2.67,
-      "avg": 6.27,
+      "avg": 9.42,
       "max": 13.04,
-      "ratio": 0.57,
-      "runs": 29
+      "ratio": 0.86,
+      "runs": 55
     },
     "performance": {
       "tps": {
-        "min": 17.52,
-        "avg": 20.78,
+        "min": 3.16,
+        "avg": 20.17,
         "max": 25.9
       },
       "ttft": {
         "min": 12.21,
-        "avg": 100.92,
-        "max": 203.42
+        "avg": 109.95,
+        "max": 262.94
       },
-      "prefillTps": 132.03,
-      "runs": 29
+      "prefillTps": 131.06,
+      "runs": 55
     },
     "loadOverheads": [
       12.83,
@@ -558,10 +586,36 @@
       -2.4899999999999984,
       -2.4899999999999984,
       -2.4899999999999984,
-      -2.4899999999999984
+      -2.4899999999999984,
+      12.83,
+      12.84,
+      12.84,
+      12.84,
+      12.850000000000001,
+      12.850000000000001,
+      12.799999999999999,
+      12.799999999999999,
+      12.84,
+      12.790000000000003,
+      12.870000000000001,
+      12.92,
+      12.849999999999998,
+      12.91,
+      12.91,
+      12.91,
+      12.91,
+      12.91,
+      12.91,
+      12.79,
+      12.79,
+      12.779999999999998,
+      12.779999999999998,
+      12.779999999999998,
+      12.82,
+      12.82
     ],
-    "minRamGb": "6.50",
-    "recommendedRamGb": 8
+    "minRamGb": "9.81",
+    "recommendedRamGb": 12
   },
   "jackrong/qwopus-glm-18b": {
     "path": "/Volumes/WD-elements/llm-offload/Jackrong/Qwopus-GLM-18B-Merged-GGUF/Qwopus-GLM-18B-Healed-Q4_K_M.gguf",
@@ -860,24 +914,24 @@
     "bpw": "2.69",
     "memoryOverhead": {
       "min": 11.73,
-      "avg": 12,
-      "max": 12.83,
-      "ratio": 1.1,
-      "runs": 119
+      "avg": 12.1,
+      "max": 13.16,
+      "ratio": 1.11,
+      "runs": 144
     },
     "performance": {
       "tps": {
         "min": 18.77,
-        "avg": 24.53,
+        "avg": 24.34,
         "max": 29.76
       },
       "ttft": {
         "min": 11.18,
-        "avg": 92.31,
-        "max": 252.86
+        "avg": 95.17,
+        "max": 253.48
       },
-      "prefillTps": 145.79,
-      "runs": 119
+      "prefillTps": 145.72,
+      "runs": 144
     },
     "loadOverheads": [
       12.32,
@@ -998,9 +1052,34 @@
       12.48,
       12.48,
       12.48,
-      12.48
+      12.48,
+      12.379999999999999,
+      12.379999999999999,
+      12.379999999999999,
+      12.360000000000001,
+      12.360000000000001,
+      12.54,
+      12.54,
+      12.41,
+      12.330000000000002,
+      12.34,
+      12.400000000000002,
+      12.270000000000001,
+      12.27,
+      12.27,
+      12.27,
+      12.27,
+      12.27,
+      12.27,
+      12.290000000000001,
+      12.290000000000001,
+      12.41,
+      12.41,
+      12.41,
+      12.350000000000001,
+      12.350000000000001
     ],
-    "minRamGb": "12.57",
+    "minRamGb": "12.64",
     "recommendedRamGb": 15,
     "offloadedLayers": 41,
     "totalLayers": 41,
@@ -1163,24 +1242,24 @@
     "bpw": "5.00",
     "memoryOverhead": {
       "min": 8.02,
-      "avg": 9.06,
+      "avg": 9.12,
       "max": 9.78,
-      "ratio": 1.1,
-      "runs": 44
+      "ratio": 1.11,
+      "runs": 69
     },
     "performance": {
       "tps": {
-        "min": 16.67,
-        "avg": 20.38,
+        "min": 16.15,
+        "avg": 20.05,
         "max": 23.3
       },
       "ttft": {
         "min": 8.36,
-        "avg": 61,
-        "max": 173.7
+        "avg": 68.94,
+        "max": 195.25
       },
-      "prefillTps": 198.51,
-      "runs": 44
+      "prefillTps": 196.01,
+      "runs": 69
     },
     "loadOverheads": [
       9.17,
@@ -1226,9 +1305,34 @@
       9.23,
       9.23,
       9.23,
-      9.23
+      9.23,
+      9.18,
+      9.18,
+      9.18,
+      9.239999999999998,
+      9.239999999999998,
+      9.379999999999999,
+      9.379999999999999,
+      9.2,
+      9.2,
+      9.23,
+      9.23,
+      9.190000000000001,
+      9.32,
+      9.32,
+      9.32,
+      9.32,
+      9.32,
+      9.32,
+      9.2,
+      9.2,
+      9.2,
+      9.2,
+      9.2,
+      9.2,
+      9.2
     ],
-    "minRamGb": "9.64",
+    "minRamGb": "9.66",
     "recommendedRamGb": 12,
     "offloadedLayers": 41,
     "totalLayers": 41,
@@ -1334,34 +1438,61 @@
     "ropeFreqBase": "1000000.000000",
     "specialAttention": "MLA",
     "memoryOverhead": {
-      "min": 13.77,
-      "avg": 13.93,
+      "min": 13.49,
+      "avg": 13.88,
       "max": 14.28,
       "ratio": 1.16,
-      "runs": 5
+      "runs": 32
     },
     "performance": {
       "tps": {
-        "min": 4.46,
-        "avg": 8.34,
-        "max": 11.19
+        "min": 3.38,
+        "avg": 7.05,
+        "max": 13.27
       },
       "ttft": {
-        "min": 60.56,
-        "avg": 163.41,
-        "max": 427.05
+        "min": 52.88,
+        "avg": 239.86,
+        "max": 751.2
       },
-      "prefillTps": 75.13,
-      "runs": 5
+      "prefillTps": 65.25,
+      "runs": 32
     },
     "loadOverheads": [
       13.709999999999999,
       13.690000000000001,
       13.959999999999999,
       13.7,
-      13.76
+      13.76,
+      13.77,
+      13.77,
+      13.780000000000001,
+      13.780000000000001,
+      13.780000000000001,
+      13.71,
+      13.71,
+      13.71,
+      13.71,
+      13.66,
+      13.669999999999998,
+      13.71,
+      13.74,
+      13.77,
+      13.719999999999999,
+      13.719999999999999,
+      13.719999999999999,
+      13.719999999999999,
+      13.719999999999999,
+      13.719999999999999,
+      13.759999999999998,
+      13.759999999999998,
+      13.709999999999999,
+      13.709999999999999,
+      13.709999999999999,
+      13.75,
+      13.75
     ],
-    "minRamGb": "14.45",
+    "minRamGb": "14.43",
     "recommendedRamGb": 17
   },
   "unsloth/ministral-3-14b-instruct": {
@@ -1990,7 +2121,37 @@
       "q8_0",
       "small",
       "wd-elements"
-    ]
+    ],
+    "memoryOverhead": {
+      "min": 8.38,
+      "avg": 8.56,
+      "max": 8.67,
+      "ratio": 1.14,
+      "runs": 5
+    },
+    "performance": {
+      "tps": {
+        "min": 15.79,
+        "avg": 16.4,
+        "max": 17.52
+      },
+      "ttft": {
+        "min": 5.6,
+        "avg": 32.58,
+        "max": 50.01
+      },
+      "prefillTps": 305.27,
+      "runs": 5
+    },
+    "loadOverheads": [
+      8.61,
+      8.61,
+      8.61,
+      8.38,
+      8.38
+    ],
+    "minRamGb": "8.95",
+    "recommendedRamGb": 11
   },
   "bartowski/olmo-3.1-32b-think": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/allenai_Olmo-3.1-32B-Think-GGUF/allenai_Olmo-3.1-32B-Think-IQ3_XXS.gguf",
@@ -2953,7 +3114,40 @@
         "organization": "DavidAU"
       }
     ],
-    "ropeFreqBase": "10000000.000000"
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": 13.87,
+      "avg": 14.14,
+      "max": 14.59,
+      "ratio": 1.23,
+      "runs": 8
+    },
+    "performance": {
+      "tps": {
+        "min": 4.01,
+        "avg": 4.19,
+        "max": 4.45
+      },
+      "ttft": {
+        "min": 154.36,
+        "avg": 319.15,
+        "max": 448.44
+      },
+      "prefillTps": 36.28,
+      "runs": 8
+    },
+    "loadOverheads": [
+      13.9,
+      13.81,
+      14,
+      14.06,
+      14.06,
+      14.06,
+      13.919999999999998,
+      13.919999999999998
+    ],
+    "minRamGb": "14.67",
+    "recommendedRamGb": 17
   },
   "mradermacher/qwopus-moe-35b-a3b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwopus-MoE-35B-A3B-i1-GGUF/Qwopus-MoE-35B-A3B.i1-IQ2_M.gguf",
@@ -2981,21 +3175,21 @@
       "avg": 12.42,
       "max": 12.84,
       "ratio": 1.14,
-      "runs": 26
+      "runs": 51
     },
     "performance": {
       "tps": {
-        "min": 19.41,
-        "avg": 25.81,
+        "min": 18.84,
+        "avg": 24.66,
         "max": 29.43
       },
       "ttft": {
         "min": 11.14,
-        "avg": 68.14,
-        "max": 237.37
+        "avg": 89.92,
+        "max": 259.93
       },
-      "prefillTps": 148.05,
-      "runs": 26
+      "prefillTps": 144.33,
+      "runs": 51
     },
     "loadOverheads": [
       11.110000000000001,
@@ -3023,10 +3217,35 @@
       12.309999999999999,
       12.24,
       12.23,
-      12.37
+      12.37,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.259999999999998,
+      12.259999999999998,
+      12.280000000000001,
+      12.280000000000001,
+      12.26,
+      12.37,
+      12.37,
+      12.339999999999998,
+      12.379999999999999,
+      12.319999999999999,
+      12.319999999999999,
+      12.319999999999999,
+      12.319999999999999,
+      12.319999999999999,
+      12.319999999999999,
+      12.36,
+      12.36,
+      12.290000000000003,
+      12.290000000000003,
+      12.290000000000003,
+      12.41,
+      12.41
     ],
-    "minRamGb": "12.89",
-    "recommendedRamGb": 16,
+    "minRamGb": "12.92",
+    "recommendedRamGb": 15,
     "offloadedLayers": 41,
     "totalLayers": 41,
     "modelName": "Qwopus MoE 35B A3B",
@@ -3192,7 +3411,37 @@
       "medium",
       "moe",
       "wd-elements"
-    ]
+    ],
+    "memoryOverhead": {
+      "min": 11.26,
+      "avg": 11.28,
+      "max": 11.29,
+      "ratio": 1.19,
+      "runs": 5
+    },
+    "performance": {
+      "tps": {
+        "min": 23.01,
+        "avg": 25.23,
+        "max": 28.77
+      },
+      "ttft": {
+        "min": 9.29,
+        "avg": 54.34,
+        "max": 85.82
+      },
+      "prefillTps": 183.29,
+      "runs": 5
+    },
+    "loadOverheads": [
+      11.280000000000001,
+      11.280000000000001,
+      11.280000000000001,
+      11.21,
+      11.21
+    ],
+    "minRamGb": "11.81",
+    "recommendedRamGb": 14
   },
   "mradermacher/gpt-oss-20b-heretic": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/gpt-oss-20b-heretic-heretic-GGUF/gpt-oss-20b-heretic-heretic.IQ4_XS.gguf",
@@ -3273,24 +3522,24 @@
     "bpw": "3.19",
     "memoryOverhead": {
       "min": 12.81,
-      "avg": 12.86,
-      "max": 12.9,
+      "avg": 12.93,
+      "max": 13.39,
       "ratio": 1.16,
-      "runs": 7
+      "runs": 9
     },
     "performance": {
       "tps": {
         "min": 4.9,
-        "avg": 10.77,
+        "avg": 10.12,
         "max": 17.41
       },
       "ttft": {
         "min": 15.86,
-        "avg": 119.32,
+        "avg": 124.94,
         "max": 386.93
       },
-      "prefillTps": 89.32,
-      "runs": 7
+      "prefillTps": 85.53,
+      "runs": 9
     },
     "loadOverheads": [
       12.75,
@@ -3299,9 +3548,11 @@
       12.75,
       12.8,
       12.8,
-      12.8
+      12.8,
+      12.89,
+      12.89
     ],
-    "minRamGb": "13.41",
+    "minRamGb": "13.44",
     "recommendedRamGb": 16,
     "offloadedLayers": 48,
     "totalLayers": 48,
@@ -3411,25 +3662,25 @@
       "wd-elements"
     ],
     "memoryOverhead": {
-      "min": 13.95,
-      "avg": 13.99,
-      "max": 14.07,
-      "ratio": 1.16,
-      "runs": 6
+      "min": 13.87,
+      "avg": 14.11,
+      "max": 14.79,
+      "ratio": 1.17,
+      "runs": 32
     },
     "performance": {
       "tps": {
-        "min": 17.95,
-        "avg": 21.86,
+        "min": 16.46,
+        "avg": 20.78,
         "max": 25.7
       },
       "ttft": {
         "min": 11.07,
-        "avg": 76.78,
-        "max": 164.31
+        "avg": 98.68,
+        "max": 208.66
       },
-      "prefillTps": 156.02,
-      "runs": 6
+      "prefillTps": 148.37,
+      "runs": 32
     },
     "loadOverheads": [
       13.95,
@@ -3437,9 +3688,35 @@
       13.95,
       13.87,
       13.84,
-      13.98
+      13.98,
+      13.94,
+      13.94,
+      13.969999999999999,
+      13.969999999999999,
+      13.969999999999999,
+      14.120000000000001,
+      14.120000000000001,
+      13.84,
+      13.84,
+      14.029999999999998,
+      13.870000000000001,
+      13.95,
+      13.95,
+      14.009999999999998,
+      14.33,
+      14.33,
+      14.33,
+      14.33,
+      14.33,
+      14.33,
+      13.930000000000001,
+      13.930000000000001,
+      13.89,
+      13.89,
+      13.900000000000002,
+      13.900000000000002
     ],
-    "minRamGb": "14.62",
+    "minRamGb": "14.71",
     "recommendedRamGb": 17
   },
   "nvidia/nemotron-nano-4b": {
@@ -3530,7 +3807,7 @@
     "format": "gguf",
     "arch": "moe",
     "source": "wd-elements",
-    "notes": "folder says 24B-A3B but filename says 18B — verify before use",
+    "notes": "folder says 24B-A3B but filename says 18B \u2014 verify before use",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
@@ -3853,24 +4130,24 @@
     "ropeFreqBase": "10000000.000000",
     "memoryOverhead": {
       "min": 11.89,
-      "avg": 12.35,
-      "max": 12.68,
-      "ratio": 1.12,
-      "runs": 18
+      "avg": 12.41,
+      "max": 12.83,
+      "ratio": 1.13,
+      "runs": 43
     },
     "performance": {
       "tps": {
-        "min": 20.42,
-        "avg": 24.52,
-        "max": 27.81
+        "min": 18.67,
+        "avg": 23.94,
+        "max": 27.83
       },
       "ttft": {
-        "min": 27.43,
-        "avg": 88.92,
-        "max": 180.1
+        "min": 26.53,
+        "avg": 101.51,
+        "max": 254.22
       },
-      "prefillTps": 146.27,
-      "runs": 18
+      "prefillTps": 144.29,
+      "runs": 43
     },
     "loadOverheads": [
       12.29,
@@ -3890,9 +4167,34 @@
       12.219999999999999,
       12.219999999999999,
       12.219999999999999,
-      12.219999999999999
+      12.219999999999999,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.459999999999999,
+      12.459999999999999,
+      12.330000000000002,
+      12.330000000000002,
+      12.39,
+      12.440000000000001,
+      12.36,
+      12.34,
+      12.459999999999999,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.370000000000001,
+      12.380000000000003,
+      12.380000000000003,
+      12.380000000000003,
+      12.3,
+      12.3
     ],
-    "minRamGb": "12.94",
+    "minRamGb": "12.97",
     "recommendedRamGb": 15
   },
   "misc/qwen3.5-35b-a3b-claude-opus": {
@@ -3967,34 +4269,59 @@
     ],
     "ropeFreqBase": "10000000.000000",
     "memoryOverhead": {
-      "min": 12.3,
-      "avg": 12.38,
+      "min": 12.22,
+      "avg": 12.36,
       "max": 12.6,
-      "ratio": 1.13,
-      "runs": 5
+      "ratio": 1.12,
+      "runs": 30
     },
     "performance": {
       "tps": {
-        "min": 21.17,
-        "avg": 25.44,
-        "max": 27.76
+        "min": 19.01,
+        "avg": 24.23,
+        "max": 28.94
       },
       "ttft": {
-        "min": 37.37,
-        "avg": 76.13,
-        "max": 172.03
+        "min": 27.87,
+        "avg": 108.04,
+        "max": 262.74
       },
-      "prefillTps": 148.22,
-      "runs": 5
+      "prefillTps": 139.25,
+      "runs": 30
     },
     "loadOverheads": [
       12.25,
       12.15,
       12.08,
       12.21,
-      12.24
+      12.24,
+      12.260000000000002,
+      12.260000000000002,
+      12.260000000000002,
+      12.2,
+      12.2,
+      12.240000000000002,
+      12.240000000000002,
+      12.3,
+      12.29,
+      12.34,
+      12.219999999999999,
+      12.190000000000001,
+      12.309999999999999,
+      12.309999999999999,
+      12.309999999999999,
+      12.309999999999999,
+      12.309999999999999,
+      12.309999999999999,
+      12.179999999999998,
+      12.179999999999998,
+      12.259999999999998,
+      12.259999999999998,
+      12.259999999999998,
+      12.21,
+      12.21
     ],
-    "minRamGb": "12.80",
+    "minRamGb": "12.85",
     "recommendedRamGb": 15
   },
   "misc/qwen3.5-9b-glm5.1-distill": {
@@ -4178,6 +4505,7 @@
       "imatrix",
       "iq2_xxs",
       "large",
+      "moe",
       "nvme",
       "qwen35moe"
     ],
@@ -4223,7 +4551,8 @@
         "organization": "Lordx64"
       }
     ],
-    "ropeFreqBase": "10000000.000000"
+    "ropeFreqBase": "10000000.000000",
+    "arch": "moe"
   },
   "mudler/gemma-4-26b-a4b-heretic-apex": {
     "path": "/Volumes/WD-elements/llm-offload/mudler/gemma-4-26B-A4B-it-heretic-APEX-GGUF/gemma-4-26B-A4B-heretic-APEX-I-Mini.gguf",
@@ -4245,6 +4574,7 @@
       "gemma4",
       "imatrix",
       "medium",
+      "moe",
       "q3_k_m",
       "wd-elements"
     ],
@@ -4283,7 +4613,8 @@
     "highPrecisionRatio": 0.5957446808510638,
     "ultraLowRatio": 0,
     "quantStrategy": "highly_mixed",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "arch": "moe"
   },
   "misc/gemma-4-26b-a4b-claude-opus-distill-v1": {
     "path": "/Volumes/WD-elements/llm-offload/TeichAI/gemma-4-26B-A4B-it-Claude-Opus-Distill-GGUF/gemma-4-26B-A4B-it-Claude-Opus-Distill.q3_k_m.gguf",
@@ -4375,6 +4706,7 @@
       "imatrix",
       "iq3_s",
       "medium",
+      "moe",
       "wd-elements"
     ],
     "nLayer": 30,
@@ -4424,7 +4756,8 @@
         "organization": "Crownelius"
       }
     ],
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "arch": "moe"
   },
   "sphaela/gemma-4-26B-A4B-it-AutoRound-GGUF": {
     "path": "/Volumes/WD-elements/llm-offload/sphaela/gemma-4-26B-A4B-it-AutoRound-GGUF/gemma-4-26B-A4B-it-Q2_K_MIXED.gguf",
@@ -4444,6 +4777,7 @@
     "tags": [
       "gemma4",
       "medium",
+      "moe",
       "q2_k_s",
       "wd-elements"
     ],
@@ -4477,7 +4811,8 @@
     "highPrecisionRatio": 0.5972644376899696,
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "arch": "moe"
   },
   "mradermacher/ERNIE-21B-A3B-Thinking-Gemini-3-Pro-High-Reasoning-V2-IQ4_XS": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/ERNIE-21B-A3B-Thinking-Gemini-3-Pro-High-Reasoning-V2-GGUF/ERNIE-21B-A3B-Thinking-Gemini-3-Pro-High-Reasoning-V2.IQ4_XS.gguf",
@@ -4497,6 +4832,7 @@
       "ernie4_5-moe",
       "iq4_xs",
       "medium",
+      "moe",
       "wd-elements"
     ],
     "nLayer": 28,
@@ -4537,7 +4873,8 @@
         "organization": "TeichAI"
       }
     ],
-    "ropeFreqBase": "500000.000000"
+    "ropeFreqBase": "500000.000000",
+    "arch": "moe"
   },
   "mradermacher/Gemma-4-14B-A4B-Heretic.i1-IQ4_XS": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Gemma-4-14B-A4B-Heretic-i1-GGUF/Gemma-4-14B-A4B-Heretic.i1-IQ4_XS.gguf",
@@ -4557,6 +4894,7 @@
       "gemma4",
       "imatrix",
       "iq4_xs",
+      "moe",
       "small",
       "wd-elements"
     ],
@@ -4591,7 +4929,8 @@
     "highPrecisionRatio": 0.5957446808510638,
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "arch": "moe"
   },
   "mradermacher/Gemma-4-14B-A4B-Heretic.i1-Q4_K_M": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Gemma-4-14B-A4B-Heretic-i1-GGUF/Gemma-4-14B-A4B-Heretic.i1-Q4_K_M.gguf",
@@ -4610,6 +4949,7 @@
     "tags": [
       "gemma4",
       "imatrix",
+      "moe",
       "q4_k_m",
       "small",
       "wd-elements"
@@ -4646,7 +4986,8 @@
     "highPrecisionRatio": 0.6382978723404256,
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "arch": "moe"
   },
   "unsloth/GLM-4.7-Flash-REAP-23B-A3B-IQ4_XS": {
     "path": "/Volumes/WD-elements/llm-offload/unsloth/GLM-4.7-Flash-REAP-23B-A3B-GGUF/GLM-4.7-Flash-REAP-23B-A3B-IQ4_XS.gguf",
@@ -4667,6 +5008,7 @@
       "imatrix",
       "iq4_xs",
       "medium",
+      "moe",
       "unsloth",
       "wd-elements"
     ],
@@ -4706,7 +5048,8 @@
     "ultraLowRatio": 0,
     "quantStrategy": "highly_mixed",
     "ropeFreqBase": "1000000.000000",
-    "specialAttention": "MLA"
+    "specialAttention": "MLA",
+    "arch": "moe"
   },
   "/Volumes/WD-elements/llm-offload/tomasmcm/gpt-oss-11.4b-specialized-all-pruned-q4_k_m": {
     "path": "/Volumes/WD-elements/llm-offload/tomasmcm/gpt-oss-11.4b-specialized-all-pruned-moe-only-16-experts-Q4_K_M-GGUF/gpt-oss-11.4b-specialized-all-pruned-moe-only-16-experts-q4_k_m.gguf",
@@ -4724,6 +5067,7 @@
     "kvQuantV": "q4_0",
     "tags": [
       "gpt-oss",
+      "moe",
       "q4_k_m",
       "small",
       "wd-elements"
@@ -4765,7 +5109,8 @@
         "organization": "AmanPriyanshu"
       }
     ],
-    "ropeFreqBase": "150000.000000"
+    "ropeFreqBase": "150000.000000",
+    "arch": "moe"
   },
   "nanbeige/nanbeige4.1-3b-q8_0": {
     "path": "/Volumes/WD-elements/llm-offload/nanbeige/Nanbeige4.1-3B-GGUF/Nanbeige4.1-3B.Q8_0.gguf",
@@ -4786,8 +5131,6 @@
     "tags": [
       "dense",
       "llama",
-      "q8_0",
-      "small",
       "wd-elements"
     ]
   },
@@ -4808,14 +5151,96 @@
       "kvQuantV": "q8_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "imatrix",
       "iq4_xs",
-      "small",
       "qwen35",
-      "imatrix"
-    ]
+      "small",
+      "wd-elements"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "9B",
+    "modelParams": "8.95 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.52",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 8,
+    "modelName": "Crow 9B Opus 4.6 Distill Heretic_Qwen3.5",
+    "baseModel": "Qwen3.5 9B Heretic v2",
+    "sizeLabel": "9B",
+    "architecture": "qwen35",
+    "attentionHeads": 16,
+    "kvHeads": 4,
+    "gqaRatio": 4,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 531.25,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 4954,
+    "hasImatrix": true,
+    "imatrixEntries": 248,
+    "quantBreakdown": {
+      "f32": 177,
+      "q5_K": 8,
+      "q6_K": 1,
+      "iq4_xs": 241,
+      "total": 427
+    },
+    "highPrecisionRatio": 0.41451990632318503,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "datasets": [
+      {
+        "name": "Opus 4.6 Reasoning 2100x Formatted",
+        "organization": "Crownelius"
+      },
+      {
+        "name": "Creative_Writing_ShareGPT_Enhanced",
+        "organization": "Crownelius"
+      },
+      {
+        "name": "rStar Coder",
+        "organization": "Microsoft"
+      },
+      {
+        "name": "Dataclaw Peteromallet",
+        "organization": "Peteromallet"
+      }
+    ],
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": 5.82,
+      "avg": 5.95,
+      "max": 6.06,
+      "ratio": 1.26,
+      "runs": 6
+    },
+    "performance": {
+      "tps": {
+        "min": 15.3,
+        "avg": 16.15,
+        "max": 17.06
+      },
+      "ttft": {
+        "min": 21.61,
+        "avg": 48.77,
+        "max": 78.78
+      },
+      "prefillTps": 189.37,
+      "runs": 6
+    },
+    "loadOverheads": [
+      5.969999999999999,
+      5.969999999999999,
+      6.009999999999999,
+      5.78,
+      5.739999999999999,
+      5.739999999999999
+    ],
+    "minRamGb": "6.16",
+    "recommendedRamGb": 8
   },
   "unsloth/devstral-small-2-24b": {
     "path": "/Volumes/WD-elements/llm-offload/unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF/Devstral-Small-2-24B-Instruct-2512-IQ4_XS.gguf",
@@ -4834,13 +5259,51 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "imatrix",
       "iq4_xs",
       "medium",
-      "mistral"
-    ]
+      "mistral",
+      "mistral3",
+      "quality-candidate",
+      "unsloth",
+      "wd-elements"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 393216,
+    "modelType": "14B",
+    "modelParams": "23.57 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.33",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 40,
+    "modelName": "Devstral-Small-2-24B-Instruct-2512",
+    "baseModel": "Devstral Small 2 24B Instruct 2512",
+    "sizeLabel": "24B",
+    "architecture": "mistral3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 1406.25,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 13264,
+    "hasImatrix": true,
+    "imatrixEntries": 280,
+    "quantBreakdown": {
+      "f32": 81,
+      "q4_K": 1,
+      "q5_K": 40,
+      "q6_K": 1,
+      "iq4_xs": 240,
+      "total": 363
+    },
+    "highPrecisionRatio": 0.2231404958677686,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "100000000.000000"
   },
   "bartowski/darwin-36b-opus": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/FINAL-Bench_Darwin-36B-Opus-GGUF/FINAL-Bench_Darwin-36B-Opus-IQ2_M.gguf",
@@ -4860,14 +5323,86 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
-      "moe",
-      "wd-elements",
+      "imatrix",
       "iq2_m",
       "large",
+      "moe",
+      "quality-candidate",
       "qwen35",
-      "imatrix"
-    ]
+      "qwen35moe",
+      "wd-elements"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "35B.A3B",
+    "modelParams": "34.66 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.78",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 10,
+    "modelName": "Darwin 36B Opus",
+    "baseModel": "Qwen3.6 35B A3B",
+    "sizeLabel": "36B",
+    "architecture": "qwen35moe",
+    "expertCount": 256,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 2,
+    "gqaRatio": 8,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 175.78,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11588,
+    "hasImatrix": true,
+    "imatrixEntries": 510,
+    "quantBreakdown": {
+      "f32": 361,
+      "q8_0": 60,
+      "q4_K": 115,
+      "q5_K": 11,
+      "q6_K": 19,
+      "iq3_s": 10,
+      "iq2_s": 157,
+      "total": 733
+    },
+    "highPrecisionRatio": 0.5743519781718963,
+    "ultraLowRatio": 0.21418826739427013,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": -1.94,
+      "avg": 6.54,
+      "max": 12.89,
+      "ratio": 0.58,
+      "runs": 7
+    },
+    "performance": {
+      "tps": {
+        "min": 23.01,
+        "avg": 24.65,
+        "max": 27.05
+      },
+      "ttft": {
+        "min": 26.59,
+        "avg": 61.5,
+        "max": 98.4
+      },
+      "prefillTps": 152.27,
+      "runs": 7
+    },
+    "loadOverheads": [
+      -2,
+      -2,
+      -1.8000000000000007,
+      12.65,
+      12.79,
+      12.75,
+      12.75
+    ],
+    "minRamGb": "6.77",
+    "recommendedRamGb": 8
   },
   "mradermacher/friday-35b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Friday-35B-i1-GGUF/Friday-35B.i1-IQ2_M.gguf",
@@ -4887,14 +5422,83 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
-      "moe",
-      "wd-elements",
+      "imatrix",
       "iq2_m",
       "large",
+      "moe",
       "qwen35",
-      "imatrix"
-    ]
+      "qwen35moe",
+      "wd-elements"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 262144,
+    "modelType": "35B.A3B",
+    "modelParams": "34.66 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.69",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 10,
+    "modelName": "Friday 35B",
+    "baseModel": "Qwen3.6 35B A3B",
+    "sizeLabel": "35B",
+    "architecture": "qwen35moe",
+    "expertCount": 256,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 2,
+    "gqaRatio": 8,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 175.78,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11199,
+    "hasImatrix": true,
+    "imatrixEntries": 510,
+    "quantBreakdown": {
+      "f32": 301,
+      "q4_K": 40,
+      "q5_K": 1,
+      "iq3_s": 16,
+      "iq2_s": 375,
+      "total": 733
+    },
+    "highPrecisionRatio": 0.4106412005457026,
+    "ultraLowRatio": 0.5115961800818554,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": 12.39,
+      "avg": 12.43,
+      "max": 12.48,
+      "ratio": 1.14,
+      "runs": 7
+    },
+    "performance": {
+      "tps": {
+        "min": 23.81,
+        "avg": 25.55,
+        "max": 28.4
+      },
+      "ttft": {
+        "min": 26.41,
+        "avg": 60.88,
+        "max": 99.13
+      },
+      "prefillTps": 154.97,
+      "runs": 7
+    },
+    "loadOverheads": [
+      12.360000000000001,
+      12.360000000000001,
+      12.309999999999999,
+      12.3,
+      12.27,
+      12.370000000000001,
+      12.370000000000001
+    ],
+    "minRamGb": "12.95",
+    "recommendedRamGb": 15
   },
   "bartowski/magistral-small-2509": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/mistralai_Magistral-Small-2509-GGUF/mistralai_Magistral-Small-2509-IQ4_XS.gguf",
@@ -4913,13 +5517,79 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "imatrix",
       "iq4_xs",
+      "llama",
       "medium",
-      "mistral"
-    ]
+      "mistral",
+      "wd-elements"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 131072,
+    "modelType": "13B",
+    "modelParams": "23.57 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.33",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 40,
+    "modelName": "Magistral Small 2509",
+    "baseModel": "Mistral Small 3.2 24B Instruct 2506",
+    "sizeLabel": "Small",
+    "architecture": "llama",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 1406.25,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 13264,
+    "hasImatrix": true,
+    "imatrixEntries": 280,
+    "quantBreakdown": {
+      "f32": 81,
+      "q5_K": 40,
+      "q6_K": 1,
+      "iq4_xs": 241,
+      "total": 363
+    },
+    "highPrecisionRatio": 0.2231404958677686,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000000.000000",
+    "memoryOverhead": {
+      "min": 14.89,
+      "avg": 14.92,
+      "max": 14.97,
+      "ratio": 1.26,
+      "runs": 6
+    },
+    "performance": {
+      "tps": {
+        "min": 1.26,
+        "avg": 4.07,
+        "max": 7.42
+      },
+      "ttft": {
+        "min": 77.92,
+        "avg": 202.26,
+        "max": 318.35
+      },
+      "prefillTps": 48.22,
+      "runs": 6
+    },
+    "loadOverheads": [
+      14.79,
+      14.79,
+      14.790000000000001,
+      14.850000000000001,
+      14.790000000000001,
+      14.790000000000001
+    ],
+    "minRamGb": "15.54",
+    "recommendedRamGb": 18
   },
   "mradermacher/qwen35-9b-os-auto-thinking": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-9B-Claude-4.6-OS-Auto-Variable-THINKING-i1-GGUF/Qwen3.5-9B-Claude-4.6-OS-Auto-Variable-THINKING.i1-IQ4_XS.gguf",
@@ -4938,14 +5608,79 @@
       "kvQuantV": "q8_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "imatrix",
       "iq4_xs",
-      "small",
       "qwen35",
-      "imatrix"
-    ]
+      "small",
+      "wd-elements"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "9B",
+    "modelParams": "8.95 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.52",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 8,
+    "modelName": "Qwen3.5 9B Claude 4.6 OS Auto Variabl...",
+    "baseModel": "Qwen3.5 9B",
+    "sizeLabel": "9B",
+    "architecture": "qwen35",
+    "attentionHeads": 16,
+    "kvHeads": 4,
+    "gqaRatio": 4,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 531.25,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 4954,
+    "hasImatrix": true,
+    "imatrixEntries": 248,
+    "quantBreakdown": {
+      "f32": 177,
+      "q5_K": 8,
+      "q6_K": 1,
+      "iq4_xs": 241,
+      "total": 427
+    },
+    "highPrecisionRatio": 0.41451990632318503,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": -8.61,
+      "avg": 3.79,
+      "max": 5.93,
+      "ratio": 0.8,
+      "runs": 7
+    },
+    "performance": {
+      "tps": {
+        "min": 14.94,
+        "avg": 16.16,
+        "max": 17.04
+      },
+      "ttft": {
+        "min": 21.57,
+        "avg": 49.44,
+        "max": 78.92
+      },
+      "prefillTps": 190.1,
+      "runs": 7
+    },
+    "loadOverheads": [
+      5.7700000000000005,
+      5.7700000000000005,
+      -8.75,
+      5.790000000000001,
+      5.799999999999999,
+      5.81,
+      5.81
+    ],
+    "minRamGb": "3.90",
+    "recommendedRamGb": 8
   },
   "mradermacher/qwen35-9b-yoyo-thinking": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-9B-YOYO-Thinking-i1-GGUF/Qwen3.5-9B-YOYO-Thinking.i1-IQ4_XS.gguf",
@@ -4964,14 +5699,79 @@
       "kvQuantV": "q8_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "imatrix",
       "iq4_xs",
-      "small",
       "qwen35",
-      "imatrix"
-    ]
+      "small",
+      "wd-elements"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "9B",
+    "modelParams": "8.95 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.63",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 8,
+    "modelName": "Qwen3.5 9B YOYO Thinking",
+    "baseModel": "Qwen3.5 9B",
+    "sizeLabel": "9B",
+    "architecture": "qwen35",
+    "attentionHeads": 16,
+    "kvHeads": 4,
+    "gqaRatio": 4,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 531.25,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 5074,
+    "hasImatrix": true,
+    "imatrixEntries": 248,
+    "quantBreakdown": {
+      "f32": 177,
+      "q5_K": 32,
+      "q6_K": 1,
+      "iq4_xs": 217,
+      "total": 427
+    },
+    "highPrecisionRatio": 0.41451990632318503,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": 5.94,
+      "avg": 5.97,
+      "max": 5.99,
+      "ratio": 1.23,
+      "runs": 7
+    },
+    "performance": {
+      "tps": {
+        "min": 14.65,
+        "avg": 15.94,
+        "max": 16.87
+      },
+      "ttft": {
+        "min": 21.91,
+        "avg": 50.36,
+        "max": 79.95
+      },
+      "prefillTps": 186.77,
+      "runs": 7
+    },
+    "loadOverheads": [
+      5.869999999999999,
+      5.869999999999999,
+      5.890000000000001,
+      5.880000000000001,
+      5.969999999999999,
+      5.930000000000001,
+      5.930000000000001
+    ],
+    "minRamGb": "6.21",
+    "recommendedRamGb": 8
   },
   "rico03/qwen3.6-27b-claude-opus-q3_k_s": {
     "path": "/Volumes/WD-elements/llm-offload/rico03/Qwen3.6-27B-Claude-Opus-Reasoning-Distilled-GGUF/Qwen3.6-27B-Claude-Opus-Reasoning-Distill.q3_k_s.gguf",
@@ -4990,13 +5790,76 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
       "medium",
       "q3_k_s",
+      "quality-candidate",
       "qwen35",
-      "wd-elements",
-      "quality-candidate"
-    ]
+      "wd-elements"
+    ],
+    "nLayer": 64,
+    "nCtxTrain": 262144,
+    "modelType": "27B",
+    "modelParams": "26.90 B",
+    "quantType": "Q3_K - Small",
+    "bpw": "3.59",
+    "offloadedLayers": 65,
+    "totalLayers": 65,
+    "kvLayers": 16,
+    "modelName": "Qwen3.6 27B Claude Opus Reasoning Dis...",
+    "baseModel": "Qwen3.6 27B",
+    "sizeLabel": "27B",
+    "architecture": "qwen35",
+    "attentionHeads": 24,
+    "kvHeads": 4,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 562.5,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11758,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 353,
+      "q3_K": 497,
+      "q6_K": 1,
+      "total": 851
+    },
+    "highPrecisionRatio": 0.41480611045828436,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000000.000000",
+    "memoryOverhead": {
+      "min": 13.83,
+      "avg": 14.07,
+      "max": 14.29,
+      "ratio": 1.25,
+      "runs": 7
+    },
+    "performance": {
+      "tps": {
+        "min": 4.56,
+        "avg": 4.72,
+        "max": 4.97
+      },
+      "ttft": {
+        "min": 88.31,
+        "avg": 186.32,
+        "max": 285.91
+      },
+      "prefillTps": 49.82,
+      "runs": 7
+    },
+    "loadOverheads": [
+      13.990000000000002,
+      13.990000000000002,
+      13.720000000000002,
+      13.899999999999999,
+      13.989999999999998,
+      13.98,
+      13.98
+    ],
+    "minRamGb": "14.64",
+    "recommendedRamGb": 17
   }
 }
