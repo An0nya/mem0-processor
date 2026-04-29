@@ -28,6 +28,7 @@
 
 import { spawn } from "child_process";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
 import { hasSummary } from "./lib/summary.mjs";
@@ -153,6 +154,17 @@ const presetList = (() => {
 
 const UPLOADER = path.join(__dirname, "claude-code-mem0-uploader.mjs");
 
+// ─── LOG ─────────────────────────────────────────────────────────────────────
+
+const LOG_DIR  = path.join(os.homedir(), ".claude/mem0/logs");
+const LOG_PATH = path.join(LOG_DIR, `sweep-${TAG}.log`);
+fs.mkdirSync(LOG_DIR, { recursive: true });
+const logStream = fs.createWriteStream(LOG_PATH, { flags: "a" });
+
+function swLog(s) {
+  logStream.write(s + "\n");
+}
+
 // ─── RUN ─────────────────────────────────────────────────────────────────────
 
 function runModel(sessionId, modelId, preset, runTag) {
@@ -167,14 +179,24 @@ function runModel(sessionId, modelId, preset, runTag) {
 
   return new Promise((resolve) => {
     const start = Date.now();
-    const child = spawn("node", args, { stdio: "inherit" });
+    const captured = [];
+    const child = spawn("node", args, { stdio: ["inherit", "pipe", "pipe"] });
+
+    function handle(chunk, dest) {
+      dest.write(chunk);
+      logStream.write(chunk);
+      captured.push(chunk.toString());
+    }
+
+    child.stdout.on("data", chunk => handle(chunk, process.stdout));
+    child.stderr.on("data", chunk => handle(chunk, process.stderr));
 
     child.on("close", (code) => {
-      resolve({ sessionId, modelId, preset, runTag, code, elapsed: ((Date.now() - start) / 1000).toFixed(1) });
+      resolve({ sessionId, modelId, preset, runTag, code, elapsed: ((Date.now() - start) / 1000).toFixed(1), captured: captured.join("") });
     });
 
     child.on("error", (err) => {
-      resolve({ sessionId, modelId, preset, runTag, code: -1, elapsed: ((Date.now() - start) / 1000).toFixed(1), err: err.message });
+      resolve({ sessionId, modelId, preset, runTag, code: -1, elapsed: ((Date.now() - start) / 1000).toFixed(1), err: err.message, captured: captured.join("") });
     });
   });
 }
@@ -183,9 +205,14 @@ function runModel(sessionId, modelId, preset, runTag) {
 
 const totalRuns = sessionList.length * modelList.length * presetList.length;
 const samplerLine = presetList[0] ? `  presets=${presetList.length} (${presetList.join(", ")})` : "";
-console.log(`\nSweep: sessions=${sessionList.length}  models=${modelList.length}${samplerLine}  total=${totalRuns}  tag=${TAG}  upload=${UPLOAD}`);
-console.log(`Sessions: ${sessionList.join(", ")}`);
-console.log(`Models (${modelList.length}): ${modelList.join(", ")}\n`);
+const header = [
+  `\nSweep: sessions=${sessionList.length}  models=${modelList.length}${samplerLine}  total=${totalRuns}  tag=${TAG}  upload=${UPLOAD}`,
+  `Sessions: ${sessionList.join(", ")}`,
+  `Models (${modelList.length}): ${modelList.join(", ")}`,
+  `Log: ${LOG_PATH}\n`,
+].join("\n");
+console.log(header);
+swLog(header);
 
 const results = [];
 let globalN = 0;
@@ -194,9 +221,9 @@ for (let si = 0; si < sessionList.length; si++) {
   const sessionId = sessionList[si];
 
   if (sessionList.length > 1) {
-    console.log(`\n${"═".repeat(60)}`);
-    console.log(`SESSION ${si + 1}/${sessionList.length}: ${sessionId}`);
-    console.log("═".repeat(60));
+    const sessionHeader = `\n${"═".repeat(60)}\nSESSION ${si + 1}/${sessionList.length}: ${sessionId}\n${"═".repeat(60)}`;
+    console.log(sessionHeader);
+    swLog(sessionHeader);
   }
 
   for (let mi = 0; mi < modelList.length; mi++) {
@@ -209,13 +236,14 @@ for (let si = 0; si < sessionList.length; si++) {
         : `${TAG}-${si + 1}.${mi + 1}`;
       globalN++;
 
-      console.log(`\n${"─".repeat(60)}`);
       const presetLabel = preset ? `  sampler=${preset}` : "";
-      console.log(`[${globalN}/${totalRuns}] ${modelId}  session=${sessionId}${presetLabel}  tag=${runTag}`);
-      console.log("─".repeat(60));
+      const runHeader = `\n${"─".repeat(60)}\n[${globalN}/${totalRuns}] ${modelId}  session=${sessionId}${presetLabel}  tag=${runTag}\n${"─".repeat(60)}`;
+      console.log(runHeader);
+      swLog(runHeader);
 
       if (SKIP_SUMMARIZED && hasSummary(sessionId, modelId)) {
         console.log(`  → skip (already summarized)`);
+        swLog(`  → skip (already summarized)`);
         results.push({ sessionId, modelId, preset, runTag, code: 0, elapsed: "0.0", skipped: true });
         continue;
       }
@@ -224,26 +252,26 @@ for (let si = 0; si < sessionList.length; si++) {
       results.push(result);
 
       const status = result.code === 0 ? "OK" : `FAIL (exit ${result.code})`;
-      console.log(`\n→ ${status}  ${result.elapsed}s`);
+      const resultLine = `\n→ ${status}  ${result.elapsed}s`;
+      console.log(resultLine);
+      swLog(resultLine);
     }
   }
 }
 
 // ─── SUMMARY ─────────────────────────────────────────────────────────────────
 
-console.log(`\n${"═".repeat(60)}`);
-console.log("SWEEP COMPLETE");
-console.log("═".repeat(60));
+const summaryLines = [`\n${"═".repeat(60)}`, "SWEEP COMPLETE", "═".repeat(60)];
 
 for (let si = 0; si < sessionList.length; si++) {
   const sessionId = sessionList[si];
   const sessionResults = results.filter(r => r.sessionId === sessionId);
-  if (sessionList.length > 1) console.log(`\n  Session: ${sessionId}`);
+  if (sessionList.length > 1) summaryLines.push(`\n  Session: ${sessionId}`);
   for (const r of sessionResults) {
     const status = r.skipped ? "-" : r.code === 0 ? "✓" : "✗";
     const presetCol = r.preset ? `  [${r.preset}]` : "";
     const note = r.skipped ? "  (skipped)" : r.err ? `  (${r.err})` : "";
-    console.log(`  ${status} ${r.modelId.padEnd(45)}${presetCol.padEnd(16)} ${r.elapsed}s${note}`);
+    summaryLines.push(`  ${status} ${r.modelId.padEnd(45)}${presetCol.padEnd(16)} ${r.elapsed}s${note}`);
   }
 }
 
@@ -251,5 +279,27 @@ const skipped = results.filter(r => r.skipped);
 const ran     = results.filter(r => !r.skipped);
 const failed  = ran.filter(r => r.code !== 0);
 const skipNote = skipped.length > 0 ? `  ${skipped.length} skipped` : "";
-console.log(`\n${ran.length - failed.length}/${ran.length} succeeded${skipNote}`);
-if (failed.length > 0) process.exit(1);
+summaryLines.push(`\n${ran.length - failed.length}/${ran.length} succeeded${skipNote}`);
+
+const summaryBlock = summaryLines.join("\n");
+console.log(summaryBlock);
+swLog(summaryBlock);
+
+if (failed.length > 0) {
+  const replayHeader = `\n${"═".repeat(60)}\nFAILED RUN OUTPUT\n${"═".repeat(60)}`;
+  console.log(replayHeader);
+  swLog(replayHeader);
+  for (const r of failed) {
+    const runLabel = `\n--- ${r.modelId}  session=${r.sessionId}  exit=${r.code} ---`;
+    console.log(runLabel);
+    swLog(runLabel);
+    const output = r.captured || r.err || "(no output captured)";
+    process.stdout.write(output);
+    logStream.write(output);
+    if (!output.endsWith("\n")) { process.stdout.write("\n"); logStream.write("\n"); }
+  }
+  logStream.end();
+  process.exit(1);
+}
+
+logStream.end();
