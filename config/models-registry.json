@@ -3807,7 +3807,7 @@
     "format": "gguf",
     "arch": "moe",
     "source": "wd-elements",
-    "notes": "folder says 24B-A3B but filename says 18B \u2014 verify before use",
+    "notes": "folder says 24B-A3B but filename says 18B — verify before use",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
     "launch": {
       "ctxSize": 32000,
@@ -5120,19 +5120,54 @@
     "source": "wd-elements",
     "chatTemplatePath": null,
     "launch": {
-      "ctxSize": 32000,
+      "ctxSize": 64000,
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
       "threads": 8,
       "kvQuantK": "q8_0",
-      "kvQuantV": "q8_0"
+      "kvQuantV": "q8_0",
+      "maxOutputTokens": 12000,
+      "reasoningBudget": 6000,
+      "reasoningBudgetMessage": "[REASONING BUDGET EXHAUSTED]\nLock in your analysis now. Complete Open Threads and Meta Takeaways without\nrestarting sections. Output the analysis as-is."
     },
     "tags": [
       "dense",
       "llama",
-      "wd-elements"
-    ]
+      "wd-elements",
+      "bare"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "8B",
+    "modelParams": "3.93 B",
+    "quantType": "Q8_0",
+    "bpw": "8.50",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 32,
+    "modelName": "Nanbeige4.1 3B",
+    "baseModel": "Nanbeige4 3B Base",
+    "sizeLabel": "3B",
+    "architecture": "llama",
+    "attentionHeads": 20,
+    "kvHeads": 4,
+    "gqaRatio": 5,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2125,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 5721,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 65,
+      "q8_0": 226,
+      "total": 291
+    },
+    "highPrecisionRatio": 1,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "70000000.000000"
   },
   "mradermacher/crow-9b-opus-distill-heretic": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5-i1-GGUF/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-IQ4_XS.gguf",
@@ -5861,5 +5896,125 @@
     ],
     "minRamGb": "14.64",
     "recommendedRamGb": 17
+  },
+  "unsloth/gemma-4-31b-it-ud-iq3_xxs": {
+    "path": "/Volumes/WD-elements/llm-offload/unsloth/Gemma-4-31B-it-GGUF/gemma-4-31B-it-UD-IQ3_XXS.gguf",
+    "fileSizeGb": 11.02,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 16000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "large",
+      "gemma4"
+    ]
+  },
+  "sphaela/qwen3.6-27b-autoround-q3_k_l": {
+    "path": "/Volumes/WD-elements/llm-offload/sphaela/Qwen3.6-27B-AutoRound-GGUF/Qwen3.6-27B-Q3_K_L.gguf",
+    "fileSizeGb": 11.24,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 16000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "medium",
+      "qwen35"
+    ]
+  },
+  "sphaela/qwen3.6-35b-a3b-autoround-q2_k_mixed": {
+    "path": "/Volumes/WD-elements/llm-offload/sphaela/Qwen3.6-35B-A3B-AutoRound-GGUF/Qwen3.6-35B-A3B-Q2_K_MIXED.gguf",
+    "fileSizeGb": 11.65,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 16000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "moe",
+      "wd-elements",
+      "large",
+      "qwen35"
+    ]
+  },
+  "sphaela/gemma-4-31b-it-autoround-q2_k_s": {
+    "path": "/Volumes/WD-elements/llm-offload/sphaela/gemma-4-31B-it-AutoRound-GGUF/gemma-4-31B-it-Q2_K_S.gguf",
+    "fileSizeGb": 10.05,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 16000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "large",
+      "gemma4"
+    ]
+  },
+  "bartowski/google-gemma-4-31b-it-iq2_m": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/google_gemma-4-31B-it-GGUF/google_gemma-4-31B-it-IQ2_M.gguf",
+    "fileSizeGb": 11.78,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "launch": {
+      "ctxSize": 16000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "large",
+      "gemma4"
+    ]
   }
 }
