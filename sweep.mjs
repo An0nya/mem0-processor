@@ -23,12 +23,14 @@
 //             Omit to run each model once with its registry sampler defaults.
 // --tag       Run tag prefix; each run gets <tag>-<si>.<mi>[.<pi>] (default: sweep-<timestamp>)
 //             si = session index, mi = model index, pi = preset index (omitted when no --sampler).
-// --upload    Upload summaries to mem0 (default: suppressed)
+// --upload            Upload summaries to mem0 (default: suppressed)
+// --skip-summarized   Skip session/model pairs that already have a summary on disk
 
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { hasSummary } from "./lib/summary.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,11 +43,12 @@ function arg(name) {
   return (!next || next.startsWith("--")) ? true : next;
 }
 
-const SESSION  = arg("--session");
-const MODELS   = arg("--models");
-const TAG      = arg("--tag") || `sweep-${Date.now()}`;
-const UPLOAD   = process.argv.includes("--upload");
-const SAMPLER  = arg("--sampler");
+const SESSION          = arg("--session");
+const MODELS           = arg("--models");
+const TAG              = arg("--tag") || `sweep-${Date.now()}`;
+const UPLOAD           = process.argv.includes("--upload");
+const SAMPLER          = arg("--sampler");
+const SKIP_SUMMARIZED  = process.argv.includes("--skip-summarized");
 
 if (!SESSION || !MODELS) {
   console.error("Usage: node sweep.mjs --session <id>[,<id>,...] --models <a,b,...> [--sampler <presets>] [--tag <name>] [--upload]");
@@ -211,6 +214,12 @@ for (let si = 0; si < sessionList.length; si++) {
       console.log(`[${globalN}/${totalRuns}] ${modelId}  session=${sessionId}${presetLabel}  tag=${runTag}`);
       console.log("─".repeat(60));
 
+      if (SKIP_SUMMARIZED && hasSummary(sessionId, modelId)) {
+        console.log(`  → skip (already summarized)`);
+        results.push({ sessionId, modelId, preset, runTag, code: 0, elapsed: "0.0", skipped: true });
+        continue;
+      }
+
       const result = await runModel(sessionId, modelId, preset, runTag);
       results.push(result);
 
@@ -231,12 +240,16 @@ for (let si = 0; si < sessionList.length; si++) {
   const sessionResults = results.filter(r => r.sessionId === sessionId);
   if (sessionList.length > 1) console.log(`\n  Session: ${sessionId}`);
   for (const r of sessionResults) {
-    const status = r.code === 0 ? "✓" : "✗";
+    const status = r.skipped ? "-" : r.code === 0 ? "✓" : "✗";
     const presetCol = r.preset ? `  [${r.preset}]` : "";
-    console.log(`  ${status} ${r.modelId.padEnd(45)}${presetCol.padEnd(16)} ${r.elapsed}s${r.err ? `  (${r.err})` : ""}`);
+    const note = r.skipped ? "  (skipped)" : r.err ? `  (${r.err})` : "";
+    console.log(`  ${status} ${r.modelId.padEnd(45)}${presetCol.padEnd(16)} ${r.elapsed}s${note}`);
   }
 }
 
-const failed = results.filter(r => r.code !== 0);
-console.log(`\n${results.length - failed.length}/${results.length} succeeded`);
+const skipped = results.filter(r => r.skipped);
+const ran     = results.filter(r => !r.skipped);
+const failed  = ran.filter(r => r.code !== 0);
+const skipNote = skipped.length > 0 ? `  ${skipped.length} skipped` : "";
+console.log(`\n${ran.length - failed.length}/${ran.length} succeeded${skipNote}`);
 if (failed.length > 0) process.exit(1);

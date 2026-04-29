@@ -1134,6 +1134,16 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
   without re-burning pairs that are already done. Uploader already caches to disk; this
   makes sweep aware of that cache rather than requiring `--reprocess` to be explicitly
   avoided.
+- **sweep.mjs — per-sweep log file + richer summary output**: for long runs (10+ hours),
+  current output is too thin to diagnose failures after the fact. Two gaps: (1) no durable
+  log file — all output is ephemeral console; (2) final summary only shows pass/fail per
+  model, not the uploader's error output for failed runs. Fix: write a `.log` file alongside
+  the sweep invocation (e.g. `~/.claude/mem0/logs/sweep-<tag>.log`) capturing full stdout
+  from each subprocess; on failure, replay the captured stderr/stdout in the final summary
+  so the failure reason is visible without re-running. The subprocess `stdio: "inherit"`
+  would need to switch to piped for capture; combine with a passthrough so output still
+  appears live. Also consider adding elapsed time per session-group and a mid-run progress
+  indicator (e.g. `[7/42] model-name  session=abc123`).
 - **Decouple summary generation from the session loop**: currently the main loop in the
   uploader iterates sessions and models in a fixed order tied to sweep's invocation.
   Refactor goal: expose a `generateSummary(sessionId, modelKey, options)` function that
