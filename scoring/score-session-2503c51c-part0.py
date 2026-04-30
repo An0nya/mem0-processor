@@ -71,7 +71,10 @@ ARCHIVE_DIR = SUMMARIES_DIR / "archive"
 def split_reasoning(content):
     """
     Separate main summary body from any appended reasoning trace.
-    Handles <think>...</think> blocks and the '<<<--reasoning' paste convention.
+    Handles:
+      - <think>...</think> blocks
+      - '<<<--reasoning' paste convention
+      - '```reasoning-trace' fenced code block (models that paste trace inline)
     Returns (body, reasoning).
     """
     think_match = re.search(r'<think>(.*?)</think>', content, re.S | re.I)
@@ -84,7 +87,53 @@ def split_reasoning(content):
     if marker_match:
         return content[:marker_match.start()].strip(), content[marker_match.start():].strip()
 
+    # ```reasoning-trace ... ``` fenced block — extract content, strip from body
+    trace_match = re.search(r'```reasoning-trace\s*(.*?)(?:```|$)', content, re.S | re.I)
+    if trace_match:
+        reasoning = trace_match.group(1).strip()
+        body = content[:trace_match.start()] + content[trace_match.end():]
+        return body.strip(), reasoning
+
     return content.strip(), ""
+
+
+def normalize_entity_names(text):
+    """
+    Normalize first-person and 'the assistant' narrative styles to 'Claude'
+    so that check patterns don't need parallel variants for each pronoun convention.
+
+    Handles:
+      - First-person Claude-as-author: "I used", "I proposed", "I assumed", etc.
+        Only sentence-initial or post-punctuation 'I' to avoid mangling mid-word.
+      - "the assistant" / "an assistant" as entity name (e.g. qwopus-glm-18b).
+      - "assistant's" possessive form.
+
+    Does NOT touch:
+      - "I" inside quoted user speech (can't reliably detect, acceptable false-neg).
+      - Pronoun 'me' — too ambiguous mid-sentence; handled by user_caught pattern directly.
+    """
+    # "The assistant" / "an assistant" → "Claude" (entity name usage)
+    text = re.sub(r'\b(the|an)\s+assistant\b', 'Claude', text, flags=re.I)
+    text = re.sub(r"\bassistant's\b", "Claude's", text, flags=re.I)
+
+    # First-person subject: "I <verb>" → "Claude <verb>" for self-attribution verbs.
+    # Verb-targeted rather than sentence-initial to handle markdown formatting
+    # (e.g. "**ERROR:** I used" where lookbehind on punctuation fails).
+    text = re.sub(
+        r'\bI\s+(used|proposed|wrote|assumed|inserted|implemented|suggested'
+        r'|started|jumped|initially|mistakenly|wrongly|began|made|read|tried)',
+        lambda m: 'Claude ' + m.group(1),
+        text, flags=re.I
+    )
+
+    # Object-pronoun normalization after correction/attribution verbs.
+    # "corrected me" → "corrected Claude", "caught me" → "caught Claude", etc.
+    text = re.sub(
+        r'\b(corrected|caught|told|stopped|interrupted|directed)\s+me\b',
+        r'\1 Claude', text, flags=re.I
+    )
+
+    return text
 
 
 def check_issue1(body):
@@ -137,7 +186,20 @@ def check_issue3(body):
         r'|timestamp.{0,20}source.{0,20}wrong'
         r'|processing.time.{0,30}session.time'
         r'|when.the.script.runs'
-        r'|capture[sd]?.{0,20}(processing|run).time)',
+        r'|capture[sd]?.{0,20}(processing|run).time'
+        # execution-time vocabulary (magistral, davidau, gemma, ministral families)
+        r'|execution.time.{0,30}(instead|session|timestamp|wrong)'
+        r'|(script|run).{0,5}execution.time'
+        r'|script.time.vs'
+        r'|run.time.values?'
+        r'|run.time.timestamp'
+        # current-time vocabulary (gemma, xpressai families)
+        r'|current.time.{0,30}(session|summari|instead|wrong)'
+        r'|(proposed|using|used).{0,30}current.time.{0,30}(for|instead)'
+        # misunderstood-timestamp (ministral)
+        r'|misunderstood.{0,40}timestamp.{0,30}(derive|source|session|log)'
+        # flawed initial assumption + timestamp (nanbeige, xpressai)
+        r'|flawed.{0,30}initial.{0,50}(timestamp|assumption.{0,30}timestamp))',
         body, re.I
     ))
     claude_attributed = bool(re.search(
@@ -151,7 +213,10 @@ def check_issue3(body):
         r'(user.{0,40}(caught|noticed|found|spotted|corrected|identified).{0,50}(date|timestamp|new.Date|processing|source)'
         r'|user.{0,30}(read|review|check).{0,40}(code|spec).{0,40}(caught|noticed|found)'
         r'|(caught|noticed).{0,40}user.{0,40}(date|timestamp)'
-        r'|user.{0,30}directed.{0,30}(fix|extract|use).{0,30}(startedAt|jsonl|session.time))',
+        r'|user.{0,30}directed.{0,30}(fix|extract|use).{0,30}(startedAt|jsonl|session.time)'
+        r'|user.{0,30}correct.{0,30}timestamp.{0,30}source'
+        r'|user.{0,20}(clarif|interven|realiz).{0,50}timestamp.{0,30}(session|log|source|wrong|right)'
+        r'|user.{0,30}corrected\s+Claude)',
         body, re.I
     ))
     silent = bool(re.search(
@@ -252,6 +317,8 @@ def score_summary(content):
       extra       {check_a..check_e, reasoning_only}: bool
     """
     body, reasoning = split_reasoning(content)
+    body    = normalize_entity_names(body)
+    content = normalize_entity_names(content)
 
     i1_correct, i1_wrong = check_issue1(body)
     i2_correct, i2_wrong = check_issue2(body)
@@ -269,8 +336,14 @@ def score_summary(content):
 
     a, b, c, d, e = check_additional(body)
 
+    r1c, r1w = check_issue1(content)
+    r2c, r2w = check_issue2(content)
+    r3p, r3cl, r3u, r3s = check_issue3(content)
+    tier_raw = compute_tier(r1c, r1w, r2c, r2w, r3p, r3cl, r3u, r3s)
+
     return {
-        'score_norm': (4.0 - tier) / 3.0,
+        'score_norm':     (4.0 - tier) / 3.0,
+        'score_norm_raw': (4.0 - tier_raw) / 3.0,
         'score_raw':  tier,
         'score_max':  4.0,
         'checks': {

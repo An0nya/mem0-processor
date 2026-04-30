@@ -3,7 +3,8 @@
 build-dataset.py
 
 Builds ~/.claude/mem0/dataset.db from:
-  - summaries/         YAML-headered summary files (post-2026-04-23 only, no archive)
+  - summaries/         YAML-headered summary files
+  - summaries/archive/ reruns for repeatability (opt-in via --include-archive)
   - perf.json          per-run performance records
   - config/models-registry.json  model metadata
   - scoring/           session scoring scripts
@@ -11,7 +12,7 @@ Builds ~/.claude/mem0/dataset.db from:
 Rebuilds from scratch on every run. Safe to re-run.
 
 Usage:
-  python build-dataset.py [--db <path>]
+  python build-dataset.py [--db <path>] [--include-no-yaml] [--include-archive]
 """
 
 import json
@@ -32,6 +33,7 @@ except ImportError:
 SCRIPT_DIR    = Path(__file__).parent.parent
 MEM0_DIR      = Path.home() / ".claude/mem0"
 SUMMARIES_DIR = MEM0_DIR / "summaries"
+ARCHIVE_DIR   = SUMMARIES_DIR / "archive"
 PERF_PATH     = MEM0_DIR / "perf.json"
 REGISTRY_PATH = SCRIPT_DIR / "config/models-registry.json"
 SCORING_DIR   = SCRIPT_DIR / "scoring"
@@ -120,6 +122,7 @@ CREATE TABLE summaries (
     top_k             INTEGER,
     cache_hit         TEXT,
     provider          TEXT,
+    run_ts            TEXT,
     FOREIGN KEY (model_norm) REFERENCES models(model_norm)
 );
 
@@ -149,15 +152,16 @@ CREATE TABLE perf_runs (
 );
 
 CREATE TABLE scores (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    summary_id  INTEGER,
-    session_id  TEXT,
-    model_norm  TEXT,
-    score_norm  REAL,
-    score_raw   REAL,
-    score_max   REAL,
-    checks_json TEXT,
-    extra_json  TEXT,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    summary_id      INTEGER,
+    session_id      TEXT,
+    model_norm      TEXT,
+    score_norm      REAL,
+    score_norm_raw  REAL,
+    score_raw       REAL,
+    score_max       REAL,
+    checks_json     TEXT,
+    extra_json      TEXT,
     FOREIGN KEY (summary_id) REFERENCES summaries(id)
 );
 
@@ -214,6 +218,72 @@ SELECT sc.*,
 FROM scores sc
 JOIN sess_stats st USING (session_id)
 WHERE sc.model_norm IN (SELECT model_norm FROM quality_models);
+
+-- model_zscore_weighted: per-model z_avg/z_wtd/z_min/z_max from quality pool.
+-- Filter by n_sessions in your query: WHERE n_sessions >= 7 ORDER BY z_wtd DESC
+CREATE VIEW model_zscore_weighted AS
+WITH w AS (
+    SELECT model_norm,
+           COUNT(*) AS n_sessions,
+           AVG(z_score) AS z_avg,
+           SUM(z_score * COALESCE(sess_sd, 0)) / NULLIF(SUM(COALESCE(sess_sd, 0)), 0) AS z_wtd,
+           MIN(z_score) AS z_min,
+           MAX(z_score) AS z_max
+    FROM score_normed_quality
+    GROUP BY model_norm
+)
+SELECT model_norm, n_sessions,
+    ROUND(z_avg, 3) AS z_avg,
+    ROUND(z_wtd,  3) AS z_wtd,
+    ROUND(z_min,  3) AS z_min,
+    ROUND(z_max,  3) AS z_max
+FROM w;
+
+-- score_reasoning_delta: per-row comparison of body-only vs full-content scores.
+-- delta > 0 means the reasoning trace inflated the raw score; delta < 0 is rare
+-- (would mean reasoning trace text cancelled a hit that the body had).
+-- Use to identify models where reasoning traces are masking poor surfacing.
+CREATE VIEW score_reasoning_delta AS
+SELECT
+    sc.model_norm,
+    sc.session_id,
+    ROUND(sc.score_norm,     3) AS score_body,
+    ROUND(sc.score_norm_raw, 3) AS score_full,
+    ROUND(sc.score_norm_raw - sc.score_norm, 3) AS delta,
+    sc.score_raw,
+    sc.score_max
+FROM scores sc
+WHERE sc.score_norm_raw IS NOT NULL;
+
+-- model_reasoning_delta: per-model average delta between full-content and body-only scores.
+-- High avg_delta = model consistently hides facts in reasoning rather than surfacing them.
+CREATE VIEW model_reasoning_delta AS
+SELECT
+    model_norm,
+    COUNT(*)                                          AS n_sessions,
+    ROUND(AVG(score_norm),                        3) AS avg_body,
+    ROUND(AVG(score_norm_raw),                    3) AS avg_full,
+    ROUND(AVG(score_norm_raw - score_norm),       3) AS avg_delta,
+    ROUND(MAX(score_norm_raw - score_norm),       3) AS max_delta
+FROM scores
+WHERE score_norm_raw IS NOT NULL
+GROUP BY model_norm
+ORDER BY avg_delta DESC;
+
+-- score_repeatability: variance across multiple runs of the same session+model.
+-- Only populated when --include-archive is used. n_runs >= 2 means true reruns.
+CREATE VIEW score_repeatability AS
+SELECT
+    model_norm,
+    session_id,
+    COUNT(*) AS n_runs,
+    ROUND(AVG(score_norm), 3) AS score_avg,
+    ROUND(SQRT(AVG(score_norm * score_norm) - AVG(score_norm) * AVG(score_norm)), 3) AS score_sd,
+    ROUND(MIN(score_norm), 3) AS score_min,
+    ROUND(MAX(score_norm), 3) AS score_max
+FROM scores
+GROUP BY model_norm, session_id
+HAVING COUNT(*) >= 2;
 """
 
 # ─── LOADERS ─────────────────────────────────────────────────────────────────
@@ -285,8 +355,8 @@ def load_summaries(conn, include_no_yaml=False):
                 started_at, ended_at, run_tag, transcript_chars,
                 prompt_tokens, completion_tokens, reasoning_tokens,
                 tps, ttft, gen_time, ctx_size, max_output_tokens,
-                kv_quant_k, kv_quant_v, temp, min_p, top_k, cache_hit, provider)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                kv_quant_k, kv_quant_v, temp, min_p, top_k, cache_hit, provider, run_ts)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 str(f), f.name, session_id, session_slug, model_norm, model_raw,
                 started_str,
@@ -308,11 +378,87 @@ def load_summaries(conn, include_no_yaml=False):
                 meta.get('top_k'),
                 str(meta.get('cache_hit') or ''),
                 str(meta.get('provider') or ''),
+                None,
             )
         )
         inserted += 1
 
     return inserted, skipped_no_yaml, skipped_pre_slug
+
+
+def load_archive_summaries(conn):
+    """Load reruns from summaries/archive/<model-slug>/<slug--uuid--timestamp>.txt.
+    Skips 2-part filenames (pre-slug experiment files). model_norm from dirname."""
+    if not ARCHIVE_DIR.exists():
+        return 0, 0
+    inserted = skipped = 0
+
+    for model_dir in sorted(ARCHIVE_DIR.iterdir()):
+        if not model_dir.is_dir():
+            continue
+        model_norm_dir = normalize_id(model_dir.name)
+
+        for f in sorted(model_dir.glob("*.txt")):
+            content = f.read_text(errors='replace')
+            if 'TRANSCRIPT FORMAT' in content[:200] or len(content) < 500:
+                skipped += 1
+                continue
+
+            parts = f.stem.split('--')
+            if len(parts) != 3:
+                skipped += 1
+                continue
+
+            session_slug, session_id_short, run_ts = parts
+
+            meta = parse_yaml_header(content)
+            if meta:
+                session_id = str(meta.get('session') or session_id_short)
+                model_raw  = str(meta.get('model') or '')
+                model_norm = normalize_id(model_raw) if model_raw else model_norm_dir
+                started_str = str(meta.get('started_at') or meta.get('startedAt') or '')
+            else:
+                session_id  = session_id_short
+                model_raw   = ''
+                model_norm  = model_norm_dir
+                started_str = ''
+                meta        = {}
+
+            conn.execute(
+                """INSERT OR IGNORE INTO summaries
+                   (file_path, filename, session_id, session_slug, model_norm, model_raw,
+                    started_at, ended_at, run_tag, transcript_chars,
+                    prompt_tokens, completion_tokens, reasoning_tokens,
+                    tps, ttft, gen_time, ctx_size, max_output_tokens,
+                    kv_quant_k, kv_quant_v, temp, min_p, top_k, cache_hit, provider, run_ts)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    str(f), f.name, session_id, session_slug, model_norm, model_raw,
+                    started_str,
+                    str(meta.get('ended_at') or meta.get('endedAt') or ''),
+                    str(meta.get('run_tag') or ''),
+                    meta.get('transcript_chars'),
+                    meta.get('prompt_tokens'),
+                    meta.get('completion_tokens'),
+                    meta.get('reasoning_tokens'),
+                    meta.get('tps'),
+                    meta.get('ttft'),
+                    meta.get('gen_time'),
+                    meta.get('ctx_size'),
+                    meta.get('max_output_tokens'),
+                    str(meta.get('kv_quant_k') or ''),
+                    str(meta.get('kv_quant_v') or ''),
+                    meta.get('temp'),
+                    meta.get('min_p'),
+                    meta.get('top_k'),
+                    str(meta.get('cache_hit') or ''),
+                    str(meta.get('provider') or ''),
+                    run_ts,
+                )
+            )
+            inserted += 1
+
+    return inserted, skipped
 
 
 def load_perf(conn):
@@ -412,14 +558,17 @@ def load_scores(conn, scorers):
         if 'penalties' in result:
             extra = dict(extra, penalties=result['penalties'], penalty_raw=result['penalty_raw'])
 
+        score_norm_raw = result.get('score_norm_raw', None)
+
         conn.execute(
             """INSERT INTO scores
-               (summary_id, session_id, model_norm, score_norm, score_raw, score_max,
-                checks_json, extra_json)
-               VALUES (?,?,?,?,?,?,?,?)""",
+               (summary_id, session_id, model_norm, score_norm, score_norm_raw,
+                score_raw, score_max, checks_json, extra_json)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
             (
                 summary_id, session_id, model_norm,
-                score_norm, result['score_raw'], result['score_max'],
+                score_norm, score_norm_raw,
+                result['score_raw'], result['score_max'],
                 json.dumps(result['checks']),
                 json.dumps(extra),
             )
@@ -437,7 +586,8 @@ def main():
         i = sys.argv.index('--db')
         if i + 1 < len(sys.argv):
             db_path = Path(sys.argv[i + 1])
-    include_no_yaml = '--include-no-yaml' in sys.argv
+    include_no_yaml  = '--include-no-yaml'  in sys.argv
+    include_archive  = '--include-archive'  in sys.argv
 
     if db_path.exists():
         db_path.unlink()
@@ -453,6 +603,11 @@ def main():
     print("  Loading summaries...")
     inserted, no_yaml, pre_slug = load_summaries(conn, include_no_yaml=include_no_yaml)
     print(f"    {inserted} inserted  |  {no_yaml} skipped (no YAML)  |  {pre_slug} skipped (pre-slug)")
+
+    if include_archive:
+        print("  Loading archive summaries...")
+        arc_inserted, arc_skipped = load_archive_summaries(conn)
+        print(f"    {arc_inserted} inserted  |  {arc_skipped} skipped")
 
     print("  Loading perf runs...")
     n = load_perf(conn)

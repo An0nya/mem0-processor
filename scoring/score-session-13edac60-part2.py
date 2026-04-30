@@ -131,21 +131,63 @@ CHECK_LABELS = [
 ]
 
 
+def split_reasoning(content):
+    import re as _re
+    think_match = _re.search(r'<think>(.*?)</think>', content, _re.S | _re.I)
+    if think_match:
+        reasoning = think_match.group(1)
+        body = content[:think_match.start()] + content[think_match.end():]
+        return body.strip(), reasoning.strip()
+    marker_match = _re.search(r'<<<--reasoning', content, _re.I)
+    if marker_match:
+        return content[:marker_match.start()].strip(), content[marker_match.start():].strip()
+    trace_match = _re.search(r'```reasoning-trace\s*(.*?)(?:```|$)', content, _re.S | _re.I)
+    if trace_match:
+        reasoning = trace_match.group(1).strip()
+        body = content[:trace_match.start()] + content[trace_match.end():]
+        return body.strip(), reasoning
+    return content.strip(), ""
+
+
+def normalize_entity_names(text):
+    import re as _re
+    text = _re.sub(r'\b(the|an)\s+assistant\b', 'Claude', text, flags=_re.I)
+    text = _re.sub(r"\bassistant's\b", "Claude's", text, flags=_re.I)
+    text = _re.sub(
+        r'\bI\s+(used|proposed|wrote|assumed|inserted|implemented|suggested'
+        r'|started|jumped|initially|mistakenly|wrongly|began|made|read|tried)',
+        lambda m: 'Claude ' + m.group(1),
+        text, flags=_re.I
+    )
+    text = _re.sub(
+        r'\b(corrected|caught|told|stopped|interrupted|directed)\s+me\b',
+        r'\1 Claude', text, flags=_re.I
+    )
+    return text
+
+
 def score_summary(content):
+    body, _ = split_reasoning(content)
+    body    = normalize_entity_names(body)
+    content = normalize_entity_names(content)
+
     checks = {}
     score = 0
     for name, pattern in CHECKS_DEF:
-        hit = bool(re.search(pattern, content, re.I))
+        hit = bool(re.search(pattern, body, re.I))
         checks[name] = hit
         if hit:
             score += 1
 
+    score_raw_count = sum(1 for _, p in CHECKS_DEF if re.search(p, content, re.I))
+
     return {
-        'score_norm': score / len(CHECKS_DEF),
-        'score_raw':  float(score),
-        'score_max':  float(len(CHECKS_DEF)),
-        'checks':     checks,
-        'extra':      {},
+        'score_norm':     score / len(CHECKS_DEF),
+        'score_norm_raw': score_raw_count / len(CHECKS_DEF),
+        'score_raw':      float(score),
+        'score_max':      float(len(CHECKS_DEF)),
+        'checks':         checks,
+        'extra':          {},
     }
 
 

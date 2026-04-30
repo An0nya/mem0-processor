@@ -1,21 +1,7 @@
 #!/usr/bin/env python3
 """
-Accuracy scorer for session 42770700 summaries.
-
-Ground truth facts:
-1. Session opens with zero embedded prior context ("update mem0 with the drama of the
-   previous step") — Claude had to reconstruct step 3 from mem0 search + handoff file.
-   Models that miss this are either hallucinating step 3 details or hiding the cold-open.
-2. Step 3 "drama" = three RAM monitoring approaches: os.freemem (noisy/useless),
-   ps rss (invisibly wrong — MLX weights are mmap'd, RSS only sees CPU-faulted pages),
-   ioreg AGXAccelerator (correct, matched Activity Monitor)
-3. ps rss failure mode was silent — reported ~70–170 MB while actual was 9–13 GB,
-   no error, no crash, just wrong numbers. This is the critical detail in the drama.
-4. One script read returned "Large output — persisted to disk" (TOOL_RESULT not in context)
-   — Claude was implementing step 4 from non-contiguous file slices
-5. Step 4 design: state object splits into summarized + uploaded booleans;
-   old entries (lacking these fields) default to ?? true for backward compat
-6. No user corrections or TOOL_DENIED in the visible transcript — clean session
+Accuracy scorer for session 42770700 summaries. v2 - dropped C4 (large_output_gap),
+fixed false negatives in C1, C3, C5, C6.
 
 Usage:
   python score-session-42770700.py                  # auto-discover in summaries + archive
@@ -40,8 +26,8 @@ CHECKS_DEF = [
      r'|inferred.{0,20}from.{0,20}mem0'
      r'|had.to.{0,20}(reconstruct|infer|check).{0,20}(context|step|prior)'
      r'|started.{0,20}with.{0,30}(search|mem0|handoff)'
-     r'|read.{0,20}handoff.{0,20}(file|notes)'
-     r'|handoff.{0,30}(read|check|opened)'
+     r'|(read|opened|analyzed).{0,20}handoff'
+     r'|handoff.{0,20}(read|check|opened|file|notes|document)'
      r'|search.{0,20}mem0.{0,20}(before|to.{0,10}(find|establish|check|understand))'
      r'|established.{0,20}context.{0,20}from'
      r'|session.{0,20}(begin|start|open).{0,30}(handoff|mem0|file.read))'),
@@ -50,7 +36,7 @@ CHECKS_DEF = [
     ('three_approaches',
      r'(os\.freemem|system.free.memory.{0,30}(noisy|useless|unreliable)'
      r'|three.{0,20}(approach|attempt|method)'
-     r'|ps.{0,10}rss.{0,30}(wrong|fail|inadequate|abandon|mmap|invisible)'
+     r'|ps.{0,10}rss.{0,30}(wrong|fail|inadequate|abandon|mmap|invisible|limitation)'
      r'|(dead.end|failed.approach).{0,40}(ps|rss|ioreg))'),
 
     # 3. ps rss silent failure — wrong numbers, no error (the key "drama")
@@ -58,64 +44,101 @@ CHECKS_DEF = [
      r'(rss.{0,40}(silent|invisib|wrong|mmap|metal.wired|cpu.fault)'
      r'|mmap.{0,30}(invisible|not.counted|miss)'
      r'|mlx.{0,30}(mmap|wired|metal).{0,30}(miss|invisible|rss)'
+     r'|ps.{0,15}rss.{0,60}(Metal|MLX|memory.map|mmap)'
+     r'|memory.mapping.{0,40}(rss|ps|miss|wrong|invisible)'
      r'|ps.{0,10}rss.{0,30}(only|misses|undercount)'
-     r'|committed.{0,30}then.{0,30}abandon'
      r'|70.{0,10}mb|170.{0,10}mb)'),
 
-    # 4. Large output / persisted to disk — gap in Claude's file read context
-    ('large_output_gap',
-     r'(large.output.{0,30}(disk|persist)'
-     r'|persisted.to.disk'
-     r'|file.read.{0,30}(gap|missing|incomplete|out.of.context|not.shown)'
-     r'|non.contiguous.{0,20}(read|slice)'
-     r'|chunk.{0,20}(not.in.context|missing|lost)'
-     r'|read.{0,20}(without|missing).{0,20}(content|chunk|section)'
-     r'|implementation.{0,30}without.{0,30}(full|complete).{0,20}(file|context)'
-     r'|read.{0,20}returned.{0,20}(large|persisted)'
-     r'|context.{0,20}(gap|missing|incomplete).{0,30}(file|read|implement))'),
-
-    # 5. Step 4 design: summarized + uploaded booleans + ?? true backward compat
+    # 4. Step 4 design: summarized + uploaded booleans + ?? true backward compat
     ('state_redesign',
      r'(summarized.{0,20}upload'
      r'|upload.{0,20}summarized'
      r'|two.boolean'
+     r'|two.phase.state'
      r'|backward.compat'
      r'|null.{0,10}coalesce|\?\?.{0,10}true'
      r'|old.{0,20}state.{0,20}(default|compat|true)'
      r'|separate.{0,20}(state|track).{0,20}(summarized|upload)'
      r'|split.{0,20}(state|flag).{0,20}(summarized|upload))'),
 
-    # 6. Clean session — no user corrections or tool denials
+    # 5. Clean session — no user corrections or tool denials
     ('clean_session',
      r'(no.{0,20}(correction|error|denied|friction|rejection)'
-     r'|clean.{0,20}(session|run|execution)'
+     r'|no.{0,20}reject'
+     r'|zero.{0,15}friction'
+     r'|no.{0,15}(pivot|redo|re.do)'
+     r'|clean.{0,20}(session|run|execution|progression|interaction)'
      r'|smooth.{0,20}(session|implementation)'
      r'|no.{0,20}tool.{0,10}denied'
      r'|no.{0,20}user.{0,20}(correction|pushback|catch))'),
 ]
 
 CHECK_LABELS = [
-    'Col 1: Cold open (no prior context)   Col 2: Three RAM approaches identified',
-    'Col 3: ps rss silent failure          Col 4: Large output / read gap noted',
-    'Col 5: State redesign (summarized+uploaded+compat)  Col 6: Clean session',
+    'C1: Cold open (no prior context)',
+    'C2: Three RAM approaches identified',
+    'C3: ps rss silent failure (key drama detail)',
+    'C4: State redesign (summarized+uploaded+compat)',
+    'C5: Clean session (no tool denials / user corrections)',
 ]
 
 
+def split_reasoning(content):
+    import re as _re
+    think_match = _re.search(r'<think>(.*?)</think>', content, _re.S | _re.I)
+    if think_match:
+        reasoning = think_match.group(1)
+        body = content[:think_match.start()] + content[think_match.end():]
+        return body.strip(), reasoning.strip()
+    marker_match = _re.search(r'<<<--reasoning', content, _re.I)
+    if marker_match:
+        return content[:marker_match.start()].strip(), content[marker_match.start():].strip()
+    trace_match = _re.search(r'```reasoning-trace\s*(.*?)(?:```|$)', content, _re.S | _re.I)
+    if trace_match:
+        reasoning = trace_match.group(1).strip()
+        body = content[:trace_match.start()] + content[trace_match.end():]
+        return body.strip(), reasoning
+    return content.strip(), ""
+
+
+def normalize_entity_names(text):
+    import re as _re
+    text = _re.sub(r'\b(the|an)\s+assistant\b', 'Claude', text, flags=_re.I)
+    text = _re.sub(r"\bassistant's\b", "Claude's", text, flags=_re.I)
+    text = _re.sub(
+        r'\bI\s+(used|proposed|wrote|assumed|inserted|implemented|suggested'
+        r'|started|jumped|initially|mistakenly|wrongly|began|made|read|tried)',
+        lambda m: 'Claude ' + m.group(1),
+        text, flags=_re.I
+    )
+    text = _re.sub(
+        r'\b(corrected|caught|told|stopped|interrupted|directed)\s+me\b',
+        r'\1 Claude', text, flags=_re.I
+    )
+    return text
+
+
 def score_summary(content):
+    body, _ = split_reasoning(content)
+    body    = normalize_entity_names(body)
+    content = normalize_entity_names(content)
+
     checks = {}
     score = 0
     for name, pattern in CHECKS_DEF:
-        hit = bool(re.search(pattern, content, re.I))
+        hit = bool(re.search(pattern, body, re.I))
         checks[name] = hit
         if hit:
             score += 1
 
+    score_raw_count = sum(1 for _, p in CHECKS_DEF if re.search(p, content, re.I))
+
     return {
-        'score_norm': score / len(CHECKS_DEF),
-        'score_raw':  float(score),
-        'score_max':  float(len(CHECKS_DEF)),
-        'checks':     checks,
-        'extra':      {},
+        'score_norm':     score / len(CHECKS_DEF),
+        'score_norm_raw': score_raw_count / len(CHECKS_DEF),
+        'score_raw':      float(score),
+        'score_max':      float(len(CHECKS_DEF)),
+        'checks':         checks,
+        'extra':          {},
     }
 
 
