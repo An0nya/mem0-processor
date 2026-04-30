@@ -5134,8 +5134,9 @@
     "tags": [
       "dense",
       "llama",
-      "wd-elements",
-      "bare"
+      "q8_0",
+      "tiny",
+      "wd-elements"
     ],
     "nLayer": 32,
     "nCtxTrain": 262144,
@@ -5914,11 +5915,13 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "gemma4",
+      "imatrix",
+      "iq3_xxs",
       "large",
-      "gemma4"
+      "ud",
+      "wd-elements"
     ],
     "nLayer": 60,
     "nCtxTrain": 262144,
@@ -5973,11 +5976,11 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
       "medium",
-      "qwen35"
+      "q3_k_l",
+      "qwen35",
+      "wd-elements"
     ],
     "nLayer": 64,
     "nCtxTrain": 262144,
@@ -6028,11 +6031,12 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
-      "moe",
-      "wd-elements",
       "large",
-      "qwen35"
+      "moe",
+      "q2_k_s",
+      "qwen35",
+      "qwen35moe",
+      "wd-elements"
     ],
     "nLayer": 40,
     "nCtxTrain": 262144,
@@ -6086,11 +6090,11 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "gemma4",
       "large",
-      "gemma4"
+      "q2_k_s",
+      "wd-elements"
     ],
     "nLayer": 60,
     "nCtxTrain": 262144,
@@ -6139,11 +6143,12 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "wd-elements",
+      "gemma4",
+      "imatrix",
+      "iq2_m",
       "large",
-      "gemma4"
+      "wd-elements"
     ],
     "nLayer": 60,
     "nCtxTrain": 262144,
@@ -6198,13 +6203,44 @@
       "reasoningBudgetMessage": "[REASONING BUDGET EXHAUSTED]\nLock in your analysis now. Complete Open Threads and Meta Takeaways without\nrestarting sections. Output the analysis as-is."
     },
     "tags": [
-      "bare",
       "dense",
       "f16",
-      "nvme",
+      "llama",
       "nanbeige",
-      "small"
-    ]
+      "nvme",
+      "tiny"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "8B",
+    "modelParams": "3.93 B",
+    "quantType": "F16",
+    "bpw": "16.00",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 32,
+    "modelName": "Nanbeige4.1 3B",
+    "baseModel": "Nanbeige4 3B Base",
+    "sizeLabel": "3B",
+    "architecture": "llama",
+    "attentionHeads": 20,
+    "kvHeads": 4,
+    "gqaRatio": 5,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2125,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 8858,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 65,
+      "f16": 226,
+      "total": 291
+    },
+    "highPrecisionRatio": 1,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "70000000.000000"
   },
   "mannix/qwen3.5-27b-omnimerge-v2-q3_k_s": {
     "path": "/Volumes/WD-elements/llm-offload/ManniX/ManniX-ITA-Qwen3.5-27B-Omnimerge-v2-GGUF/Qwen3.5-27B-Omnimerge-v2-Q3_K_S.gguf",
@@ -6223,13 +6259,42 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "medium",
-      "q3_k_s",
       "qwen35",
+      "bare",
       "wd-elements"
-    ]
+    ],
+    "nLayer": 64,
+    "nCtxTrain": 262144,
+    "modelType": "27B",
+    "modelParams": "26.90 B",
+    "quantType": "Q3_K - Small",
+    "bpw": "3.59",
+    "offloadedLayers": 65,
+    "totalLayers": 65,
+    "kvLayers": 16,
+    "modelName": "Omnimerge v2",
+    "sizeLabel": "27B",
+    "architecture": "qwen35",
+    "attentionHeads": 24,
+    "kvHeads": 4,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 562.5,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11758,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 353,
+      "q3_K": 497,
+      "q6_K": 1,
+      "total": 851
+    },
+    "highPrecisionRatio": 0.41480611045828436,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000000.000000"
   },
   "mannix/gemma-4-a4b-98e-v3-it-iq4_xs": {
     "path": "/Volumes/WD-elements/llm-offload/ManniX/ManniX-ITA-gemma-4-A4B-98e-v3-it-GGUF/gemma-4-A4B-98e-v3-it-IQ4_XS.gguf",
@@ -6253,13 +6318,44 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
       "gemma4",
-      "iq4_xs",
-      "large",
       "moe",
+      "bare",
       "wd-elements"
-    ]
+    ],
+    "nLayer": 30,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "19.88 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.42",
+    "offloadedLayers": 30,
+    "totalLayers": 31,
+    "kvLayers": 5,
+    "modelName": "Gemma 4 A4B 98e v3 It",
+    "sizeLabel": "A4B",
+    "architecture": "gemma4",
+    "expertCount": 98,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 175.78,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 10597,
+    "hasImatrix": true,
+    "imatrixEntries": 295,
+    "quantBreakdown": {
+      "f32": 392,
+      "q6_K": 1,
+      "iq4_nl": 60,
+      "iq4_xs": 205,
+      "total": 658
+    },
+    "highPrecisionRatio": 0.5957446808510638,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "1000000.000000"
   },
   "ghost4280/ghost-v6-singularity-q4_k_m": {
     "path": "/Volumes/WD-elements/llm-offload/ghost4280/Ghost-V6-Singularity-Q4_K_M-GGUF /ghost-v6-singularity-q4_k_m.gguf",
@@ -6277,12 +6373,42 @@
       "kvQuantV": "q8_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "q4_k_m",
-      "small",
+      "bare",
       "wd-elements"
-    ]
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 131072,
+    "modelType": "8B",
+    "modelParams": "8.03 B",
+    "quantType": "Q4_K - Medium",
+    "bpw": "4.89",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 32,
+    "modelName": "Ghost V6 Apex Intelligence",
+    "baseModel": "Ghost V6 Apex Intelligence",
+    "sizeLabel": "8.0B",
+    "architecture": "llama",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2125,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 6560,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 66,
+      "q4_K": 193,
+      "q6_K": 33,
+      "total": 292
+    },
+    "highPrecisionRatio": 0.22602739726027396,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "500000.000000"
   },
   "mradermacher/deepseek-coder-v2-lite-instruct-iq4_xs": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/DeepSeek-Coder-V2-Lite-Instruct-i1-GGUF/DeepSeek-Coder-V2-Lite-Instruct.i1-IQ4_XS.gguf",
@@ -6300,13 +6426,44 @@
       "kvQuantV": "q8_0"
     },
     "tags": [
-      "bare",
       "dense",
-      "imatrix",
-      "iq4_xs",
-      "medium",
+      "bare",
       "wd-elements"
-    ]
+    ],
+    "nLayer": 27,
+    "nCtxTrain": 163840,
+    "modelType": "16B",
+    "modelParams": "15.71 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.36",
+    "offloadedLayers": 28,
+    "totalLayers": 28,
+    "kvLayers": 27,
+    "modelName": "DeepSeek-Coder-V2-Lite-Instruct",
+    "architecture": "deepseek2",
+    "expertCount": 64,
+    "expertUsedCount": 6,
+    "attentionHeads": 16,
+    "kvHeads": 16,
+    "gqaRatio": 1,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 4482.42,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 12576,
+    "hasImatrix": true,
+    "quantBreakdown": {
+      "f32": 108,
+      "q6_K": 1,
+      "iq4_nl": 27,
+      "iq4_xs": 241,
+      "total": 377
+    },
+    "highPrecisionRatio": 0.2864721485411141,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "10000.000000",
+    "specialAttention": "MLA"
   },
   "mradermacher/dualmind-qwen-1.7b-thinking-f16": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Dualmind-Qwen-1.7B-Thinking-GGUF /Dualmind-Qwen-1.7B-Thinking.f16.gguf",
@@ -6322,13 +6479,52 @@
       "threads": 8
     },
     "tags": [
-      "bare",
       "dense",
-      "f16",
       "qwen",
-      "tiny",
+      "bare",
       "wd-elements"
-    ]
+    ],
+    "nLayer": 28,
+    "nCtxTrain": 40960,
+    "modelType": "1.7B",
+    "modelParams": "2.03 B",
+    "quantType": "F16",
+    "bpw": "16.00",
+    "offloadedLayers": 29,
+    "totalLayers": 29,
+    "kvLayers": 28,
+    "modelName": "Dualmind Qwen 1.7B Thinking",
+    "baseModel": "DualMinded Qwen3 1.7B",
+    "sizeLabel": "1.7B",
+    "architecture": "qwen3",
+    "attentionHeads": 16,
+    "kvHeads": 8,
+    "gqaRatio": 2,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 3718.75,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 7038,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 113,
+      "f16": 198,
+      "total": 311
+    },
+    "highPrecisionRatio": 1,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "datasets": [
+      {
+        "name": "Opus 4.6 Reasoning 3000x Filtered",
+        "organization": "Nohurry"
+      },
+      {
+        "name": "LongWriter 6k",
+        "organization": "Zai Org"
+      }
+    ],
+    "ropeFreqBase": "1000000.000000"
   },
   "mradermacher/qwen3-30b-a3b-instruct-reamini-iq4_xs": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3-30B-A3B-Instruct-REAMINI-i1-GGUF/Qwen3-30B-A3B-Instruct-REAMINI.i1-IQ4_XS.gguf",
@@ -6347,12 +6543,9 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
-      "imatrix",
-      "iq4_xs",
-      "medium",
       "moe",
       "qwen3",
+      "bare",
       "wd-elements"
     ]
   },
@@ -6373,12 +6566,9 @@
       "kvQuantV": "q4_0"
     },
     "tags": [
-      "bare",
-      "imatrix",
-      "iq3_m",
-      "large",
       "moe",
       "qwen36",
+      "bare",
       "wd-elements"
     ]
   },
@@ -6396,11 +6586,9 @@
       "threads": 8
     },
     "tags": [
-      "bare",
       "dense",
-      "f16",
+      "bare",
       "qwen",
-      "tiny",
       "wd-elements"
     ]
   }

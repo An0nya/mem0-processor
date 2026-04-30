@@ -428,27 +428,6 @@ repeating bug. Raw data preserved as-is. Documented in NOTES.md.
 
 ---
 
-## v8 — Data-driven context cap (unblocked, data collection phase)
-
-Replace the hardcoded 64k ceiling with a per-model computed max safe transcript size
-derived from perf store data. Benchmark regression on RAM/swap/pressure vs `transcriptChars`
-already exists in mem0 — bring it in-script. v9 clean baselines (`noModelGb`) now exist;
-blocker resolved. RAM warnings bundled here (was backlog item).
-
-- **Regression fit per model**: solve for largest `transcriptChars` where
-  `peakPressure` and `swap growth` stay under threshold. Fall back to current 64k hard
-  cap when a model has insufficient data points (N < ? — TBD, probably 5).
-- **Per-model overrides** in `MODELS` registry for models run at the edge or known
-  outliers.
-- **Benchmarking run mode**: scripted clean runs — pick specific session IDs, iterate
-  across models, write to a separate perf log stream isolated from production summaries
-  so training data stays clean.
-- **Granular RAM logging** during input processing vs output processing if feasible
-  (may need stream parsing to distinguish phases).
-
-Difficulty: Medium. Data exists; mostly a curve fit + plumbing.
-
----
 
 ## v9 — Programmatic model launch (shipped)
 
@@ -623,11 +602,12 @@ Lower priority; don't start until 7b + 7c are stable.
   (3) crash/interrupt safety — generated content can be flushed to log as tokens arrive,
   so a shutdown or server crash doesn't lose the partial output. Requires SSE stream reader,
   delta accumulation, and a partial-output flush path in the catch block.
-- **Exploratory — reasoning budget** (`--reasoning-budget N`): token cap on thinking
-  traces (-1 = unlimited, 0 = off). Works for llama.cpp-recognized thinking tokens (Qwen3
-  `<think>`, DeepSeek-R1). Gemma's `<|channel>thought` / `<channel|>` — needs llama.cpp
-  support verification. Not the same as LM Studio's "reasoning effort" (OpenAI API feature
-  for o1/o3-class models only). Add `reasoningBudget` to registry when support confirmed.
+- **~~Exploratory~~ Reasoning budget auto-defaults (shipped, commit `38181ba`)**: `resolveLaunch()`
+  in `lib/registry.mjs` now auto-applies `--reasoning-budget 4000` and `maxOutputTokens: 6000`
+  for any model with `reasoning.startString` set (all reasoning models). Explicit `reasoningBudget`
+  / `maxOutputTokens` in the registry override via `??`. Prevents runaway traces on new reasoning
+  models without manual per-model tuning. Works for llama.cpp-recognized thinking tokens (Qwen3
+  `<think>`, Nanbeige `<think>`); not the same as LM Studio's "reasoning effort".
 - **Exploratory — `--reasoning [on|off|auto]`**: native thinking trigger; would replace
   the `<|think|>` system-prompt injection workaround. `--reasoning-format FORMAT` extracts
   thought tags into dedicated response fields, replacing the `startString/endString` registry
@@ -931,6 +911,11 @@ Auto-derived tags:
 
 Ran against all 56 entries; all tagged.
 
+Updated in `c8cc762` to **managed-sync mode**: the script now owns a defined set of managed
+tag categories (source, arch, size, quant, bare) and removes stale values from those categories
+on re-run rather than only appending. Also adds a `bare` tag to entries missing both `arch` and
+`modelParams` (unknown/unlabeled models). Non-managed manual tags are never touched.
+
 ---
 
 ## v9.3 — Sampler param sweep (in progress)
@@ -953,6 +938,80 @@ Extend `sweep.mjs` to iterate over named sampler param variants across sessions 
   scripts; no pipeline connecting sweep runs → scorer yet
 
 Difficulty: Medium (remaining grid/launch-param work).
+
+---
+
+## v9.4 — Sampler instrumentation pass (planned)
+
+Fix a silent sampler bug and expand full sampler observability across all data surfaces.
+
+### Bug: implicit top-p 0.9
+
+`buildLlamaFlags` never passes `--top-p`, so llama-server has been defaulting to 0.9 on
+every run. This silently constrained the token pool before min-p or top-k could act —
+redundant with min-p and undocumented in any perf record.
+
+**Impact on historical data**: existing rankings remain valid relative to each other (all
+runs shared the same constraint). Distilled reasoning models and models with flat
+distributions are most likely affected. Candidates for targeted retesting: gemma4 a4b MoE
+(APEX I-mini quant), distilled variants that trailed their base models.
+
+**Fix**: add `"--top-p", "1.0"` to hardcoded defaults in `buildLlamaFlags` alongside
+the existing `--min-p 0.05 --top-k 0 --temp 1.0` block. Pass explicitly always.
+
+### perf.json backfill
+
+`backfill-topp.mjs` (written 2026-04-30) patches historical perf.json entries: runs where
+`minP/temp/topK` are present but `topP` is absent → `topP: 0.9` (the llama default that
+was in effect). Runs with all-null sampler fields are skipped (pre-instrumentation era,
+genuinely unknown). One-time operation; backup written to `perf.json.bak` before write.
+
+### DRY sampler support in buildLlamaFlags
+
+Add DRY (prevents phrase-level repetition via n-gram penalty; distinct from repeat_penalty)
+to `buildLlamaFlags`:
+
+```js
+if (entry.sampler?.dry) flags.push(
+  "--dry-multiplier", String(entry.sampler.dry.multiplier),
+  "--dry-base",       String(entry.sampler.dry.base ?? 1.75),
+  "--dry-allowed-length", String(entry.sampler.dry.allowedLength ?? 2),
+);
+```
+
+Dynatemp is already wired (registry `sampler.dynaTemp.range/exp`); DRY is the gap.
+Registry schema: `"sampler": { "dry": { "multiplier": 0.8, "base": 1.75, "allowedLength": 2 } }`
+
+### sampler-presets.json schema expansion
+
+Add optional fields to preset definitions: `top_p`, `dynatemp_range`, `dynatemp_exp`,
+`dry_multiplier`, `dry_base`. Absent = not passed to llama-server. Current fields
+(`temperature`, `min_p`, `top_k`) unchanged.
+
+### perf.json serialization expansion
+
+Add `topP`, `dynaTemp` (object: `range`, `exp`), `dry` (object: `multiplier`, `base`) to
+`resolveLaunch()` and the perf entry written by `appendPerfEntry()`. Same surface as the
+existing `minP/temp/topK` resolved fields.
+
+### Summary YAML frontmatter expansion
+
+Add flat fields to `buildFrontmatter()` in `lib/summary.mjs`:
+`top_p`, `dynatemp_range`, `dynatemp_exp`, `dry_multiplier`, `dry_base`. Flat (not nested)
+for easier SQL querying. Absent when not set for the run.
+
+### build-dataset.py schema + perf.json join
+
+- Add columns to `summaries` table: `top_p REAL`, `dynatemp_range REAL`, `dynatemp_exp REAL`,
+  `dry_multiplier REAL`, `dry_base REAL`
+- Read from YAML in `load_summaries` (same pattern as existing `min_p`, `top_k`)
+- Perf.json join fallback for historical `top_p: 0.9` backfill: match on
+  `(session_id, model_norm, ts)` — ts disambiguates future sampler-sweep runs where the
+  same session/model pair ran multiple times with different samplers. Summary `started_at`
+  vs perf `ts` as the timestamp key.
+
+**Note**: do not backfill summary text files. DB is rebuilt fresh every run; the fix lives
+in the schema + join, not in the source files. Summary files remain write-once artifacts.
 
 ---
 
@@ -1072,12 +1131,55 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
 
 ---
 
+## Scoring + Dataset Tooling
+
+Parallel track to the main pipeline. These scripts evaluate summary quality and model
+rankings; they don't run as part of the summarization pipeline itself.
+
+**Current state (as of 2026-04-30)**: 24 scorers across 9 sessions (some multi-part).
+All scorers use part-qualified naming and dual body-only/full-content scoring.
+
+### Scorer architecture
+
+Session scoring scripts live in `scoring/`. Each targets a specific session and checks named
+facts against the summary text via regex patterns.
+
+- **Part-qualified naming** (commit `200dd78`): all scorers follow `score-session-<id>-partN.py`.
+  `build-dataset.py` handles part-aware loading: matches each scorer to summaries by
+  `session_id` substring + part suffix. (commit `9b54a22`)
+- **Penalty scoring** (commit `a7e8614`): some sessions score facts where presence is a
+  negative signal. `score_adjusted = score_raw − penalty_raw`; `build-dataset.py` derives
+  `score_norm` from `score_adjusted` for penalty-aware scorers. Penalty fields stored in
+  `extra` JSON column.
+- **Dual scoring — body-only vs full-content** (commit `2684fef`): all 24 scorers separate
+  the reasoning trace from the summary body (`split_reasoning` + `normalize_entity_names`).
+  Primary signal is `score_norm` against the body only. `score_norm_raw` = same normalization
+  with reasoning trace included — the delta isolates how much signal leaks into the trace
+  vs gets surfaced in the body. DB views: `score_reasoning_delta` (per-row),
+  `model_reasoning_delta` (per-model aggregate).
+
+### Dataset tooling (`tools/`)
+
+- **`build-dataset.py`**: SQLite DB builder. Loads summaries (YAML frontmatter → perf fields),
+  session scores, perf store, and registry metadata. Key views: `score_normed_quality`,
+  `model_summary_stats`, `score_reasoning_delta`, `model_reasoning_delta`.
+- **`report.py`** (commit `6fb7052`): tabular model rankings from `score_normed_quality`.
+- **`plot-quant-curve.py`** (commit `6fb7052`): plots bpw vs `z_avg` from DB + registry join,
+  coloured by arch (dense/MoE) and quant method (imatrix/traditional). Prints imatrix vs
+  traditional summary and `highPrecisionRatio` slope.
+
+### Open
+
+- Additional scorers for uncovered sessions (see scorer candidates in memory)
+- Sweep → scoring pipeline: no automated connection between sweep output and scorers yet
+- Content-only summary view: dual scoring covers body-only *scoring* but not body-only
+  *length/yield* comparison (see backlog)
+
+---
+
 ## Backlog / post-v11
 
-- **Quality scoring** (`scoring/`): experiment in programmatic qualitative analysis turned
-  out to be a useful if imprecise quality baseline. Eight session scoring scripts exist;
-  open work is data review, additional grading scripts, and possible integration with perf
-  store (score stored alongside runtime metrics). `build-dataset.py` is the downstream consumer.
+- ~~**Quality scoring** (`scoring/`)~~: see Scoring + Dataset Tooling section above.
 - **`build-dataset.py` — session_id dedupe with `--include-no-yaml`**: some sessions appear
   twice in scores — once keyed to the full UUID and once to the part-qualified id (e.g.
   `abc123` and `abc123-part0`). Pre-YAML summaries are the source because session splitting
@@ -1095,7 +1197,32 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
 - **Log file enrichment**: recurring — logs are consistently sparser than console output.
   Worth revisiting whenever console output changes. Unified log function still rejected
   (formats differ too much), but targeted additions remain the approach.
-- **RAM warning tiers**: absorbed into v8 regression-based context cap. Will land there.
+- **Alternative runtime support**: the pipeline is currently llama-server-only (v9+). Other
+  runtimes are desirable but not yet planned. The main integration cost in each case is API
+  and field-name mismatch — the same problem solved in v9 when moving from LM Studio to
+  llama-server (`data.stats.*` → `data.timings.*`, etc.). Each new runtime needs a response
+  parsing branch and a sampler flag translation layer; the rest of the pipeline is already
+  provider-agnostic.
+  - **MLX** (`mlx-lm`): Apple Silicon native, runs safetensors directly, meaningfully faster
+    than llama-server on M-series for some architectures. Desirable for speed. Has an
+    OpenAI-compatible server mode (`mlx_lm.server`), so the API surface is close.
+  - **TurboQuant** (or other llama.cpp forks with custom quant support): straight quality/speed
+    win for supported model types; should be a near-drop-in since the server API is identical
+    to stock llama-server. Main risk is flag divergence for nonstandard features.
+  - **Other llama.cpp forks**: same story as TurboQuant — API-compatible, flag divergence is
+    the only friction. Worth tracking which forks are active.
+  - **Raw transformers / non-GGUF**: not all models ship in GGUF form. Options on M-series:
+    `mlx-lm` (preferred — native MPS, no conversion needed), or plain HuggingFace
+    `transformers` with MPS backend (works but no server mode; would need a shim like
+    `text-generation-webui` or `llama-cpp-python` to expose an HTTP endpoint). Runtime for
+    this case is still an open question.
+- **Context cap regression** (was v8): replace the hardcoded 64k ceiling with a per-model
+  regression fit on RAM/swap/pressure vs `transcriptChars`. Per-model limits are already
+  configured in the registry so this is low urgency; becomes relevant when adding a pipeline
+  with models outside the current GGUF-size heuristics (MLX, turboquant, nonstandard forks).
+  Benchmarking run mode was absorbed into sweep.mjs. Granular RAM logging (input vs output
+  phase) is the remaining instrumentation gap.
+- **RAM warning tiers**: absorbed into context cap regression above.
 - **Interactive TUI**: deferred. Only for the benchmarking branch post-v11 split. Not until
   CLI flag complexity actually hurts daily usability.
 - **Unified log function**: still deferred — formats differ too much. Revisit if log
@@ -1133,13 +1260,12 @@ Remaining work in `claude-code-mem0-uploader.mjs` itself:
 - ~~**sweep.mjs — per-sweep log file + richer summary output**~~ *(closed, commit `f02ea44`)*: subprocess
   stdio piped with live passthrough; full output written to `~/.claude/mem0/logs/sweep-<tag>.log`;
   failed run output replayed in final summary under `FAILED RUN OUTPUT` block.
-- **`build-dataset.py` — content-only summary view**: some models produce summaries that are
-  mostly or entirely reasoning traces with little actual content. Add a flag or SQL view that
-  strips the reasoning trace and YAML frontmatter so per-model content length and yield can
-  be compared. Two formats in the wild: HTML comment blocks (`<!-- reasoning -->`) from v7.2,
-  and fenced code blocks from later sessions. Useful for identifying models that "thought"
-  extensively but delivered thin outputs, and for cleaner scoring (scoring against content
-  only, not reasoning noise).
+- **`build-dataset.py` — content-only summary view**: body-only *scoring* is now handled
+  via dual scoring (see Scoring section). Still open: a SQL view or flag for body-only
+  *length and yield* — so "how much content did the model actually produce vs how much was
+  reasoning trace" can be measured independently of score. Two trace formats in the wild:
+  HTML comment blocks (`<!-- reasoning -->`) from v7.2 and fenced code blocks from later
+  sessions. Useful for identifying models that thought extensively but delivered thin outputs.
 - **Decouple summary generation from the session loop**: currently the main loop in the
   uploader iterates sessions and models in a fixed order tied to sweep's invocation.
   Refactor goal: expose a `generateSummary(sessionId, modelKey, options)` function that

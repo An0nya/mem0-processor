@@ -284,6 +284,42 @@ SELECT
 FROM scores
 GROUP BY model_norm, session_id
 HAVING COUNT(*) >= 2;
+
+-- shared_model_scores: scores for models with >= 10 sessions, filtered to only the
+-- sessions every qualifying model completed (fair comparison baseline).
+-- Per-row: individual session scores, z_score, reasoning delta.
+-- Per-model window aggregates (suffix model_avg_*): averages across shared sessions only.
+-- Change the HAVING threshold to adjust the qualifying model pool.
+CREATE VIEW shared_model_scores AS
+WITH qual_models AS (
+    SELECT model_norm FROM scores
+    GROUP BY model_norm
+    HAVING COUNT(DISTINCT session_id) >= 10
+),
+qual_sessions AS (
+    SELECT session_id FROM scores
+    WHERE model_norm IN (SELECT model_norm FROM qual_models)
+    GROUP BY session_id
+    HAVING COUNT(DISTINCT model_norm) = (SELECT COUNT(*) FROM qual_models)
+)
+SELECT
+    sn.model_norm,
+    sn.session_id,
+    sn.score_norm,
+    sn.score_raw,
+    sn.score_max,
+    sn.z_score,
+    srd.delta         AS reasoning_delta,
+    srd.score_body,
+    srd.score_full,
+    AVG(sn.score_norm) OVER (PARTITION BY sn.model_norm) AS model_avg_score_norm,
+    AVG(sn.z_score)    OVER (PARTITION BY sn.model_norm) AS model_avg_zscore,
+    AVG(srd.delta)     OVER (PARTITION BY sn.model_norm) AS model_avg_reasoning_delta
+FROM score_normed sn
+LEFT JOIN score_reasoning_delta srd
+    ON sn.model_norm = srd.model_norm AND sn.session_id = srd.session_id
+WHERE sn.model_norm IN (SELECT model_norm FROM qual_models)
+  AND sn.session_id  IN (SELECT session_id  FROM qual_sessions);
 """
 
 # ─── LOADERS ─────────────────────────────────────────────────────────────────

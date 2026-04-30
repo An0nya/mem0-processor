@@ -45,7 +45,14 @@ CHECKS_DEF = [
      r'|caught.{0,30}(by.claude|itself|own).{0,40}(scope|isReprocess)'
      r'|self.{0,10}(inspect|detect|catch|correct).{0,40}(scope|isReprocess|variable)'
      r'|claude.{0,30}(realized|noticed|spotted).{0,40}(isReprocess|scope|variable.not)'
-     r'|not.caught.by.user|user.did.not.catch|user.did.not.flag)'
+     r'|not.caught.by.user|user.did.not.catch|user.did.not.flag'
+     # tool-mediated self-catch: "caught this via grep", "found via inspect"
+     r'|caught.{0,40}(via|through|by).{0,20}(grep|inspect|review|own.code)'
+     r'|(claude|self).{0,30}(detect|find|found).{0,30}(scope|isReprocess)'
+     # nanbeige/TOOL_ERROR family: scope attributed to Claude, surfaced by tool failure
+     r'|scope.{0,40}(error|issue|problem|mismatch).{0,50}(not.user|self.caught|by.claude|own)'
+     r'|scope.{0,40}(error|issue).{0,30}(led.to|caused).{0,30}(rework|tool.error|correction)'
+     r')'
     ),
 
     # 2. Premature implementation — Claude edited files before design was locked
@@ -58,7 +65,14 @@ CHECKS_DEF = [
      r'|started.{0,30}(editing|implementing|coding).{0,30}before.{0,30}(user|confirm|lock)'
      r'|moved.{0,30}(too.fast|ahead).{0,30}(into|with).{0,30}(edit|file|impl)'
      r'|implement.{0,30}(flag|approach).{0,30}before.{0,30}(user|confirmed|agreed)'
-     r'|claude.{0,30}(jumped|dove|moved).{0,30}(into|to).{0,30}(edit|impl|file))'
+     r'|claude.{0,30}(jumped|dove|moved).{0,30}(into|to).{0,30}(edit|impl|file)'
+     # "moved ahead without asking/confirming", "started editing without confirming scope"
+     r'|(moved|went).{0,20}ahead.{0,30}without.{0,20}(ask|confirm|surface|check)'
+     r'|started.{0,30}(editing|implementing|coding).{0,30}without.{0,30}(confirm|ask|approv)'
+     # "before formally approved", "added code/flag before asking"
+     r'|before.{0,20}(formally.approv|user.confirm|confirmed.scope|confirmed.approach)'
+     r'|added.{0,20}(code|flag|constant).{0,30}before.{0,30}(ask|confirm|check)'
+     r')'
     ),
 
     # 3. --reprocess linkage was the USER's design insight
@@ -92,9 +106,15 @@ CHECKS_DEF = [
      r'|sequential.{0,30}(memory|mem0|tool).{0,20}(call|update).{0,30}(without|no).{0,20}(review|confirm|pause)'
      r'|memory.{0,30}(update|call).{0,30}without.{0,30}(user|review|confirm|approv)'
      r'|multiple.{0,20}(mem0|memory).{0,20}(call|update).{0,30}(no.pause|without.check|unreviewed)'
-     r'|unprompted.{0,30}(memor|mem0)'
-     r'|CLAUDE.UNPROMPTED.{0,30}(memor|mem0)'
-     r'|mem0.{0,30}(no.{0,20}confirm|assumed|executed.without))'
+     # expand radius: catches [CLAUDE-UNPROMPTED] as section label with mem0 in sub-bullet
+     r'|unprompted.{0,200}(memor|mem0)'
+     r'|CLAUDE.UNPROMPTED.{0,200}(memor|mem0)'
+     r'|mem0.{0,30}(no.{0,20}confirm|assumed|executed.without)'
+     # vibecoder/nanbeige family: "no go-ahead", "implicit trust"
+     r'|(go.ahead|go-ahead).{0,60}(memor|mem0)'
+     r'|memor.{0,60}(no.explicit|never.explicit|implicit.trust|no.go.ahead)'
+     r'|implicit.trust.{0,60}(memor|mem0)'
+     r')'
     ),
 
     # 6. Clean close / v7.1 fully shipped
