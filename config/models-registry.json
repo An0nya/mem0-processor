@@ -6178,5 +6178,229 @@
     "ultraLowRatio": 0.1908763505402161,
     "quantStrategy": "highly_mixed",
     "ropeFreqBase": "1000000.000000"
+  },
+  "mradermacher/nanbeige4.1-3b-f16": {
+    "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Nanbeige4.1-3B-GGUF/Nanbeige4.1-3B.f16.gguf",
+    "fileSizeGb": 7.33,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "nvme",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "maxOutputTokens": 12000,
+      "reasoningBudget": 6000,
+      "reasoningBudgetMessage": "[REASONING BUDGET EXHAUSTED]\nLock in your analysis now. Complete Open Threads and Meta Takeaways without\nrestarting sections. Output the analysis as-is."
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "f16",
+      "nvme",
+      "nanbeige",
+      "small"
+    ]
+  },
+  "mannix/qwen3.5-27b-omnimerge-v2-q3_k_s": {
+    "path": "/Volumes/WD-elements/llm-offload/ManniX/ManniX-ITA-Qwen3.5-27B-Omnimerge-v2-GGUF/Qwen3.5-27B-Omnimerge-v2-Q3_K_S.gguf",
+    "fileSizeGb": 11.24,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "medium",
+      "q3_k_s",
+      "qwen35",
+      "wd-elements"
+    ]
+  },
+  "mannix/gemma-4-a4b-98e-v3-it-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/ManniX/ManniX-ITA-gemma-4-A4B-98e-v3-it-GGUF/gemma-4-A4B-98e-v3-it-IQ4_XS.gguf",
+    "fileSizeGb": 10.25,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    },
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": 30,
+      "nExpertsUsed": 10,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "gemma4",
+      "iq4_xs",
+      "large",
+      "moe",
+      "wd-elements"
+    ]
+  },
+  "ghost4280/ghost-v6-singularity-q4_k_m": {
+    "path": "/Volumes/WD-elements/llm-offload/ghost4280/Ghost-V6-Singularity-Q4_K_M-GGUF /ghost-v6-singularity-q4_k_m.gguf",
+    "fileSizeGb": 4.58,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "q4_k_m",
+      "small",
+      "wd-elements"
+    ]
+  },
+  "mradermacher/deepseek-coder-v2-lite-instruct-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/DeepSeek-Coder-V2-Lite-Instruct-i1-GGUF/DeepSeek-Coder-V2-Lite-Instruct.i1-IQ4_XS.gguf",
+    "fileSizeGb": 7.98,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "imatrix",
+      "iq4_xs",
+      "medium",
+      "wd-elements"
+    ]
+  },
+  "mradermacher/dualmind-qwen-1.7b-thinking-f16": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Dualmind-Qwen-1.7B-Thinking-GGUF /Dualmind-Qwen-1.7B-Thinking.f16.gguf",
+    "fileSizeGb": 3.79,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "f16",
+      "qwen",
+      "tiny",
+      "wd-elements"
+    ]
+  },
+  "mradermacher/qwen3-30b-a3b-instruct-reamini-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3-30B-A3B-Instruct-REAMINI-i1-GGUF/Qwen3-30B-A3B-Instruct-REAMINI.i1-IQ4_XS.gguf",
+    "fileSizeGb": 11.65,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "imatrix",
+      "iq4_xs",
+      "medium",
+      "moe",
+      "qwen3",
+      "wd-elements"
+    ]
+  },
+  "mradermacher/qwen3.6-28b-reap-iq3_m": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.6-28B-REAP-i1-GGUF/Qwen3.6-28B-REAP.i1-IQ3_M.gguf",
+    "fileSizeGb": 11.76,
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": "/Users/anya/.claude/mem0/templates/qwen.jinja",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "imatrix",
+      "iq3_m",
+      "large",
+      "moe",
+      "qwen36",
+      "wd-elements"
+    ]
+  },
+  "mradermacher/topologicalqwen-f16": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/TopologicalQwen-GGUF /TopologicalQwen.f16.gguf",
+    "fileSizeGb": 3.79,
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "f16",
+      "qwen",
+      "tiny",
+      "wd-elements"
+    ]
   }
 }
