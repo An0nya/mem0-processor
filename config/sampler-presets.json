@@ -4,5 +4,5 @@
   "hot":          { "temperature": 1.2,  "min_p": 0.02, "top_k": 0  },
   "greedy":       { "temperature": 0.0,  "min_p": 0.0,  "top_k": 1  },
   "wide":         { "temperature": 1.0,  "min_p": 0.01, "top_k": 0  },
-  "Unrestricted": { "temperature": 2.0,  "min_p": 0,    "top_k": 0  }
+  "unrestricted": { "temperature": 2.0,  "min_p": 0,    "top_k": 0  }
 }
