@@ -1274,3 +1274,22 @@ facts against the summary text via regex patterns.
   flexible sweep targeting (e.g. "run these 4 models on only this one session") and
   aligns with the v11 prod/benchmark split where the benchmark path needs to control
   execution order independently.
+- idea: can we make the sweep a queue so I can add in session*model on the end, and maybe even remove individual ones? Def down the road but would make things so nice to benchmark... oh and also pause it maybe? At least between models
+- **Mistral reasoning support** *(done, pending test)*: added `[THINK]`/`[/THINK]` reasoning
+  fields to 7 Mistral-family registry entries (ministral-14b-reasoning ×2, mistral-nemo-12b-thinking,
+  magistral-small-2509, devstral-small-2-24b, mistral-small-24b, mixtral-8x7b-limerp). Fixed
+  architecture field to `mistral3` for mistral-small-24b and magistral-small-2509 (were incorrectly
+  `llama`). `summary.mjs` now injects `[THINK]` prefill for models with `reasoning.startString === "[THINK]"`.
+  Uses legacy prefill method (no `--jinja`/`--special` flags); if unreliable, enabling the GGUF-embedded
+  Jinja template is the next variable to try.
+- **`backfill-registry-meta` — auto-populate reasoning field**: when backfilling registry entries,
+  auto-set `reasoning` based on architecture: `gemma4` → `<|channel>thought`/`<channel|>`,
+  `mistral3` (with reasoning/thinking in model name or tags) → `[THINK]`/`[/THINK]`. Avoids
+  future omissions like the Gemma backfill below.
+- **Gemma reasoning field backfill** *(done, pending test)*: 13 Gemma 4 registry entries were missing
+  the `reasoning` field, causing the `<|channel>thought`/`<channel|>` extraction fallback to be skipped.
+  All now have `startString: "<|channel>thought"`, `endString: "<channel|>"`.
+- **`<channel|>` token leak in Gemma content**: when llama pre-splits reasoning into `reasoning_content`,
+  the endString is never stripped from `content` (extraction is skipped when `reasoning_content` is
+  already populated). Fix: strip endString from content unconditionally when the registry has a reasoning
+  field, regardless of whether llama pre-split. Not yet implemented.

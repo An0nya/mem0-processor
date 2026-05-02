@@ -2151,7 +2151,11 @@
       8.38
     ],
     "minRamGb": "8.95",
-    "recommendedRamGb": 11
+    "recommendedRamGb": 11,
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "bartowski/olmo-3.1-32b-think": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/allenai_Olmo-3.1-32B-Think-GGUF/allenai_Olmo-3.1-32B-Think-IQ3_XXS.gguf",
@@ -2214,6 +2218,7 @@
       "imatrix",
       "iq3_xxs",
       "large",
+      "watch-candidate",
       "olmo2",
       "wd-elements"
     ]
@@ -2273,7 +2278,11 @@
       "large",
       "quality-candidate",
       "wd-elements"
-    ]
+    ],
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "bartowski/granite-4.0-h-small": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/ibm-granite_granite-4.0-h-small-GGUF/ibm-granite_granite-4.0-h-small-IQ2_M.gguf",
@@ -2438,7 +2447,11 @@
     "highPrecisionRatio": 0.2231404958677686,
     "ultraLowRatio": 0,
     "quantStrategy": "aggressive",
-    "ropeFreqBase": "1000000000.000000"
+    "ropeFreqBase": "1000000000.000000",
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "mradermacher/hermes-4.3-36b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Hermes-4.3-36B-heretic-i1-GGUF/Hermes-4.3-36B-heretic.i1-IQ2_M.gguf",
@@ -2599,6 +2612,7 @@
     "tags": [
       "dense",
       "imatrix",
+      "watch-candidate",
       "iq4_xs",
       "mistral3",
       "small",
@@ -2664,9 +2678,14 @@
       "imatrix",
       "iq4_xs",
       "mistral3",
+      "watch-candidate",
       "small",
       "wd-elements"
-    ]
+    ],
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "mradermacher/mistral-nemo-12b-thinking": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC-GGUF/Mistral-Nemo-2407-12B-Thinking-Claude-Gemini-GPT5.2-Uncensored-HERETIC.Q4_K_M.gguf",
@@ -2734,7 +2753,11 @@
         "organization": "TeichAI"
       }
     ],
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "mradermacher/mistral-small-24b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mistral-Small-3.2-24B-Instruct-2506-Text-Only-Heretic-v1.2-i1-GGUF/Mistral-Small-3.2-24B-Instruct-2506-Text-Only-Heretic-v1.2.i1-IQ3_M.gguf",
@@ -2770,7 +2793,7 @@
     "modelName": "Mistral Small 3.2 24B Instruct 2506 T...",
     "baseModel": "Mistral Small 3.2 24B Instruct 2506 T...",
     "sizeLabel": "24B",
-    "architecture": "llama",
+    "architecture": "mistral3",
     "attentionHeads": 32,
     "kvHeads": 8,
     "gqaRatio": 4,
@@ -2791,7 +2814,11 @@
     "highPrecisionRatio": 0.2231404958677686,
     "ultraLowRatio": 0,
     "quantStrategy": "aggressive",
-    "ropeFreqBase": "1000000000.000000"
+    "ropeFreqBase": "1000000000.000000",
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "mradermacher/mixtral-8x7b-limerp": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Mixtral-8x7B-Instruct-v0.1-LimaRP-ZLoss-i1-GGUF/Mixtral-8x7B-Instruct-v0.1-LimaRP-ZLoss.i1-IQ2_XXS.gguf",
@@ -2849,7 +2876,11 @@
     "highPrecisionRatio": 0.30030959752321984,
     "ultraLowRatio": 0.38390092879256965,
     "quantStrategy": "aggressive",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "mradermacher/qwen3-coder-40b-a3b": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3-Coder-Next-REAP-40B-A3B-i1-GGUF/Qwen3-Coder-Next-REAP-40B-A3B.i1-IQ2_XS.gguf",
@@ -3441,7 +3472,11 @@
       11.21
     ],
     "minRamGb": "11.81",
-    "recommendedRamGb": 14
+    "recommendedRamGb": 14,
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "mradermacher/gpt-oss-20b-heretic": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/gpt-oss-20b-heretic-heretic-GGUF/gpt-oss-20b-heretic-heretic.IQ4_XS.gguf",
@@ -3657,6 +3692,7 @@
       "imatrix",
       "medium",
       "moe",
+      "watch-candidate",
       "q3_k_m",
       "quality-candidate",
       "wd-elements"
@@ -3717,7 +3753,11 @@
       13.900000000000002
     ],
     "minRamGb": "14.71",
-    "recommendedRamGb": 17
+    "recommendedRamGb": 17,
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "nvidia/nemotron-nano-4b": {
     "path": "/Volumes/WD-elements/llm-offload/nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF/NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
@@ -4614,7 +4654,11 @@
     "ultraLowRatio": 0,
     "quantStrategy": "highly_mixed",
     "ropeFreqBase": "1000000.000000",
-    "arch": "moe"
+    "arch": "moe",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "misc/gemma-4-26b-a4b-claude-opus-distill-v1": {
     "path": "/Volumes/WD-elements/llm-offload/TeichAI/gemma-4-26B-A4B-it-Claude-Opus-Distill-GGUF/gemma-4-26B-A4B-it-Claude-Opus-Distill.q3_k_m.gguf",
@@ -4684,7 +4728,11 @@
         "organization": "Crownelius"
       }
     ],
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "mradermacher/gemma-4-26b-a4b-claude-opus-distill-v2": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/gemma-4-26B-A4B-it-Claude-Opus-Distill-v2-i1-GGUF/gemma-4-26B-A4B-it-Claude-Opus-Distill-v2.i1-IQ3_M.gguf",
@@ -4706,6 +4754,7 @@
       "imatrix",
       "iq3_s",
       "medium",
+      "watch-candidate",
       "moe",
       "wd-elements"
     ],
@@ -4757,7 +4806,11 @@
       }
     ],
     "ropeFreqBase": "1000000.000000",
-    "arch": "moe"
+    "arch": "moe",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "sphaela/gemma-4-26B-A4B-it-AutoRound-GGUF": {
     "path": "/Volumes/WD-elements/llm-offload/sphaela/gemma-4-26B-A4B-it-AutoRound-GGUF/gemma-4-26B-A4B-it-Q2_K_MIXED.gguf",
@@ -4812,7 +4865,11 @@
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
     "ropeFreqBase": "1000000.000000",
-    "arch": "moe"
+    "arch": "moe",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "mradermacher/ERNIE-21B-A3B-Thinking-Gemini-3-Pro-High-Reasoning-V2-IQ4_XS": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/ERNIE-21B-A3B-Thinking-Gemini-3-Pro-High-Reasoning-V2-GGUF/ERNIE-21B-A3B-Thinking-Gemini-3-Pro-High-Reasoning-V2.IQ4_XS.gguf",
@@ -4895,12 +4952,13 @@
       "imatrix",
       "iq4_xs",
       "moe",
+      "reap",
       "small",
       "wd-elements"
     ],
     "nLayer": 30,
     "nCtxTrain": 262144,
-    "modelType": "?B",
+    "modelType": "26B-A4B",
     "modelParams": "13.81 B",
     "quantType": "IQ4_XS - 4.25 bpw",
     "bpw": "4.46",
@@ -4930,7 +4988,11 @@
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
     "ropeFreqBase": "1000000.000000",
-    "arch": "moe"
+    "arch": "moe",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "mradermacher/Gemma-4-14B-A4B-Heretic.i1-Q4_K_M": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Gemma-4-14B-A4B-Heretic-i1-GGUF/Gemma-4-14B-A4B-Heretic.i1-Q4_K_M.gguf",
@@ -4952,11 +5014,12 @@
       "moe",
       "q4_k_m",
       "small",
+      "reap",
       "wd-elements"
     ],
     "nLayer": 30,
     "nCtxTrain": 262144,
-    "modelType": "?B",
+    "modelType": "26B-A4B",
     "modelParams": "13.81 B",
     "quantType": "Q4_K - Medium",
     "bpw": "5.33",
@@ -4987,7 +5050,11 @@
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
     "ropeFreqBase": "1000000.000000",
-    "arch": "moe"
+    "arch": "moe",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "unsloth/GLM-4.7-Flash-REAP-23B-A3B-IQ4_XS": {
     "path": "/Volumes/WD-elements/llm-offload/unsloth/GLM-4.7-Flash-REAP-23B-A3B-GGUF/GLM-4.7-Flash-REAP-23B-A3B-IQ4_XS.gguf",
@@ -5009,6 +5076,7 @@
       "iq4_xs",
       "medium",
       "moe",
+      "reap",
       "unsloth",
       "wd-elements"
     ],
@@ -5136,6 +5204,7 @@
       "llama",
       "q8_0",
       "tiny",
+      "quality-candidate",
       "wd-elements"
     ],
     "nLayer": 32,
@@ -5307,7 +5376,7 @@
     ],
     "nLayer": 40,
     "nCtxTrain": 393216,
-    "modelType": "14B",
+    "modelType": "24B",
     "modelParams": "23.57 B",
     "quantType": "IQ4_XS - 4.25 bpw",
     "bpw": "4.33",
@@ -5339,7 +5408,11 @@
     "highPrecisionRatio": 0.2231404958677686,
     "ultraLowRatio": 0,
     "quantStrategy": "aggressive",
-    "ropeFreqBase": "100000000.000000"
+    "ropeFreqBase": "100000000.000000",
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "bartowski/darwin-36b-opus": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/FINAL-Bench_Darwin-36B-Opus-GGUF/FINAL-Bench_Darwin-36B-Opus-IQ2_M.gguf",
@@ -5556,6 +5629,7 @@
       "dense",
       "imatrix",
       "iq4_xs",
+      "watch-candidate",
       "llama",
       "medium",
       "mistral",
@@ -5573,7 +5647,7 @@
     "modelName": "Magistral Small 2509",
     "baseModel": "Mistral Small 3.2 24B Instruct 2506",
     "sizeLabel": "Small",
-    "architecture": "llama",
+    "architecture": "mistral3",
     "attentionHeads": 32,
     "kvHeads": 8,
     "gqaRatio": 4,
@@ -5625,7 +5699,11 @@
       14.790000000000001
     ],
     "minRamGb": "15.54",
-    "recommendedRamGb": 18
+    "recommendedRamGb": 18,
+    "reasoning": {
+      "startString": "[THINK]",
+      "endString": "[/THINK]"
+    }
   },
   "mradermacher/qwen35-9b-os-auto-thinking": {
     "path": "/Volumes/WD-elements/llm-offload/mradermacher/Qwen3.5-9B-Claude-4.6-OS-Auto-Variable-THINKING-i1-GGUF/Qwen3.5-9B-Claude-4.6-OS-Auto-Variable-THINKING.i1-IQ4_XS.gguf",
@@ -5736,6 +5814,7 @@
     },
     "tags": [
       "dense",
+      "quality-candidate",
       "imatrix",
       "iq4_xs",
       "qwen35",
@@ -5906,7 +5985,7 @@
     "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
     "launch": {
-      "ctxSize": 16000,
+      "ctxSize": 32000,
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
@@ -5925,7 +6004,7 @@
     ],
     "nLayer": 60,
     "nCtxTrain": 262144,
-    "modelType": "?B",
+    "modelType": "31B",
     "modelParams": "30.70 B",
     "quantType": "IQ3_XXS - 3.0625 bpw",
     "bpw": "3.08",
@@ -5957,7 +6036,11 @@
     "highPrecisionRatio": 0.5066026410564226,
     "ultraLowRatio": 0.12965186074429771,
     "quantStrategy": "highly_mixed",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "sphaela/qwen3.6-27b-autoround-q3_k_l": {
     "path": "/Volumes/WD-elements/llm-offload/sphaela/Qwen3.6-27B-AutoRound-GGUF/Qwen3.6-27B-Q3_K_L.gguf",
@@ -6081,7 +6164,7 @@
     "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
     "launch": {
-      "ctxSize": 16000,
+      "ctxSize": 32000,
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
@@ -6098,7 +6181,7 @@
     ],
     "nLayer": 60,
     "nCtxTrain": 262144,
-    "modelType": "?B",
+    "modelType": "31B",
     "modelParams": "30.70 B",
     "quantType": "Q2_K - Small",
     "bpw": "2.81",
@@ -6124,7 +6207,11 @@
     "highPrecisionRatio": 0.5066026410564226,
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "bartowski/google-gemma-4-31b-it-iq2_m": {
     "path": "/Volumes/WD-elements/llm-offload/bartowski/google_gemma-4-31B-it-GGUF/google_gemma-4-31B-it-IQ2_M.gguf",
@@ -6134,7 +6221,7 @@
     "source": "wd-elements",
     "chatTemplatePath": "/Users/anya/.claude/mem0/templates/gemma.jinja",
     "launch": {
-      "ctxSize": 16000,
+      "ctxSize": 24000,
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
@@ -6152,7 +6239,7 @@
     ],
     "nLayer": 60,
     "nCtxTrain": 262144,
-    "modelType": "?B",
+    "modelType": "31B",
     "modelParams": "30.70 B",
     "quantType": "IQ2_M - 2.7 bpw",
     "bpw": "3.29",
@@ -6182,7 +6269,11 @@
     "highPrecisionRatio": 0.5066026410564226,
     "ultraLowRatio": 0.1908763505402161,
     "quantStrategy": "highly_mixed",
-    "ropeFreqBase": "1000000.000000"
+    "ropeFreqBase": "1000000.000000",
+    "reasoning": {
+      "startString": "<|channel>thought",
+      "endString": "<channel|>"
+    }
   },
   "mradermacher/nanbeige4.1-3b-f16": {
     "path": "/Volumes/NVME External/lmstudio_models/mradermacher/Nanbeige4.1-3B-GGUF/Nanbeige4.1-3B.f16.gguf",
@@ -6195,15 +6286,16 @@
       "nGpuLayers": -1,
       "ubatchSize": 64,
       "flashAttn": true,
+      "kvQuantK": "f16",
+      "kvQuantV": "f16",
       "threads": 8,
-      "kvQuantK": "q8_0",
-      "kvQuantV": "q8_0",
       "maxOutputTokens": 12000,
       "reasoningBudget": 8000,
       "reasoningBudgetMessage": "[REASONING BUDGET EXHAUSTED]\nLock in your analysis now. Complete Open Threads and Meta Takeaways without\nrestarting sections. Output the analysis as-is."
     },
     "tags": [
       "dense",
+      "quality-candidate",
       "f16",
       "llama",
       "nanbeige",
@@ -6227,10 +6319,10 @@
     "kvHeads": 4,
     "gqaRatio": 5,
     "hasSSM": false,
-    "kvCacheSizeMiB": 2125,
-    "kvQuantK": "q8_0",
-    "kvQuantV": "q8_0",
-    "projectedMemoryMiB": 8858,
+    "kvCacheSizeMiB": 4000,
+    "kvQuantK": "f16",
+    "kvQuantV": "f16",
+    "projectedMemoryMiB": 10733,
     "hasImatrix": false,
     "quantBreakdown": {
       "f32": 65,
@@ -6261,7 +6353,7 @@
     "tags": [
       "dense",
       "qwen35",
-      "bare",
+      "watch-candidate",
       "wd-elements"
     ],
     "nLayer": 64,
@@ -6320,12 +6412,12 @@
     "tags": [
       "gemma4",
       "moe",
-      "bare",
+      "reap",
       "wd-elements"
     ],
     "nLayer": 30,
     "nCtxTrain": 262144,
-    "modelType": "?B",
+    "modelType": "26B-A4B",
     "modelParams": "19.88 B",
     "quantType": "IQ4_XS - 4.25 bpw",
     "bpw": "4.42",
@@ -6333,7 +6425,7 @@
     "totalLayers": 31,
     "kvLayers": 5,
     "modelName": "Gemma 4 A4B 98e v3 It",
-    "sizeLabel": "A4B",
+    "sizeLabel": "26B-A4B",
     "architecture": "gemma4",
     "expertCount": 98,
     "expertUsedCount": 8,
@@ -6374,7 +6466,6 @@
     },
     "tags": [
       "dense",
-      "bare",
       "wd-elements"
     ],
     "nLayer": 32,
@@ -6427,7 +6518,6 @@
     },
     "tags": [
       "dense",
-      "bare",
       "wd-elements"
     ],
     "nLayer": 27,
@@ -6481,7 +6571,6 @@
     "tags": [
       "dense",
       "qwen",
-      "bare",
       "wd-elements"
     ],
     "nLayer": 28,
@@ -6545,7 +6634,7 @@
     "tags": [
       "moe",
       "qwen3",
-      "bare",
+      "reap",
       "wd-elements"
     ],
     "nLayer": 48,
@@ -6604,7 +6693,8 @@
     "tags": [
       "moe",
       "qwen36",
-      "bare",
+      "reap",
+      "watch-candidate",
       "wd-elements"
     ],
     "nLayer": 40,
@@ -6659,7 +6749,6 @@
     },
     "tags": [
       "dense",
-      "bare",
       "qwen",
       "wd-elements"
     ],
@@ -6693,5 +6782,1520 @@
     "ultraLowRatio": 0,
     "quantStrategy": "conservative",
     "ropeFreqBase": "1000000.000000"
+  },
+  "mradermacher/llada-moe-7b-a1b-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/LLaDA-MoE-7B-A1B-Instruct-TD-i1-GGUF/LLaDA-MoE-7B-A1B-Instruct-TD.i1-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 8192,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "moe",
+      "wd-elements",
+      "iq4_xs",
+      "small",
+      "imatrix"
+    ],
+    "nLayer": 16,
+    "nCtxTrain": 8192,
+    "modelType": "A1.7B",
+    "modelParams": "7.36 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.36",
+    "offloadedLayers": 17,
+    "totalLayers": 17,
+    "modelName": "LLaDA MoE 7B A1B Instruct TD",
+    "sizeLabel": "7B-A1B",
+    "architecture": "llada-moe",
+    "expertCount": 64,
+    "expertUsedCount": 8,
+    "attentionHeads": 16,
+    "kvHeads": 16,
+    "gqaRatio": 1,
+    "hasSSM": false,
+    "projectedMemoryMiB": 3698,
+    "hasImatrix": true,
+    "imatrixEntries": 128,
+    "quantBreakdown": {
+      "f32": 81,
+      "q6_K": 1,
+      "iq4_xs": 113,
+      "total": 195
+    },
+    "highPrecisionRatio": 0.4153846153846154,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "50000.000000"
+  },
+  "mradermacher/intern-s1-mini-q6_k": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Intern-S1-mini-i1-GGUF/Intern-S1-mini.i1-Q6_K.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small",
+      "imatrix"
+    ],
+    "nLayer": 36,
+    "nCtxTrain": 40960,
+    "modelType": "8B",
+    "modelParams": "8.20 B",
+    "quantType": "Q6_K",
+    "bpw": "6.56",
+    "offloadedLayers": 37,
+    "totalLayers": 37,
+    "kvLayers": 36,
+    "modelName": "Intern-S1-Mini",
+    "sizeLabel": "mini",
+    "architecture": "qwen3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2390.62,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 8354,
+    "hasImatrix": true,
+    "imatrixEntries": 252,
+    "quantBreakdown": {
+      "f32": 145,
+      "q6_K": 254,
+      "total": 399
+    },
+    "highPrecisionRatio": 0.3634085213032581,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "mradermacher/phi-4-mini-6b-merge-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Phi-4-mini-6b-merge-i1-GGUF/Phi-4-mini-6b-merge.i1-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small",
+      "imatrix"
+    ]
+  },
+  "mradermacher/internlm3-8b-instruct-q6_k": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/internlm3-8b-instruct-i1-GGUF/internlm3-8b-instruct.i1-Q6_K.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small",
+      "imatrix"
+    ],
+    "nLayer": 48,
+    "nCtxTrain": 32768,
+    "modelType": "34B",
+    "modelParams": "8.80 B",
+    "quantType": "Q6_K",
+    "bpw": "6.56",
+    "offloadedLayers": 49,
+    "totalLayers": 49,
+    "kvLayers": 48,
+    "modelName": "Internlm3 8b Instruct",
+    "sizeLabel": "8B",
+    "architecture": "llama",
+    "attentionHeads": 32,
+    "kvHeads": 2,
+    "gqaRatio": 16,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 796.88,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 7306,
+    "hasImatrix": true,
+    "quantBreakdown": {
+      "f32": 97,
+      "q6_K": 338,
+      "total": 435
+    },
+    "highPrecisionRatio": 0.22298850574712645,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "50000000.000000"
+  },
+  "mradermacher/codeforce-metatune-gpt20b-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Codeforce-metatune-gpt20b-i1-GGUF/Codeforce-metatune-gpt20b.i1-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "watch-candidate",
+      "medium",
+      "imatrix"
+    ],
+    "nLayer": 24,
+    "nCtxTrain": 131072,
+    "modelType": "20B",
+    "modelParams": "20.91 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.62",
+    "offloadedLayers": 25,
+    "totalLayers": 25,
+    "kvLayers": 12,
+    "modelName": "Codeforce Metatune Gpt20B",
+    "baseModel": "Gpt Oss 20b Unsloth Bnb 4bit",
+    "sizeLabel": "32x2.4B",
+    "architecture": "gpt-oss",
+    "expertCount": 32,
+    "expertUsedCount": 4,
+    "attentionHeads": 64,
+    "kvHeads": 8,
+    "gqaRatio": 8,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 210.94,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11475,
+    "hasImatrix": true,
+    "imatrixEntries": 192,
+    "quantBreakdown": {
+      "f32": 289,
+      "q5_1": 24,
+      "q8_0": 1,
+      "iq4_nl": 121,
+      "iq4_xs": 24,
+      "total": 459
+    },
+    "highPrecisionRatio": 0.6318082788671024,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "150000.000000"
+  },
+  "mradermacher/kimi-vl-a3b-thinking-2506-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/mradermacher/Kimi-VL-A3B-Thinking-2506-i1-GGUF/Kimi-VL-A3B-Thinking-2506.i1-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "moe",
+      "wd-elements",
+      "iq4_xs",
+      "medium",
+      "imatrix"
+    ],
+    "nLayer": 27,
+    "nCtxTrain": 131072,
+    "modelType": "16B",
+    "modelParams": "15.96 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.38",
+    "offloadedLayers": 28,
+    "totalLayers": 28,
+    "kvLayers": 27,
+    "modelName": "Kimi VL A3B Thinking 2506",
+    "baseModel": "Kimi VL A3B Instruct",
+    "sizeLabel": "A3B",
+    "architecture": "deepseek2",
+    "expertCount": 64,
+    "expertUsedCount": 6,
+    "attentionHeads": 16,
+    "kvHeads": 1,
+    "gqaRatio": 16,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 266.97,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 8483,
+    "hasImatrix": true,
+    "imatrixEntries": 320,
+    "quantBreakdown": {
+      "f32": 134,
+      "q6_K": 1,
+      "iq4_nl": 53,
+      "iq4_xs": 242,
+      "total": 430
+    },
+    "highPrecisionRatio": 0.3116279069767442,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "800000.000000",
+    "specialAttention": "MLA"
+  },
+  "bartowski/granite-4.1-30b-iq3_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/ibm-granite_granite-4.1-30b-GGUF/ibm-granite_granite-4.1-30b-IQ3_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 24000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq3_xs",
+      "medium"
+    ],
+    "nLayer": 64,
+    "nCtxTrain": 131072,
+    "modelType": "?B",
+    "modelParams": "28.87 B",
+    "quantType": "IQ3_XS - 3.3 bpw",
+    "bpw": "3.38",
+    "offloadedLayers": 64,
+    "totalLayers": 65,
+    "kvLayers": 64,
+    "modelName": "Granite 4.1 30b",
+    "sizeLabel": "30B",
+    "architecture": "granite",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 1692,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 13367,
+    "hasImatrix": true,
+    "imatrixEntries": 448,
+    "quantBreakdown": {
+      "f32": 129,
+      "q4_K": 64,
+      "q6_K": 33,
+      "iq3_xxs": 96,
+      "iq3_s": 256,
+      "total": 578
+    },
+    "highPrecisionRatio": 0.2231833910034602,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "50000000.000000"
+  },
+  "bartowski/hunyuan-7b-instruct-q6_k_l": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/tencent_Hunyuan-7B-Instruct-GGUF/tencent_Hunyuan-7B-Instruct-Q6_K_L.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "7B",
+    "modelParams": "7.50 B",
+    "quantType": "Q6_K",
+    "bpw": "6.70",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 32,
+    "modelName": "Hunyuan 7B Instruct",
+    "baseModel": "Hunyuan 7B Pretrain",
+    "sizeLabel": "7B",
+    "architecture": "hunyuan-dense",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2125,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 8150,
+    "hasImatrix": true,
+    "imatrixEntries": 224,
+    "quantBreakdown": {
+      "f32": 129,
+      "q8_0": 1,
+      "q6_K": 224,
+      "total": 354
+    },
+    "highPrecisionRatio": 0.3672316384180791,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "11158840.000000"
+  },
+  "bartowski/granite-4.1-8b-q6_k_l": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/ibm-granite_granite-4.1-8b-GGUF/ibm-granite_granite-4.1-8b-Q6_K_L.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 131072,
+    "modelType": "3B",
+    "modelParams": "8.79 B",
+    "quantType": "Q6_K",
+    "bpw": "7.02",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 40,
+    "modelName": "Granite 4.1 8b",
+    "sizeLabel": "8B",
+    "architecture": "granite",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2656.25,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 9630,
+    "hasImatrix": true,
+    "imatrixEntries": 280,
+    "quantBreakdown": {
+      "f32": 81,
+      "q8_0": 122,
+      "q6_K": 160,
+      "total": 363
+    },
+    "highPrecisionRatio": 0.559228650137741,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000000.000000"
+  },
+  "bartowski/dolphin-2.9.1-yi-34b-iq2_m": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/dolphin-2.9.1-yi-1.5-34b-GGUF/dolphin-2.9.1-yi-1.5-34b-IQ2_M.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq2_m",
+      "large"
+    ],
+    "nLayer": 60,
+    "nCtxTrain": 8192,
+    "modelType": "30B",
+    "modelParams": "34.39 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.74",
+    "offloadedLayers": 61,
+    "totalLayers": 61,
+    "kvLayers": 60,
+    "modelName": "dolphin-2.9.1-yi-1.5-34b",
+    "architecture": "llama",
+    "attentionHeads": 56,
+    "kvHeads": 8,
+    "gqaRatio": 7,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2109.38,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 13214,
+    "hasImatrix": true,
+    "quantBreakdown": {
+      "f32": 121,
+      "q4_K": 60,
+      "q5_K": 1,
+      "iq3_s": 68,
+      "iq2_s": 293,
+      "total": 543
+    },
+    "highPrecisionRatio": 0.22283609576427257,
+    "ultraLowRatio": 0.5395948434622467,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "5000000.000000"
+  },
+  "bartowski/phi-3.5-moe-instruct-iq2_s": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/Phi-3.5-MoE-instruct-GGUF/Phi-3.5-MoE-instruct-IQ2_S.gguf",
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "nExpertsUsed": 2,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "moe",
+      "wd-elements",
+      "iq2_s",
+      "large"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 131072,
+    "modelType": "16x3.8B",
+    "modelParams": "41.87 B",
+    "quantType": "IQ2_S - 2.5 bpw",
+    "bpw": "2.39",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 32,
+    "modelName": "Phi 3.5 MoE Instruct",
+    "sizeLabel": "16x4.1B",
+    "architecture": "phimoe",
+    "expertCount": 16,
+    "expertUsedCount": 2,
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 1125,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 13056,
+    "hasImatrix": true,
+    "quantBreakdown": {
+      "f32": 293,
+      "q4_K": 32,
+      "q5_K": 1,
+      "iq2_xs": 156,
+      "iq3_s": 37,
+      "total": 519
+    },
+    "highPrecisionRatio": 0.5645472061657033,
+    "ultraLowRatio": 0.30057803468208094,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000.000000"
+  },
+  "bartowski/phi-4-reasoning-plus-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/microsoft_Phi-4-reasoning-plus-GGUF/microsoft_Phi-4-reasoning-plus-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "medium"
+    ]
+  },
+  "bartowski/bonsai-8b-unpacked-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/prism-ml_Bonsai-8B-unpacked-GGUF/prism-ml_Bonsai-8B-unpacked-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small"
+    ],
+    "nLayer": 36,
+    "nCtxTrain": 65536,
+    "modelType": "8B",
+    "modelParams": "8.19 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.55",
+    "offloadedLayers": 37,
+    "totalLayers": 37,
+    "kvLayers": 36,
+    "sizeLabel": "8B",
+    "architecture": "qwen3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2390.62,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 6559,
+    "hasImatrix": true,
+    "imatrixEntries": 252,
+    "quantBreakdown": {
+      "f32": 145,
+      "q6_K": 55,
+      "iq4_xs": 199,
+      "total": 399
+    },
+    "highPrecisionRatio": 0.3634085213032581,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "bartowski/lfm2-24b-a2b-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/LiquidAI_LFM2-24B-A2B-GGUF/LiquidAI_LFM2-24B-A2B-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "moe",
+      "wd-elements",
+      "iq4_xs",
+      "medium"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 128000,
+    "modelType": "24B.A2B",
+    "modelParams": "23.84 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.28",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 10,
+    "modelName": "LFM2 24B A2B",
+    "sizeLabel": "24B-A2B",
+    "architecture": "lfm2moe",
+    "expertCount": 64,
+    "expertUsedCount": 4,
+    "attentionHeads": 32,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 175.78,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12356,
+    "hasImatrix": true,
+    "imatrixEntries": 258,
+    "quantBreakdown": {
+      "f32": 207,
+      "q8_0": 20,
+      "q6_K": 11,
+      "iq4_xs": 190,
+      "total": 428
+    },
+    "highPrecisionRatio": 0.530373831775701,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "bartowski/carnice-v2-27b-iq3_xxs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/kai-os_Carnice-V2-27b-GGUF/kai-os_Carnice-V2-27b-IQ3_XXS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "iq3_xxs",
+      "medium"
+    ],
+    "nLayer": 64,
+    "nCtxTrain": 262144,
+    "modelType": "27B",
+    "modelParams": "26.90 B",
+    "quantType": "IQ3_XXS - 3.0625 bpw",
+    "bpw": "3.68",
+    "offloadedLayers": 65,
+    "totalLayers": 65,
+    "kvLayers": 16,
+    "modelName": "Carnice V2 27b",
+    "baseModel": "Qwen3.6 27B",
+    "sizeLabel": "27B",
+    "architecture": "qwen35",
+    "attentionHeads": 24,
+    "kvHeads": 4,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 562.5,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12057,
+    "hasImatrix": true,
+    "imatrixEntries": 496,
+    "quantBreakdown": {
+      "f32": 449,
+      "q8_0": 24,
+      "q4_K": 16,
+      "q5_K": 49,
+      "q6_K": 8,
+      "iq3_xxs": 288,
+      "iq3_s": 17,
+      "total": 851
+    },
+    "highPrecisionRatio": 0.5558166862514688,
+    "ultraLowRatio": 0,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000000.000000"
+  },
+  "bartowski/apertus-8b-instruct-2509-q6_k_l": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/swiss-ai_Apertus-8B-Instruct-2509-GGUF/swiss-ai_Apertus-8B-Instruct-2509-Q6_K_L.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small"
+    ]
+  },
+  "bartowski/ring-mini-2.0-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/inclusionAI_Ring-mini-2.0-GGUF/inclusionAI_Ring-mini-2.0-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "broken",
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small"
+    ]
+  },
+  "bartowski/kimi-linear-48b-a3b-instruct-iq2_xxs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF/moonshotai_Kimi-Linear-48B-A3B-Instruct-IQ2_XXS.gguf",
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 24000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "moe",
+      "wd-elements",
+      "iq2_xxs",
+      "large"
+    ],
+    "nLayer": 27,
+    "nCtxTrain": 1048576,
+    "modelType": "48B.A3B",
+    "modelParams": "49.12 B",
+    "quantType": "IQ2_XXS - 2.0625 bpw",
+    "bpw": "1.97",
+    "offloadedLayers": 28,
+    "totalLayers": 28,
+    "kvLayers": 7,
+    "modelName": "Kimi Linear 48B A3B Instruct",
+    "sizeLabel": "48B-A3B",
+    "architecture": "kimi-linear",
+    "expertCount": 256,
+    "expertUsedCount": 8,
+    "attentionHeads": 32,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 52.05,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 11624,
+    "hasImatrix": true,
+    "imatrixEntries": 400,
+    "quantBreakdown": {
+      "f32": 234,
+      "q2_K": 1,
+      "q4_K": 76,
+      "q5_K": 1,
+      "q6_K": 40,
+      "iq2_xxs": 133,
+      "iq2_xs": 18,
+      "iq4_nl": 47,
+      "iq1_m": 60,
+      "total": 610
+    },
+    "highPrecisionRatio": 0.3836065573770492,
+    "ultraLowRatio": 0.24754098360655738,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000.000000"
+  },
+  "bartowski/fara-7b-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/microsoft_Fara-7B-GGUF/microsoft_Fara-7B-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small"
+    ],
+    "nLayer": 28,
+    "nCtxTrain": 128000,
+    "modelType": "7B",
+    "modelParams": "7.62 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.43",
+    "offloadedLayers": 29,
+    "totalLayers": 29,
+    "kvLayers": 28,
+    "modelName": "Fara 7B",
+    "sizeLabel": "7B",
+    "architecture": "qwen2vl",
+    "attentionHeads": 28,
+    "kvHeads": 4,
+    "gqaRatio": 7,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 929.69,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 4708,
+    "hasImatrix": true,
+    "imatrixEntries": 196,
+    "quantBreakdown": {
+      "f32": 141,
+      "q5_K": 28,
+      "q6_K": 1,
+      "iq4_xs": 169,
+      "total": 339
+    },
+    "highPrecisionRatio": 0.415929203539823,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "bartowski/ling-mini-2.0-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/inclusionAI_Ling-mini-2.0-GGUF/inclusionAI_Ling-mini-2.0-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "broken",
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small"
+    ]
+  },
+  "bartowski/nvidia-orchestrator-8b-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/nvidia_Orchestrator-8B-GGUF/nvidia_Orchestrator-8B-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "small"
+    ],
+    "nLayer": 36,
+    "nCtxTrain": 40960,
+    "modelType": "8B",
+    "modelParams": "8.19 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.45",
+    "offloadedLayers": 37,
+    "totalLayers": 37,
+    "kvLayers": 36,
+    "modelName": "Orchestrator 8B",
+    "sizeLabel": "8B",
+    "architecture": "qwen3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2390.62,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 6458,
+    "hasImatrix": true,
+    "imatrixEntries": 252,
+    "quantBreakdown": {
+      "f32": 145,
+      "q5_K": 36,
+      "q6_K": 1,
+      "iq4_xs": 217,
+      "total": 399
+    },
+    "highPrecisionRatio": 0.3634085213032581,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "bartowski/eurollm-22b-instruct-2512-iq4_xs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/utter-project_EuroLLM-22B-Instruct-2512-GGUF/utter-project_EuroLLM-22B-Instruct-2512-IQ4_XS.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "dense",
+      "wd-elements",
+      "iq4_xs",
+      "medium"
+    ],
+    "nLayer": 54,
+    "nCtxTrain": 32768,
+    "modelType": "?B",
+    "modelParams": "22.64 B",
+    "quantType": "IQ4_XS - 4.25 bpw",
+    "bpw": "4.35",
+    "offloadedLayers": 55,
+    "totalLayers": 55,
+    "kvLayers": 54,
+    "modelName": "EuroLLM 22B Instruct 2512",
+    "baseModel": "EuroLLM 22B 2512",
+    "sizeLabel": "22B",
+    "architecture": "llama",
+    "attentionHeads": 48,
+    "kvHeads": 8,
+    "gqaRatio": 6,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 1898.44,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 13279,
+    "hasImatrix": true,
+    "imatrixEntries": 378,
+    "quantBreakdown": {
+      "f32": 109,
+      "q5_K": 54,
+      "q6_K": 1,
+      "iq4_xs": 325,
+      "total": 489
+    },
+    "highPrecisionRatio": 0.2229038854805726,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "bartowski/ai21-jamba2-mini-iq2_xxs": {
+    "path": "/Volumes/WD-elements/llm-offload/bartowski/ai21labs_AI21-Jamba2-Mini-GGUF/ai21labs_AI21-Jamba2-Mini-IQ2_XXS.gguf",
+    "format": "gguf",
+    "arch": "moe",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "moe",
+      "wd-elements",
+      "iq2_xxs",
+      "medium"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 262144,
+    "modelType": "?B",
+    "modelParams": "51.57 B",
+    "quantType": "IQ2_XXS - 2.0625 bpw",
+    "bpw": "1.94",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 4,
+    "modelName": "AI21 Jamba2 Mini",
+    "sizeLabel": "Mini",
+    "architecture": "jamba",
+    "expertCount": 16,
+    "expertUsedCount": 2,
+    "attentionHeads": 32,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 265.62,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 12132,
+    "hasImatrix": true,
+    "imatrixEntries": 240,
+    "quantBreakdown": {
+      "f32": 305,
+      "q2_K": 7,
+      "q4_K": 16,
+      "q5_K": 1,
+      "q6_K": 2,
+      "iq2_xxs": 152,
+      "iq2_xs": 9,
+      "iq1_m": 39,
+      "total": 531
+    },
+    "highPrecisionRatio": 0.5743879472693032,
+    "ultraLowRatio": 0.3032015065913371,
+    "quantStrategy": "highly_mixed"
+  },
+  "jedisct1/mimo-7b-rl-q6_k": {
+    "path": "/Volumes/WD-elements/llm-offload/jedisct1/MiMo-7B-RL-GGUF/MiMo-7B-RL-Q6_K.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small",
+      "qwen"
+    ]
+  },
+  "tiiuae/falcon-h1r-7b-q6_k": {
+    "path": "/Volumes/WD-elements/llm-offload/tiiuae/Falcon-H1R-7B-GGUF/Falcon-H1R-7B-Q6_K.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small"
+    ],
+    "nLayer": 44,
+    "nCtxTrain": 262144,
+    "modelType": "7B",
+    "modelParams": "7.59 B",
+    "quantType": "Q6_K",
+    "bpw": "6.57",
+    "offloadedLayers": 45,
+    "totalLayers": 45,
+    "kvLayers": 44,
+    "modelName": "Falcon H1R 7B",
+    "baseModel": "Falcon H1 7B Base",
+    "sizeLabel": "7B",
+    "architecture": "falcon-h1",
+    "attentionHeads": 12,
+    "kvHeads": 2,
+    "gqaRatio": 6,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 730.47,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 6533,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 353,
+      "q6_K": 398,
+      "total": 751
+    },
+    "highPrecisionRatio": 0.47003994673768307,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "99999997952.000000"
+  },
+  "tiiuae/falcon-h1-34b-instruct-iq2_m": {
+    "path": "/Volumes/WD-elements/llm-offload/tiiuae/Falcon-H1-34B-Instruct-GGUF/Falcon-H1-34B-Instruct-IQ2_M.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq2_m",
+      "large"
+    ],
+    "nLayer": 72,
+    "nCtxTrain": 262144,
+    "modelType": "34B",
+    "modelParams": "33.64 B",
+    "quantType": "IQ2_M - 2.7 bpw",
+    "bpw": "2.78",
+    "offloadedLayers": 73,
+    "totalLayers": 73,
+    "kvLayers": 72,
+    "modelName": "Falcon H1 34B Instruct",
+    "baseModel": "Falcon H1 34B Base",
+    "sizeLabel": "34B",
+    "architecture": "falcon-h1",
+    "attentionHeads": 20,
+    "kvHeads": 4,
+    "gqaRatio": 5,
+    "hasSSM": true,
+    "kvCacheSizeMiB": 1265.62,
+    "kvQuantK": "q4_0",
+    "kvQuantV": "q4_0",
+    "projectedMemoryMiB": 12232,
+    "hasImatrix": true,
+    "imatrixEntries": 648,
+    "quantBreakdown": {
+      "f32": 577,
+      "q4_K": 72,
+      "q5_K": 1,
+      "iq3_s": 82,
+      "iq2_s": 495,
+      "total": 1227
+    },
+    "highPrecisionRatio": 0.4702526487367563,
+    "ultraLowRatio": 0.4034229828850856,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "99999997952.000000"
+  },
+  "tiiuae/falcon3-10b-instruct-q4_k_m": {
+    "path": "/Volumes/WD-elements/llm-offload/tiiuae/Falcon3-10B-Instruct-GGUF/Falcon3-10B-Instruct-q4_k_m.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q4_k_m",
+      "small"
+    ],
+    "nLayer": 40,
+    "nCtxTrain": 32768,
+    "modelType": "13B",
+    "modelParams": "10.31 B",
+    "quantType": "Q4_K - Medium",
+    "bpw": "4.88",
+    "offloadedLayers": 41,
+    "totalLayers": 41,
+    "kvLayers": 40,
+    "modelName": "Falcon3 10B Instruct",
+    "baseModel": "Falcon3 10B Base",
+    "sizeLabel": "10B",
+    "architecture": "llama",
+    "attentionHeads": 12,
+    "kvHeads": 4,
+    "gqaRatio": 3,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2656.25,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 8464,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 81,
+      "q4_K": 241,
+      "q6_K": 41,
+      "total": 363
+    },
+    "highPrecisionRatio": 0.2231404958677686,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000042.000000"
+  },
+  "devquasar/sarvam-30b-q2_k": {
+    "path": "/Volumes/WD-elements/llm-offload/DevQuasar/Sarvamai.sarvam-30b-GGUF/sarvamai.sarvam-30b.f16.gguf.Q2_K.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q4_0",
+      "kvQuantV": "q4_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q2_k",
+      "medium"
+    ]
+  },
+  "openbmb/minicpm-o-4.5-q6_k": {
+    "path": "/Volumes/WD-elements/llm-offload/openBMB/MiniCPM-o-4_5-gguf/MiniCPM-o-4_5-Q6_K.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q6_k",
+      "small"
+    ],
+    "nLayer": 36,
+    "nCtxTrain": 40960,
+    "modelType": "8B",
+    "modelParams": "8.19 B",
+    "quantType": "Q6_K",
+    "bpw": "6.56",
+    "offloadedLayers": 37,
+    "totalLayers": 37,
+    "kvLayers": 36,
+    "modelName": "Llm",
+    "sizeLabel": "8.2B",
+    "architecture": "qwen3",
+    "attentionHeads": 32,
+    "kvHeads": 8,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 2390.62,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 8349,
+    "hasImatrix": false,
+    "quantBreakdown": {
+      "f32": 145,
+      "q6_K": 254,
+      "total": 399
+    },
+    "highPrecisionRatio": 0.3634085213032581,
+    "ultraLowRatio": 0,
+    "quantStrategy": "aggressive",
+    "ropeFreqBase": "1000000.000000"
+  },
+  "arcee-ai/trinity-mini-iq3_m": {
+    "path": "/Volumes/WD-elements/llm-offload/arcee-ai/Trinity-Mini-GGUF/Trinity-Mini-IQ3_M.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "iq3_m",
+      "small"
+    ],
+    "nLayer": 32,
+    "nCtxTrain": 131072,
+    "modelType": "26B",
+    "modelParams": "26.12 B",
+    "quantType": "IQ3_S mix - 3.66 bpw",
+    "bpw": "3.70",
+    "offloadedLayers": 33,
+    "totalLayers": 33,
+    "kvLayers": 8,
+    "modelName": "Trinity Mini",
+    "baseModel": "Trinity Mini PreRL Fusion",
+    "sizeLabel": "Mini",
+    "architecture": "afmoe",
+    "expertCount": 128,
+    "expertUsedCount": 8,
+    "attentionHeads": 32,
+    "kvHeads": 4,
+    "gqaRatio": 8,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 265.62,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 11737,
+    "hasImatrix": true,
+    "imatrixEntries": 376,
+    "quantBreakdown": {
+      "f32": 253,
+      "q8_0": 74,
+      "q4_K": 48,
+      "q5_K": 80,
+      "q6_K": 1,
+      "iq3_s": 145,
+      "total": 601
+    },
+    "highPrecisionRatio": 0.5440931780366056,
+    "ultraLowRatio": 0,
+    "quantStrategy": "highly_mixed",
+    "ropeFreqBase": "10000.000000"
+  },
+  "arcee-ai/trinity-nano-preview-q8_0": {
+    "path": "/Volumes/WD-elements/llm-offload/arcee-ai/Trinity-Nano-Preview-GGUF/Trinity-Nano-Preview-Q8_0.gguf",
+    "format": "gguf",
+    "arch": "dense",
+    "source": "wd-elements",
+    "chatTemplatePath": null,
+    "launch": {
+      "ctxSize": 32000,
+      "nGpuLayers": -1,
+      "ubatchSize": 64,
+      "flashAttn": true,
+      "threads": 8,
+      "kvQuantK": "q8_0",
+      "kvQuantV": "q8_0"
+    },
+    "tags": [
+      "bare",
+      "dense",
+      "wd-elements",
+      "q8_0",
+      "tiny"
+    ],
+    "nLayer": 56,
+    "nCtxTrain": 131072,
+    "modelType": "6B",
+    "modelParams": "6.12 B",
+    "quantType": "Q8_0",
+    "bpw": "8.53",
+    "offloadedLayers": 57,
+    "totalLayers": 57,
+    "kvLayers": 14,
+    "modelName": "Trinity Nano Preview",
+    "sizeLabel": "128x727M",
+    "architecture": "afmoe",
+    "expertCount": 128,
+    "expertUsedCount": 8,
+    "attentionHeads": 8,
+    "kvHeads": 2,
+    "gqaRatio": 4,
+    "hasSSM": false,
+    "kvCacheSizeMiB": 232.42,
+    "kvQuantK": "q8_0",
+    "kvQuantV": "q8_0",
+    "projectedMemoryMiB": 6345,
+    "hasImatrix": true,
+    "imatrixEntries": 664,
+    "quantBreakdown": {
+      "f32": 445,
+      "q8_0": 612,
+      "total": 1057
+    },
+    "highPrecisionRatio": 1,
+    "ultraLowRatio": 0,
+    "quantStrategy": "conservative",
+    "ropeFreqBase": "10000.000000"
   }
 }
