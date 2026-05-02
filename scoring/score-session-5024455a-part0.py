@@ -81,23 +81,33 @@ CHECKS_DEF = [
     ),
 
     # 5. Commit explained what and why
+    # 5. Commit explained what changed and why
+    # Extended: also match "descriptive commit message" phrasing (magistral, ministral)
+    # and "commit message describing v6/v7" phrasing (format-aware paraphrasers).
     ('commit_quality',
      r'(commit.{0,40}(explain|what|why|clear|good|detailed)'
      r'|commit.{0,30}(message|description).{0,30}(explain|includes)'
      r'|why.{0,20}(changed|swapped|replaced).{0,20}(commit|noted)'
-     r'|commit.{0,20}(rationale|reason|context))'
+     r'|commit.{0,20}(rationale|reason|context)'
+     r'|descriptive.{0,20}(commit|message)'
+     r'|commit.{0,40}descriptive'
+     r'|commit.{0,30}message.{0,60}(v6|v7|format|prompt))'
     ),
 ]
 
 # Penalty checks: if matched, subtract 1 from adjusted score.
 PENALTY_DEF = [
-    # P1. Claiming the commit failed or needed recovery
+    # P1. Claiming the commit failed or required recovery
     # (the TOOL_DENIED was on git diff, not the commit — commit succeeded first try)
+    # NOTE: bare "denied" removed — fires on "commit (TOOL_DENIED)" describing the bash
+    #       interruption, not a commit failure. "did not" removed — fires on
+    #       "commit message...the user did not review" (oversight != failure).
     ('commit_failed',
-     r'(commit.{0,30}(fail|error|denied|rejected|did not|couldn)'
+     r'(commit.{0,30}(fail|error|rejected|couldn)'
      r'|commit.{0,20}(attempt.{0,10}fail|was.{0,10}fail)'
      r'|failed.{0,20}(to commit|commit)'
      r'|commit.{0,20}recover'
+     r'|commit.{0,10}was.{0,5}denied'
      r'|had to.{0,20}(retry|re.run|redo).{0,20}commit)'
     ),
 

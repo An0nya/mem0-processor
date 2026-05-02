@@ -40,7 +40,12 @@ CHECKS_DEF = [
      r'|initially.{0,20}(wrong|incorrect|missed|claim)'
      r'|dismissed.{0,20}(topic|question|as new)'
      r'|wrong.{0,20}(claim|assertion)'
-     r'|did not.{0,20}(check|search).{0,20}mem0)'
+     r'|did not.{0,20}(check|search).{0,20}mem0'
+     r'|revealed.{0,20}(a\s+)?(disconnect|gap|misalignment)'  # "revealed a disconnect"
+     r'|assumed.{0,25}no.{0,25}(prior|discussion)'            # "assumed no prior discussion"
+     r'|finding.{0,20}no.{0,20}(prior|record|discussion)'     # "finding no record"
+     r'|checked.{0,40}(memory|changelog).{0,40}(without|before).{0,20}(mem0|finding)'  # "checked X without mem0"
+     r'|without.{0,20}(first\s+)?(checking|searching).{0,20}mem0)'  # "without checking mem0"
     ),
 
     # 2. User had to push back and redirect Claude to check mem0
